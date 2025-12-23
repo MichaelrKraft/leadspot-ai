@@ -1,0 +1,262 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Import Inter font from Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+@layer base {
+  * {
+    @apply border-gray-700 dark:border-gray-700;
+  }
+
+  .light * {
+    @apply border-gray-200;
+  }
+
+  html {
+    @apply scroll-smooth;
+  }
+
+  /* Dark mode (default) */
+  body {
+    @apply antialiased transition-colors duration-300;
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+
+  .dark body {
+    @apply bg-background text-gray-100;
+  }
+
+  .light body {
+    @apply bg-gray-50 text-gray-900;
+  }
+
+  /* Dark mode headings */
+  .dark h1, .dark h2, .dark h3, .dark h4, .dark h5, .dark h6 {
+    @apply font-semibold text-white;
+  }
+
+  /* Light mode headings */
+  .light h1, .light h2, .light h3, .light h4, .light h5, .light h6 {
+    @apply font-semibold text-gray-900;
+  }
+
+  h1 {
+    @apply text-4xl md:text-5xl lg:text-6xl;
+  }
+
+  h2 {
+    @apply text-3xl md:text-4xl lg:text-5xl;
+  }
+
+  h3 {
+    @apply text-2xl md:text-3xl lg:text-4xl;
+  }
+
+  /* Dark mode scrollbar */
+  .dark ::-webkit-scrollbar {
+    @apply w-2;
+  }
+
+  .dark ::-webkit-scrollbar-track {
+    @apply bg-background-secondary;
+  }
+
+  .dark ::-webkit-scrollbar-thumb {
+    @apply bg-accent-blue rounded-full;
+  }
+
+  .dark ::-webkit-scrollbar-thumb:hover {
+    @apply bg-accent-lightBlue;
+  }
+
+  /* Light mode scrollbar */
+  .light ::-webkit-scrollbar {
+    @apply w-2;
+  }
+
+  .light ::-webkit-scrollbar-track {
+    @apply bg-gray-100;
+  }
+
+  .light ::-webkit-scrollbar-thumb {
+    @apply bg-gray-300 rounded-full;
+  }
+
+  .light ::-webkit-scrollbar-thumb:hover {
+    @apply bg-gray-400;
+  }
+}
+
+@layer components {
+  /* Gradient text */
+  .gradient-text {
+    @apply bg-gradient-to-r from-primary-400 via-primary-500 to-primary-600 bg-clip-text text-transparent;
+  }
+
+  /* Glass morphism effect - Dark mode */
+  .dark .glass {
+    @apply bg-white/5 backdrop-blur-lg border border-white/10;
+  }
+
+  /* Glass morphism effect - Light mode */
+  .light .glass {
+    @apply bg-white/80 backdrop-blur-lg border border-gray-200 shadow-sm;
+  }
+
+  /* Card hover effect */
+  .card-hover {
+    @apply transition-all duration-300 hover:shadow-glow hover:scale-105;
+  }
+
+  /* Focus ring - Dark mode */
+  .dark .focus-ring {
+    @apply focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 focus:ring-offset-background;
+  }
+
+  /* Focus ring - Light mode */
+  .light .focus-ring {
+    @apply focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 focus:ring-offset-white;
+  }
+
+  /* Animated background gradient - Dark mode */
+  .dark .animated-gradient {
+    background: linear-gradient(
+      45deg,
+      #0A0F1C,
+      #1E3A5F,
+      #0A0F1C,
+      #152A47
+    );
+    background-size: 400% 400%;
+    animation: gradientShift 15s ease infinite;
+  }
+
+  /* Animated background gradient - Light mode */
+  .light .animated-gradient {
+    background: linear-gradient(
+      45deg,
+      #f8fafc,
+      #e2e8f0,
+      #f8fafc,
+      #cbd5e1
+    );
+    background-size: 400% 400%;
+    animation: gradientShift 15s ease infinite;
+  }
+
+  @keyframes gradientShift {
+    0% {
+      background-position: 0% 50%;
+    }
+    50% {
+      background-position: 100% 50%;
+    }
+    100% {
+      background-position: 0% 50%;
+    }
+  }
+
+  /* Loading spinner - Dark mode */
+  .dark .spinner {
+    @apply animate-spin rounded-full border-2 border-gray-600 border-t-primary-500;
+  }
+
+  /* Loading spinner - Light mode */
+  .light .spinner {
+    @apply animate-spin rounded-full border-2 border-gray-300 border-t-primary-500;
+  }
+
+  /* Citation badge - Dark mode */
+  .dark .citation-badge {
+    @apply inline-flex items-center px-2 py-1 rounded-md bg-primary-900/30 text-primary-400 text-xs font-medium border border-primary-700/50 hover:bg-primary-800/40 transition-colors cursor-pointer;
+  }
+
+  /* Citation badge - Light mode */
+  .light .citation-badge {
+    @apply inline-flex items-center px-2 py-1 rounded-md bg-primary-100 text-primary-700 text-xs font-medium border border-primary-200 hover:bg-primary-200 transition-colors cursor-pointer;
+  }
+
+  /* Theme-aware card backgrounds */
+  .dark .theme-card {
+    @apply bg-white/5 border-white/10;
+  }
+
+  .light .theme-card {
+    @apply bg-white border-gray-200 shadow-sm;
+  }
+
+  /* Theme-aware text colors */
+  .dark .theme-text {
+    @apply text-gray-100;
+  }
+
+  .light .theme-text {
+    @apply text-gray-900;
+  }
+
+  .dark .theme-text-muted {
+    @apply text-gray-400;
+  }
+
+  .light .theme-text-muted {
+    @apply text-gray-600;
+  }
+
+  /* Theme-aware backgrounds */
+  .dark .theme-bg {
+    @apply bg-background;
+  }
+
+  .light .theme-bg {
+    @apply bg-gray-50;
+  }
+
+  .dark .theme-bg-secondary {
+    @apply bg-background-secondary;
+  }
+
+  .light .theme-bg-secondary {
+    @apply bg-white;
+  }
+
+  /* Theme-aware sidebar */
+  .dark .theme-sidebar {
+    @apply bg-background-secondary border-gray-800;
+  }
+
+  .light .theme-sidebar {
+    @apply bg-white border-gray-200;
+  }
+
+  /* Theme-aware inputs */
+  .dark .theme-input {
+    @apply bg-background-secondary border-gray-700 text-white placeholder-gray-500;
+  }
+
+  .light .theme-input {
+    @apply bg-white border-gray-300 text-gray-900 placeholder-gray-400;
+  }
+}
+
+@layer utilities {
+  /* Text utilities */
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  /* Animation delays */
+  .delay-100 {
+    animation-delay: 100ms;
+  }
+
+  .delay-200 {
+    animation-delay: 200ms;
+  }
+
+  .delay-300 {
+    animation-delay: 300ms;
+  }
+}

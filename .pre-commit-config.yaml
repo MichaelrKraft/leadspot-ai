@@ -1,0 +1,63 @@
+# Pre-commit hooks for Innosynth.ai
+# Install: pip install pre-commit && pre-commit install
+
+repos:
+  # Python linting and formatting with ruff
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.8.2
+    hooks:
+      - id: ruff
+        name: ruff lint
+        args: [--fix, --exit-non-zero-on-fix]
+        types_or: [python, pyi]
+        files: ^backend/
+      - id: ruff-format
+        name: ruff format
+        types_or: [python, pyi]
+        files: ^backend/
+
+  # Frontend formatting with Prettier
+  - repo: local
+    hooks:
+      - id: prettier
+        name: prettier
+        entry: npx --prefix frontend prettier --write --ignore-unknown
+        language: system
+        types_or: [javascript, jsx, ts, tsx, json, css, markdown]
+        files: ^frontend/
+        pass_filenames: true
+
+      - id: eslint
+        name: eslint
+        entry: npm run lint --prefix frontend --
+        language: system
+        types_or: [javascript, jsx, ts, tsx]
+        files: ^frontend/
+        pass_filenames: false
+
+  # General hooks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: trailing-whitespace
+        exclude: ^(frontend/.next/|backend/venv/)
+      - id: end-of-file-fixer
+        exclude: ^(frontend/.next/|backend/venv/)
+      - id: check-yaml
+        exclude: ^(frontend/.next/|backend/venv/)
+      - id: check-json
+        exclude: ^(frontend/.next/|backend/venv/|package-lock.json)
+      - id: check-added-large-files
+        args: ['--maxkb=1000']
+      - id: check-merge-conflict
+      - id: detect-private-key
+
+  # Security checks for Python
+  - repo: https://github.com/PyCQA/bandit
+    rev: 1.7.10
+    hooks:
+      - id: bandit
+        name: bandit security scan
+        args: ["-c", "pyproject.toml", "-r", "backend/app/"]
+        additional_dependencies: ["bandit[toml]"]
+        files: ^backend/

@@ -1,0 +1,182 @@
+# Prometheus alert rules for InnoSynth.ai
+
+groups:
+  - name: innosynth_alerts
+    interval: 30s
+    rules:
+      # High error rate
+      - alert: HighErrorRate
+        expr: |
+          (
+            sum(rate(http_requests_total{status=~"5.."}[5m]))
+            /
+            sum(rate(http_requests_total[5m]))
+          ) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: High error rate detected
+          description: "Error rate is {{ $value | humanizePercentage }} (threshold: 5%)"
+
+      # Elevated error rate
+      - alert: ElevatedErrorRate
+        expr: |
+          (
+            sum(rate(http_requests_total{status=~"5.."}[5m]))
+            /
+            sum(rate(http_requests_total[5m]))
+          ) > 0.02
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: Elevated error rate detected
+          description: "Error rate is {{ $value | humanizePercentage }} (threshold: 2%)"
+
+      # High latency
+      - alert: HighP95Latency
+        expr: |
+          histogram_quantile(0.95,
+            rate(http_request_duration_seconds_bucket[5m])
+          ) > 5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: High P95 latency detected
+          description: "P95 latency is {{ $value }}s (threshold: 5s)"
+
+      # Critical latency
+      - alert: CriticalP99Latency
+        expr: |
+          histogram_quantile(0.99,
+            rate(http_request_duration_seconds_bucket[5m])
+          ) > 10
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: Critical P99 latency detected
+          description: "P99 latency is {{ $value }}s (threshold: 10s)"
+
+      # Service down
+      - alert: ServiceDown
+        expr: up{job="innosynth-backend"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: InnoSynth service is down
+          description: "Service {{ $labels.instance }} has been down for more than 1 minute"
+
+      # High database connections
+      - alert: HighDatabaseConnections
+        expr: db_connections_total > 80
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: High database connection count
+          description: "Database has {{ $value }} active connections (threshold: 80)"
+
+      # Slow queries
+      - alert: SlowQueries
+        expr: |
+          histogram_quantile(0.95,
+            rate(query_duration_seconds_bucket[10m])
+          ) > 30
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: Slow query performance detected
+          description: "P95 query duration is {{ $value }}s (threshold: 30s)"
+
+      # Service unhealthy
+      - alert: ServiceUnhealthy
+        expr: health_check_status == 0
+        for: 3m
+        labels:
+          severity: critical
+        annotations:
+          summary: Service health check failing
+          description: "{{ $labels.service }} has failed health checks for 3 minutes"
+
+      # High rate limiting
+      - alert: HighRateLimitHits
+        expr: |
+          (
+            sum(rate(rate_limit_exceeded_total[5m]))
+            /
+            sum(rate(http_requests_total[5m]))
+          ) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: High rate limit hit rate
+          description: "{{ $value | humanizePercentage }} of requests are being rate limited"
+
+      # LLM API errors
+      - alert: HighLLMErrorRate
+        expr: |
+          (
+            sum(rate(llm_requests_total{status="error"}[5m]))
+            /
+            sum(rate(llm_requests_total[5m]))
+          ) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: High LLM API error rate
+          description: "LLM error rate is {{ $value | humanizePercentage }} (threshold: 10%)"
+
+      # Vector database issues
+      - alert: VectorDatabaseErrors
+        expr: |
+          sum(rate(vector_operations_total{status="error"}[5m])) > 10
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: Vector database experiencing errors
+          description: "{{ $value }} vector operations per second are failing"
+
+      # Graph database issues
+      - alert: GraphDatabaseErrors
+        expr: |
+          sum(rate(graph_operations_total{status="error"}[5m])) > 10
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: Graph database experiencing errors
+          description: "{{ $value }} graph operations per second are failing"
+
+      # Memory usage (if node exporter is available)
+      - alert: HighMemoryUsage
+        expr: |
+          (
+            node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes
+          ) / node_memory_MemTotal_bytes > 0.9
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: High memory usage detected
+          description: "Memory usage is {{ $value | humanizePercentage }}"
+
+      # Disk usage (if node exporter is available)
+      - alert: HighDiskUsage
+        expr: |
+          (
+            node_filesystem_size_bytes - node_filesystem_avail_bytes
+          ) / node_filesystem_size_bytes > 0.85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: High disk usage detected
+          description: "Disk usage is {{ $value | humanizePercentage }} on {{ $labels.mountpoint }}"

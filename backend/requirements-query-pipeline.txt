@@ -1,0 +1,18 @@
+# Additional requirements for Query Pipeline
+# Add these to your main requirements.txt
+
+# Token counting (for accurate context management)
+tiktoken>=0.5.2
+
+# Redis client for caching
+redis>=5.0.0
+redis[hiredis]>=5.0.0  # Optional: faster parsing
+
+# Already required (confirming versions):
+# anthropic>=0.8.0  # Claude API
+# openai>=1.10.0    # Embeddings API
+# pinecone-client>=3.0.0  # Vector search
+# fastapi>=0.109.0
+# pydantic>=2.5.0
+# sqlalchemy>=2.0.0
+# asyncpg>=0.29.0   # PostgreSQL async driver

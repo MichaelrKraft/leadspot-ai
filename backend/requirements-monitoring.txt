@@ -1,0 +1,7 @@
+# Monitoring Infrastructure Dependencies
+
+# Prometheus client for Python
+prometheus-client==0.18.0
+
+# HTTP client for health checks (if not already included)
+httpx>=0.24.0
