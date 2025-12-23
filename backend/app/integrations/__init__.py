@@ -1,14 +1,11 @@
 """
-Integration Framework for InnoSynth.ai
+Integration Framework for LeadSpot.ai
 
-Provides a pluggable architecture for connecting to external platforms:
-- Google Drive
-- Slack
-- Microsoft 365
-- Notion
-- And more...
+Provides a pluggable architecture for connecting to external CRM platforms:
+- Mautic CRM (primary)
 
-Each connector follows the same interface, making it easy to add new integrations.
+Each connector follows the same interface for OAuth2 authentication
+and data synchronization.
 """
 
 from app.integrations.base import (

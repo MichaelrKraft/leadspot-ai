@@ -119,30 +119,12 @@ class IntegrationRegistry:
             return
 
         # Import and register all connectors
+        # Mautic connector will be registered here once implemented
         try:
-            from app.integrations.google_drive import GoogleDriveConnector
-            self.register(GoogleDriveConnector)
+            from app.integrations.mautic import MauticConnector
+            self.register(MauticConnector)
         except ImportError as e:
-            logger.warning(f"Could not load Google Drive connector: {e}")
-
-        try:
-            from app.integrations.slack import SlackConnector
-            self.register(SlackConnector)
-        except ImportError as e:
-            logger.warning(f"Could not load Slack connector: {e}")
-
-        try:
-            from app.integrations.gmail import GmailConnector
-            self.register(GmailConnector)
-        except ImportError as e:
-            logger.warning(f"Could not load Gmail connector: {e}")
-
-        # Future connectors can be registered here:
-        # - Microsoft 365 / SharePoint
-        # - Notion
-        # - Confluence
-        # - Dropbox
-        # - Box
+            logger.debug(f"Mautic connector not yet available: {e}")
 
         self._initialized = True
         logger.info(f"Integration registry initialized with {len(self._connectors)} connectors")
