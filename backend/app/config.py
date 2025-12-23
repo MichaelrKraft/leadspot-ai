@@ -26,7 +26,7 @@ class Settings(BaseSettings):
     ENVIRONMENT: str = "development"  # development, staging, production
 
     # Application
-    APP_NAME: str = "InnoSynth.ai"
+    APP_NAME: str = "LeadSpot.ai"
     APP_VERSION: str = "0.1.0"
     DEBUG: bool = False
     API_PREFIX: str = "/api"
@@ -56,7 +56,7 @@ class Settings(BaseSettings):
     # Vector Database (Pinecone)
     PINECONE_API_KEY: str = ""
     PINECONE_ENVIRONMENT: str = "us-east-1-aws"
-    PINECONE_INDEX: str = "innosynth-embeddings"
+    PINECONE_INDEX: str = "leadspot-embeddings"
 
     # Cache (Redis)
     REDIS_URL: str = "redis://localhost:6379/0"
@@ -176,7 +176,7 @@ def _get_settings() -> Settings:
 
         if not settings.DATABASE_URL:
             # Use SQLite for development if no DATABASE_URL
-            settings.DATABASE_URL = "sqlite+aiosqlite:///./innosynth.db"
+            settings.DATABASE_URL = "sqlite+aiosqlite:///./leadspot.db"
 
     # Validate settings
     errors = settings.validate_production_settings()

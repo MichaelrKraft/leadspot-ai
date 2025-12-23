@@ -12,11 +12,11 @@ export default function Header() {
   const { isAuthenticated, user } = useAuthStore();
 
   const navigation = [
-    { name: "Search", href: "/" },
+    { name: "Command Center", href: "/" },
     { name: "Dashboard", href: "/dashboard" },
-    { name: "Decisions", href: "/decisions" },
-    { name: "Documents", href: "/documents" },
-    { name: "Sources", href: "/sources" },
+    { name: "Scheduled Tasks", href: "/scheduled" },
+    { name: "Contacts", href: "/contacts" },
+    { name: "Settings", href: "/settings" },
   ];
 
   return (
@@ -28,7 +28,7 @@ export default function Header() {
             <Link href="/" className="flex items-center">
               <Image
                 src="/logo.png"
-                alt="InnoSynth.ai Logo"
+                alt="LeadSpot.ai Logo"
                 width={200}
                 height={72}
                 className=""

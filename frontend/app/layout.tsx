@@ -3,13 +3,13 @@ import "./globals.css";
 import Providers from "@/components/Providers";
 
 export const metadata: Metadata = {
-  title: "InnoSynth.ai - From Search to Synthesis",
-  description: "Transform your organization's knowledge chaos into competitive advantage",
-  keywords: ["enterprise search", "knowledge synthesis", "AI", "B2B SaaS"],
-  authors: [{ name: "InnoSynth.ai" }],
+  title: "LeadSpot.ai - AI Agent Command Center for CRM",
+  description: "Launch autonomous AI agents that create campaigns, build workflows, and manage your CRM",
+  keywords: ["CRM", "marketing automation", "AI agents", "Mautic", "autonomous agents"],
+  authors: [{ name: "LeadSpot.ai" }],
   openGraph: {
-    title: "InnoSynth.ai - From Search to Synthesis",
-    description: "Transform your organization's knowledge chaos into competitive advantage",
+    title: "LeadSpot.ai - AI Agent Command Center for CRM",
+    description: "Launch autonomous AI agents that create campaigns, build workflows, and manage your CRM",
     type: "website",
   },
 };
@@ -30,7 +30,7 @@ export default function RootLayout({
               (function() {
                 try {
                   // Force light theme and clear any old dark preference
-                  localStorage.setItem('innosynth-theme', 'light');
+                  localStorage.setItem('leadspot-theme', 'light');
                   document.documentElement.classList.remove('dark');
                   document.documentElement.classList.add('light');
                 } catch (e) {}
