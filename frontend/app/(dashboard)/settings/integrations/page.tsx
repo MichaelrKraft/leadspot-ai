@@ -1,6 +1,6 @@
 /**
  * Integrations Settings Page
- * Connect and manage external platform integrations like Google Drive and Slack
+ * Connect and manage Mautic CRM integration for LeadSpot.ai
  */
 
 'use client';
@@ -17,37 +17,15 @@ import {
 
 // Provider icons and colors
 const PROVIDER_CONFIG: Record<string, { icon: React.ReactNode; gradient: string }> = {
-  google_drive: {
+  mautic: {
     icon: (
-      <svg className="w-8 h-8" viewBox="0 0 87.3 78" xmlns="http://www.w3.org/2000/svg">
-        <path d="m6.6 66.85 3.85 6.65c.8 1.4 1.95 2.5 3.3 3.3l13.75-23.8h-27.5c0 1.55.4 3.1 1.2 4.5z" fill="#0066da"/>
-        <path d="m43.65 25-13.75-23.8c-1.35.8-2.5 1.9-3.3 3.3l-25.4 44a9.06 9.06 0 0 0 -1.2 4.5h27.5z" fill="#00ac47"/>
-        <path d="m73.55 76.8c1.35-.8 2.5-1.9 3.3-3.3l1.6-2.75 7.65-13.25c.8-1.4 1.2-2.95 1.2-4.5h-27.502l5.852 11.5z" fill="#ea4335"/>
-        <path d="m43.65 25 13.75-23.8c-1.35-.8-2.9-1.2-4.5-1.2h-18.5c-1.6 0-3.15.45-4.5 1.2z" fill="#00832d"/>
-        <path d="m59.8 53h-32.3l-13.75 23.8c1.35.8 2.9 1.2 4.5 1.2h50.8c1.6 0 3.15-.45 4.5-1.2z" fill="#2684fc"/>
-        <path d="m73.4 26.5-12.7-22c-.8-1.4-1.95-2.5-3.3-3.3l-13.75 23.8 16.15 28h27.45c0-1.55-.4-3.1-1.2-4.5z" fill="#ffba00"/>
+      <svg className="w-8 h-8" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 2L2 7l10 5 10-5-10-5z" fill="#4e5e9e"/>
+        <path d="M2 17l10 5 10-5" stroke="#4e5e9e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+        <path d="M2 12l10 5 10-5" stroke="#4e5e9e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
       </svg>
     ),
-    gradient: 'from-blue-500 to-green-500',
-  },
-  gmail: {
-    icon: (
-      <svg className="w-8 h-8" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-        <path d="M24 5.457v13.909c0 .904-.732 1.636-1.636 1.636h-3.819V11.73L12 16.64l-6.545-4.91v9.273H1.636A1.636 1.636 0 0 1 0 19.366V5.457c0-2.023 2.309-3.178 3.927-1.964L5.455 4.64 12 9.548l6.545-4.91 1.528-1.145C21.69 2.28 24 3.434 24 5.457z" fill="#EA4335"/>
-      </svg>
-    ),
-    gradient: 'from-red-500 to-yellow-500',
-  },
-  slack: {
-    icon: (
-      <svg className="w-8 h-8" viewBox="0 0 127 127" xmlns="http://www.w3.org/2000/svg">
-        <path d="M27.2 80c0 7.3-5.9 13.2-13.2 13.2C6.7 93.2.8 87.3.8 80c0-7.3 5.9-13.2 13.2-13.2h13.2V80zm6.6 0c0-7.3 5.9-13.2 13.2-13.2 7.3 0 13.2 5.9 13.2 13.2v33c0 7.3-5.9 13.2-13.2 13.2-7.3 0-13.2-5.9-13.2-13.2V80z" fill="#E01E5A"/>
-        <path d="M47 27c-7.3 0-13.2-5.9-13.2-13.2C33.8 6.5 39.7.6 47 .6c7.3 0 13.2 5.9 13.2 13.2V27H47zm0 6.7c7.3 0 13.2 5.9 13.2 13.2 0 7.3-5.9 13.2-13.2 13.2H14c-7.3 0-13.2-5.9-13.2-13.2 0-7.3 5.9-13.2 13.2-13.2h33z" fill="#36C5F0"/>
-        <path d="M99.9 46.9c0-7.3 5.9-13.2 13.2-13.2 7.3 0 13.2 5.9 13.2 13.2 0 7.3-5.9 13.2-13.2 13.2H99.9V46.9zm-6.6 0c0 7.3-5.9 13.2-13.2 13.2-7.3 0-13.2-5.9-13.2-13.2V14c0-7.3 5.9-13.2 13.2-13.2 7.3 0 13.2 5.9 13.2 13.2v32.9z" fill="#2EB67D"/>
-        <path d="M80.1 99.8c7.3 0 13.2 5.9 13.2 13.2 0 7.3-5.9 13.2-13.2 13.2-7.3 0-13.2-5.9-13.2-13.2V99.8h13.2zm0-6.6c-7.3 0-13.2-5.9-13.2-13.2 0-7.3 5.9-13.2 13.2-13.2h33c7.3 0 13.2 5.9 13.2 13.2 0 7.3-5.9 13.2-13.2 13.2h-33z" fill="#ECB22E"/>
-      </svg>
-    ),
-    gradient: 'from-purple-500 to-pink-500',
+    gradient: 'from-indigo-500 to-purple-500',
   },
 };
 
@@ -360,9 +338,9 @@ export default function IntegrationsSettingsPage() {
 
       {/* Page Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-white mb-2">Integrations</h1>
+        <h1 className="text-3xl font-bold text-white mb-2">Mautic CRM Connection</h1>
         <p className="text-gray-400">
-          Connect your platforms to automatically sync documents and conversations into your knowledge base.
+          Connect your Mautic CRM instance to power LeadSpot.ai's AI agents with your contacts and campaigns.
         </p>
       </div>
 
@@ -375,8 +353,7 @@ export default function IntegrationsSettingsPage() {
           <div>
             <h3 className="text-blue-400 font-medium mb-1">Demo Mode Available</h3>
             <p className="text-sm text-gray-400">
-              API credentials are not configured, but you can try integrations in demo mode with sample data.
-              This is perfect for exploring features before setting up production connections.
+              Don't have Mautic set up yet? Try demo mode with sample contacts and campaigns to explore LeadSpot.ai features.
             </p>
           </div>
         </div>
@@ -436,9 +413,9 @@ export default function IntegrationsSettingsPage() {
         <h2 className="text-xl font-semibold text-white mb-4">Coming Soon</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {[
-            { name: 'Microsoft 365', icon: '📧', description: 'SharePoint, OneDrive, Teams' },
-            { name: 'Notion', icon: '📝', description: 'Pages, databases, wikis' },
-            { name: 'Confluence', icon: '📚', description: 'Spaces, pages, blogs' },
+            { name: 'HubSpot', icon: '🔶', description: 'Contacts, deals, tickets' },
+            { name: 'Salesforce', icon: '☁️', description: 'Leads, opportunities, accounts' },
+            { name: 'Pipedrive', icon: '📊', description: 'Deals, contacts, activities' },
           ].map((item) => (
             <div
               key={item.name}

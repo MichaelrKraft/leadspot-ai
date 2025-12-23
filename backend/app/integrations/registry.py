@@ -118,8 +118,7 @@ class IntegrationRegistry:
         if self._initialized:
             return
 
-        # Import and register all connectors
-        # Mautic connector will be registered here once implemented
+        # Import and register Mautic connector
         try:
             from app.integrations.mautic import MauticConnector
             self.register(MauticConnector)

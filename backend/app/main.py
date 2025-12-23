@@ -24,7 +24,7 @@ if settings.SENTRY_DSN:
         ],
         traces_sample_rate=0.1 if settings.DEBUG else 0.05,
         environment=settings.ENVIRONMENT,
-        release=f"innosynth-backend@{settings.APP_VERSION}",
+        release=f"leadspot-backend@{settings.APP_VERSION}",
         send_default_pii=False,
         attach_stacktrace=True,
     )
@@ -46,6 +46,7 @@ from app.routers import (
     oauth,
     query,
     query_local,
+    settings,
     superadmin,
 )
 from app.services.ingestion.pipeline import IngestionPipeline
@@ -108,8 +109,8 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="InnoSynth.ai API",
-    description="Enterprise Knowledge Synthesis Platform",
+    title="LeadSpot.ai API",
+    description="AI Agent Command Center for CRM",
     version="0.1.0",
     lifespan=lifespan
 )
@@ -172,13 +173,14 @@ app.include_router(admin.router, tags=["admin"])
 app.include_router(superadmin.router, tags=["superadmin"])
 app.include_router(integrations.router, prefix="/api", tags=["integrations"])
 app.include_router(decisions.router, tags=["decisions"])
+app.include_router(settings.router, tags=["settings"])
 
 
 @app.get("/")
 async def root():
     """Root endpoint"""
     return {
-        "message": "InnoSynth.ai API",
+        "message": "LeadSpot.ai API",
         "version": "0.1.0",
         "status": "operational"
     }

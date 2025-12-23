@@ -5,8 +5,8 @@ import Link from 'next/link';
 export default function SettingsPage() {
   const settingsSections = [
     {
-      name: 'Integrations',
-      description: 'Connect Google Drive, Slack, and other platforms',
+      name: 'Mautic CRM',
+      description: 'Connect your Mautic instance for AI-powered CRM',
       href: '/settings/integrations',
       icon: (
         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -17,7 +17,7 @@ export default function SettingsPage() {
     },
     {
       name: 'API Keys',
-      description: 'Manage API keys for programmatic access',
+      description: 'Add your Anthropic API key to power AI agents',
       href: '/settings/api-keys',
       icon: (
         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -25,7 +25,6 @@ export default function SettingsPage() {
         </svg>
       ),
       color: 'purple',
-      comingSoon: true,
     },
     {
       name: 'Notifications',
