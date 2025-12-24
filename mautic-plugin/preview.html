@@ -1,0 +1,1882 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LeadSpot AI - Preview</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #f8fafc;
+            min-height: 100vh;
+            transition: background 0.2s;
+        }
+        [data-theme="dark"] body,
+        html[data-theme="dark"] body {
+            background: #0a0a0d;
+        }
+    </style>
+</head>
+<body>
+
+<!-- Mock Mautic Layout -->
+<div class="mautic-layout">
+    <!-- Mautic Sidebar -->
+    <div class="mautic-sidebar">
+        <div class="mautic-logo">
+            <img src="leadspot-logo.png" alt="LeadSpot.ai" class="leadspot-logo logo-for-light" />
+            <img src="leadspot-logo-light.png" alt="LeadSpot.ai" class="leadspot-logo logo-for-dark" />
+        </div>
+        <nav class="mautic-nav">
+            <a href="#" class="mautic-nav-item active">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 0 1 7 7h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v1a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-1H2a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1a7 7 0 0 1 7-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 0 1 2-2M7.5 13A2.5 2.5 0 0 0 5 15.5 2.5 2.5 0 0 0 7.5 18a2.5 2.5 0 0 0 2.5-2.5A2.5 2.5 0 0 0 7.5 13m9 0a2.5 2.5 0 0 0-2.5 2.5 2.5 2.5 0 0 0 2.5 2.5 2.5 2.5 0 0 0 2.5-2.5 2.5 2.5 0 0 0-2.5-2.5z"/></svg>
+                <span>AI Command Center</span>
+            </a>
+            <div class="mautic-nav-divider"></div>
+            <a href="#" class="mautic-nav-item">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg>
+                <span>Dashboard</span>
+            </a>
+            <a href="#" class="mautic-nav-item">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 5.5A3.5 3.5 0 0 1 15.5 9a3.5 3.5 0 0 1-3.5 3.5A3.5 3.5 0 0 1 8.5 9 3.5 3.5 0 0 1 12 5.5M5 8c.56 0 1.08.15 1.53.42-.15 1.43.27 2.85 1.13 3.96C7.16 13.34 6.16 14 5 14a3 3 0 0 1-3-3 3 3 0 0 1 3-3m14 0a3 3 0 0 1 3 3 3 3 0 0 1-3 3c-1.16 0-2.16-.66-2.66-1.62a5.54 5.54 0 0 0 1.13-3.96c.45-.27.97-.42 1.53-.42M5.5 18.25c0-2.07 2.91-3.75 6.5-3.75s6.5 1.68 6.5 3.75V20h-13v-1.75M0 20v-1.5c0-1.39 1.89-2.56 4.45-2.9-.59.68-.95 1.62-.95 2.65V20H0m24 0h-3.5v-1.75c0-1.03-.36-1.97-.95-2.65 2.56.34 4.45 1.51 4.45 2.9V20z"/></svg>
+                <span>Contacts</span>
+            </a>
+            <a href="#" class="mautic-nav-item">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+                <span>Segments</span>
+            </a>
+            <a href="#" class="mautic-nav-item">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20a2 2 0 0 0 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V9h14v11zM9 11H7v2h2v-2zm4 0h-2v2h2v-2zm4 0h-2v2h2v-2zm-8 4H7v2h2v-2zm4 0h-2v2h2v-2zm4 0h-2v2h2v-2z"/></svg>
+                <span>Campaigns</span>
+            </a>
+            <a href="#" class="mautic-nav-item">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>
+                <span>Emails</span>
+            </a>
+            <a href="#" class="mautic-nav-item">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/></svg>
+                <span>Reports</span>
+            </a>
+            <div class="mautic-nav-divider"></div>
+            <a href="http://localhost:3005/voice-ai" class="mautic-nav-item" target="_blank">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm-1 1.93c-3.94-.49-7-3.85-7-7.93V7h2v1c0 2.76 2.24 5 5 5s5-2.24 5-5V7h2v1c0 4.08-3.06 7.44-7 7.93V19h3v2H9v-2h3v-3.07z"/></svg>
+                <span>Voice Agents</span>
+            </a>
+            <a href="http://localhost:3005/community/leadspot" class="mautic-nav-item" target="_blank">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5s-3 1.34-3 3 1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
+                <span>Community</span>
+            </a>
+            <div class="mautic-nav-divider"></div>
+            <a href="#" class="mautic-nav-item">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M19.14 12.94c.04-.31.06-.63.06-.94 0-.31-.02-.63-.06-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.488.488 0 0 0-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54a.484.484 0 0 0-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.04.31-.06.63-.06.94s.02.63.06.94l-2.03 1.58a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
+                <span>Settings</span>
+            </a>
+        </nav>
+    </div>
+
+    <!-- Main Content Area -->
+    <div class="mautic-main">
+        <div class="mautic-header">
+            <h1 class="mautic-page-title">AI Command Center</h1>
+            <div class="mautic-header-actions">
+                <span class="mautic-user">admin@example.com</span>
+            </div>
+        </div>
+
+<div id="leadspot-app" class="ls-app">
+    <!-- Main Container -->
+    <div class="ls-container">
+
+        <!-- Setup Panel (OAuth) - Toggle display to see this -->
+        <div class="ls-setup-panel" id="setup-panel" style="display: none;">
+            <div class="ls-setup-card">
+                <div class="ls-setup-glow"></div>
+                <div class="ls-setup-icon">
+                    <svg width="56" height="56" viewBox="0 0 56 56" fill="none">
+                        <circle cx="28" cy="28" r="28" fill="url(#grad1)"/>
+                        <path d="M20 24l8-6 8 6v12l-8 6-8-6V24z" stroke="white" stroke-width="2.5" fill="none"/>
+                        <circle cx="28" cy="30" r="4" fill="white"/>
+                        <defs><linearGradient id="grad1" x1="0" y1="0" x2="56" y2="56"><stop offset="0%" stop-color="#6366f1"/><stop offset="100%" stop-color="#8b5cf6"/></linearGradient></defs>
+                    </svg>
+                </div>
+                <h2 class="ls-setup-title">Connect LeadSpot AI</h2>
+                <p class="ls-setup-subtitle">Enter your Mautic API credentials to unlock AI-powered CRM features</p>
+
+                <form id="oauth-setup-form" class="ls-setup-form">
+                    <div class="ls-field">
+                        <label>Client ID</label>
+                        <input type="text" id="client-id" placeholder="Your OAuth Client ID" required />
+                    </div>
+                    <div class="ls-field">
+                        <label>Client Secret</label>
+                        <input type="password" id="client-secret" placeholder="Your OAuth Client Secret" required />
+                    </div>
+                    <button type="submit" class="ls-btn-primary" id="connect-btn">
+                        <span class="btn-content">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M10 17l5-5-5-5M13.8 12H3"/></svg>
+                            Connect
+                        </span>
+                        <span class="btn-loading">
+                            <span class="ls-spinner"></span>
+                            Connecting...
+                        </span>
+                    </button>
+                    <div class="ls-error" id="setup-error"></div>
+                </form>
+
+                <div class="ls-setup-footer">
+                    <span class="ls-hint">Create credentials at: Configuration → API Credentials</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Daily Dashboard (shows on load) -->
+        <div class="ls-dashboard" id="dashboard-panel">
+            <div class="ls-dashboard-header">
+                <div class="ls-dashboard-greeting" id="dashboard-greeting">Good morning!</div>
+                <div class="ls-dashboard-subtitle">Here's your daily briefing</div>
+            </div>
+
+            <div class="ls-dashboard-grid">
+                <!-- Hot Leads Section -->
+                <div class="ls-dashboard-card ls-hot-leads">
+                    <div class="ls-card-header">
+                        <span class="ls-card-icon">🔥</span>
+                        <span class="ls-card-title">Hot Leads</span>
+                    </div>
+                    <div class="ls-card-body" id="hot-leads-list">
+                        <div class="ls-dashboard-loading">
+                            <div class="ls-spinner-small"></div>
+                            <span>Loading...</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Stats Section -->
+                <div class="ls-dashboard-card ls-stats-card">
+                    <div class="ls-card-header">
+                        <span class="ls-card-icon">📊</span>
+                        <span class="ls-card-title">CRM Stats</span>
+                    </div>
+                    <div class="ls-card-body ls-stats-grid" id="stats-grid">
+                        <div class="ls-stat-item">
+                            <span class="ls-stat-value" id="stat-contacts">-</span>
+                            <span class="ls-stat-label">Contacts</span>
+                        </div>
+                        <div class="ls-stat-item">
+                            <span class="ls-stat-value" id="stat-emails">-</span>
+                            <span class="ls-stat-label">Emails</span>
+                        </div>
+                        <div class="ls-stat-item">
+                            <span class="ls-stat-value" id="stat-campaigns">-</span>
+                            <span class="ls-stat-label">Campaigns</span>
+                        </div>
+                        <div class="ls-stat-item">
+                            <span class="ls-stat-value" id="stat-segments">-</span>
+                            <span class="ls-stat-label">Segments</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- AI Insights Section -->
+                <div class="ls-dashboard-card ls-insights-card full-width">
+                    <div class="ls-card-header">
+                        <span class="ls-card-icon">💡</span>
+                        <span class="ls-card-title">AI Insights</span>
+                    </div>
+                    <div class="ls-card-body" id="ai-insights">
+                        <div class="ls-dashboard-loading">
+                            <div class="ls-spinner-small"></div>
+                            <span>Generating insights...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <button class="ls-start-chat-btn" onclick="showChatInterface()">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
+                </svg>
+                Start Chatting
+            </button>
+        </div>
+
+        <!-- Chat Interface -->
+        <div class="ls-chat" id="chat-interface" style="display: none;">
+            <!-- Messages Area -->
+            <div class="ls-messages" id="messages-container">
+                <!-- Welcome Screen -->
+                <div class="ls-welcome" id="welcome-state">
+                    <div class="ls-welcome-badge">
+                        <span class="ls-badge-dot"></span>
+                        AI Agent Ready
+                    </div>
+                    <h1 class="ls-welcome-title">What can I help you with?</h1>
+                    <p class="ls-welcome-subtitle">I can manage contacts, create campaigns, send emails, and automate your marketing workflows.</p>
+
+                    <div class="ls-suggestions">
+                        <button class="ls-suggestion" data-prompt="Show me my CRM overview">
+                            <span class="ls-suggestion-icon">📊</span>
+                            <span class="ls-suggestion-text">CRM Overview</span>
+                        </button>
+                        <button class="ls-suggestion" data-prompt="Show me my top 10 contacts">
+                            <span class="ls-suggestion-icon">👥</span>
+                            <span class="ls-suggestion-text">Top Contacts</span>
+                        </button>
+                        <button class="ls-suggestion" data-prompt="Create a welcome email for new subscribers">
+                            <span class="ls-suggestion-icon">📧</span>
+                            <span class="ls-suggestion-text">Create Email</span>
+                        </button>
+                        <button class="ls-suggestion" data-prompt="Show me active campaigns">
+                            <span class="ls-suggestion-icon">🎯</span>
+                            <span class="ls-suggestion-text">Campaigns</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Typing Indicator (hidden by default, toggle .show class to see it) -->
+            <div class="ls-typing" id="typing-indicator">
+                <div class="ls-typing-avatar">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 0 1 7 7h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v1a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-1H2a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1a7 7 0 0 1 7-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 0 1 2-2M7.5 13A2.5 2.5 0 0 0 5 15.5 2.5 2.5 0 0 0 7.5 18a2.5 2.5 0 0 0 2.5-2.5A2.5 2.5 0 0 0 7.5 13m9 0a2.5 2.5 0 0 0-2.5 2.5 2.5 2.5 0 0 0 2.5 2.5 2.5 2.5 0 0 0 2.5-2.5 2.5 2.5 0 0 0-2.5-2.5z"/></svg>
+                </div>
+                <div class="ls-typing-dots">
+                    <span></span><span></span><span></span>
+                </div>
+                <span class="ls-typing-text">LeadSpot is thinking...</span>
+            </div>
+
+            <!-- Input Area -->
+            <div class="ls-input-area">
+                <form id="chat-form" class="ls-form">
+                    <div class="ls-input-container">
+                        <input type="text" id="message-input" class="ls-input"
+                               placeholder="Ask me anything about your CRM..." autocomplete="off" />
+                        <button type="button" class="ls-voice-btn" id="voice-btn" title="Voice input">
+                            <svg class="mic-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+                                <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                                <line x1="12" y1="19" x2="12" y2="23"/>
+                                <line x1="8" y1="23" x2="16" y2="23"/>
+                            </svg>
+                            <svg class="stop-icon" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style="display: none;">
+                                <rect x="6" y="6" width="12" height="12" rx="2"/>
+                            </svg>
+                        </button>
+                        <button type="submit" class="ls-send-btn" id="send-btn">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/>
+                            </svg>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Status Bar -->
+        <div class="ls-status-bar">
+            <div class="ls-status-item" id="connection-status">
+                <span class="ls-status-indicator connected"></span>
+                <span class="ls-status-label">Connected</span>
+            </div>
+            <div class="ls-status-divider"></div>
+            <div class="ls-status-item" id="api-status">
+                <span class="ls-status-indicator connected"></span>
+                <span class="ls-status-label">API: Connected</span>
+            </div>
+            <div class="ls-status-divider"></div>
+            <div class="ls-status-stats">
+                <span class="ls-stat"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 5.5A3.5 3.5 0 0 1 15.5 9a3.5 3.5 0 0 1-3.5 3.5A3.5 3.5 0 0 1 8.5 9 3.5 3.5 0 0 1 12 5.5M5 8c.56 0 1.08.15 1.53.42-.15 1.43.27 2.85 1.13 3.96C7.16 13.34 6.16 14 5 14a3 3 0 0 1-3-3 3 3 0 0 1 3-3m14 0a3 3 0 0 1 3 3 3 3 0 0 1-3 3c-1.16 0-2.16-.66-2.66-1.62a5.54 5.54 0 0 0 1.13-3.96c.45-.27.97-.42 1.53-.42M5.5 18.25c0-2.07 2.91-3.75 6.5-3.75s6.5 1.68 6.5 3.75V20h-13v-1.75M0 20v-1.5c0-1.39 1.89-2.56 4.45-2.9-.59.68-.95 1.62-.95 2.65V20H0m24 0h-3.5v-1.75c0-1.03-.36-1.97-.95-2.65 2.56.34 4.45 1.51 4.45 2.9V20z"/></svg> <span id="contact-count">3.9k</span></span>
+                <span class="ls-stat"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20a2 2 0 0 0 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V9h14v11zM9 11H7v2h2v-2zm4 0h-2v2h2v-2zm4 0h-2v2h2v-2zm-8 4H7v2h2v-2zm4 0h-2v2h2v-2zm4 0h-2v2h2v-2z"/></svg> <span id="campaign-count">12</span></span>
+            </div>
+        </div>
+    </div>
+</div>
+
+    </div> <!-- end mautic-main -->
+</div> <!-- end mautic-layout -->
+
+<!-- Demo Controls -->
+<div style="position: fixed; top: 20px; right: 20px; display: flex; flex-direction: column; gap: 10px; z-index: 1000;">
+    <button onclick="toggleTheme()" id="theme-toggle" style="padding: 10px 16px; background: linear-gradient(135deg, #818cf8, #a5b4fc); border: none; color: white; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 600;">🌙 Dark Mode</button>
+    <button onclick="showDashboard()" style="padding: 10px 16px; background: #27272a; border: 1px solid #3f3f46; color: white; border-radius: 8px; cursor: pointer; font-size: 13px;">📊 Dashboard</button>
+    <button onclick="toggleSetup()" style="padding: 10px 16px; background: #27272a; border: 1px solid #3f3f46; color: white; border-radius: 8px; cursor: pointer; font-size: 13px;">Toggle Setup Panel</button>
+    <button onclick="toggleTyping()" style="padding: 10px 16px; background: #27272a; border: 1px solid #3f3f46; color: white; border-radius: 8px; cursor: pointer; font-size: 13px;">Toggle Typing</button>
+    <button onclick="addDemoMessages()" style="padding: 10px 16px; background: #a5b4fc; border: none; color: white; border-radius: 8px; cursor: pointer; font-size: 13px;">Add Demo Messages</button>
+</div>
+
+<style>
+/* ============================================
+   Mock Mautic Layout
+   ============================================ */
+.mautic-layout {
+    display: flex;
+    min-height: 100vh;
+    transition: var(--ls-transition);
+}
+
+/* Light theme sidebar */
+.mautic-sidebar {
+    width: 220px;
+    background: #f8fafc;
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    border-right: 1px solid #e2e8f0;
+}
+
+[data-theme="dark"] .mautic-sidebar {
+    background: #1e2639;
+    border-right: 1px solid rgba(255,255,255,0.1);
+}
+
+.mautic-logo {
+    padding: 16px 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+[data-theme="dark"] .mautic-logo {
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+
+.mautic-nav {
+    flex: 1;
+    padding: 12px 0;
+    overflow-y: auto;
+}
+
+.mautic-nav-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 20px;
+    color: #64748b;
+    text-decoration: none;
+    font-size: 14px;
+    transition: all 0.2s;
+}
+
+[data-theme="dark"] .mautic-nav-item {
+    color: #a0aec0;
+}
+
+.mautic-nav-item:hover {
+    background: #f1f5f9;
+    color: #1e293b;
+}
+
+[data-theme="dark"] .mautic-nav-item:hover {
+    background: rgba(255,255,255,0.05);
+    color: #fff;
+}
+
+.mautic-nav-item.active {
+    background: linear-gradient(90deg, rgba(129, 140, 248, 0.15) 0%, transparent 100%);
+    color: #6366f1;
+    border-left: 3px solid #818cf8;
+}
+
+[data-theme="dark"] .mautic-nav-item.active {
+    background: linear-gradient(90deg, rgba(165, 180, 252, 0.3) 0%, transparent 100%);
+    color: #c7d2fe;
+}
+
+.mautic-nav-item svg {
+    flex-shrink: 0;
+}
+
+.mautic-nav-divider {
+    height: 1px;
+    background: #e2e8f0;
+    margin: 12px 20px;
+}
+
+[data-theme="dark"] .mautic-nav-divider {
+    background: rgba(255,255,255,0.1);
+}
+
+.mautic-main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background: #ffffff;
+    min-width: 0;
+}
+
+[data-theme="dark"] .mautic-main {
+    background: #0a0a0d;
+}
+
+.mautic-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 24px;
+    background: #f8fafc;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+[data-theme="dark"] .mautic-header {
+    background: #111118;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+
+.leadspot-logo {
+    height: 62px;
+    width: auto;
+    max-width: 100%;
+}
+
+.logo-for-dark {
+    display: none;
+}
+
+[data-theme="dark"] .logo-for-light {
+    display: none;
+}
+
+[data-theme="dark"] .logo-for-dark {
+    display: block;
+}
+
+.mautic-page-title {
+    font-size: 20px;
+    font-weight: 600;
+    color: #1e293b;
+    margin: 0;
+}
+
+[data-theme="dark"] .mautic-page-title {
+    color: #fff;
+}
+
+.mautic-user {
+    font-size: 13px;
+    color: #64748b;
+}
+
+[data-theme="dark"] .mautic-user {
+    color: #a0aec0;
+}
+
+/* ============================================
+   LeadSpot AI - Modern UI Design
+   Inspired by: ChatGPT, Claude, Linear, Vercel
+   ============================================ */
+
+/* Light Theme (Default) */
+:root, [data-theme="light"] {
+    --ls-bg: #ffffff;
+    --ls-bg-secondary: #f8fafc;
+    --ls-bg-tertiary: #f1f5f9;
+    --ls-surface: rgba(255, 255, 255, 0.9);
+    --ls-border: #e2e8f0;
+    --ls-text: #1e293b;
+    --ls-text-secondary: #64748b;
+    --ls-text-muted: #94a3b8;
+    --ls-primary: #818cf8;
+    --ls-primary-hover: #a5b4fc;
+    --ls-gradient: linear-gradient(135deg, #818cf8 0%, #a5b4fc 50%, #c7d2fe 100%);
+    --ls-success: #22c55e;
+    --ls-warning: #f59e0b;
+    --ls-error: #ef4444;
+    --ls-radius: 12px;
+    --ls-radius-lg: 16px;
+    --ls-shadow: 0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06);
+    --ls-shadow-lg: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -2px rgba(0,0,0,0.1);
+    --ls-transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    --ls-accent: #a5b4fc;
+}
+
+/* Dark Theme */
+[data-theme="dark"] {
+    --ls-bg: #0f0f12;
+    --ls-bg-secondary: #18181b;
+    --ls-bg-tertiary: #27272a;
+    --ls-surface: rgba(39, 39, 42, 0.8);
+    --ls-border: rgba(63, 63, 70, 0.5);
+    --ls-text: #fafafa;
+    --ls-text-secondary: #a1a1aa;
+    --ls-text-muted: #71717a;
+    --ls-primary: #a5b4fc;
+    --ls-primary-hover: #c7d2fe;
+    --ls-gradient: linear-gradient(135deg, #818cf8 0%, #a5b4fc 50%, #c7d2fe 100%);
+    --ls-shadow: 0 4px 6px -1px rgba(0,0,0,0.3), 0 2px 4px -2px rgba(0,0,0,0.3);
+    --ls-shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.4), 0 4px 6px -4px rgba(0,0,0,0.4);
+    --ls-accent: #c7d2fe;
+}
+
+/* Reset & Base */
+.ls-app {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--ls-bg);
+    color: var(--ls-text);
+    flex: 1;
+    min-height: 0;
+    max-height: calc(100vh - 65px);
+    border-radius: 0;
+    overflow: hidden;
+    position: relative;
+}
+
+.ls-app::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 200px;
+    background: linear-gradient(180deg, rgba(129, 140, 248, 0.06) 0%, transparent 100%);
+    pointer-events: none;
+}
+
+.ls-container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    position: relative;
+}
+
+/* ============================================
+   Setup Panel (OAuth)
+   ============================================ */
+.ls-setup-panel {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px;
+}
+
+.ls-setup-card {
+    position: relative;
+    width: 100%;
+    max-width: 420px;
+    padding: 48px 40px;
+    background: var(--ls-surface);
+    backdrop-filter: blur(20px);
+    border: 1px solid var(--ls-border);
+    border-radius: var(--ls-radius-lg);
+    text-align: center;
+}
+
+.ls-setup-glow {
+    position: absolute;
+    top: -50%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 300px;
+    height: 300px;
+    background: radial-gradient(circle, rgba(129, 140, 248, 0.12) 0%, transparent 70%);
+    pointer-events: none;
+}
+
+.ls-setup-icon {
+    margin-bottom: 24px;
+    animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-8px); }
+}
+
+.ls-setup-title {
+    margin: 0 0 8px;
+    font-size: 24px;
+    font-weight: 700;
+    background: var(--ls-gradient);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.ls-setup-subtitle {
+    margin: 0 0 32px;
+    font-size: 14px;
+    color: var(--ls-text-secondary);
+    line-height: 1.6;
+}
+
+.ls-setup-form {
+    text-align: left;
+}
+
+.ls-field {
+    margin-bottom: 20px;
+}
+
+.ls-field label {
+    display: block;
+    margin-bottom: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ls-text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.ls-field input {
+    width: 100%;
+    padding: 14px 16px;
+    background: var(--ls-bg);
+    border: 1px solid var(--ls-border);
+    border-radius: var(--ls-radius);
+    color: var(--ls-text);
+    font-size: 15px;
+    transition: var(--ls-transition);
+    box-sizing: border-box;
+}
+
+.ls-field input:focus {
+    outline: none;
+    border-color: var(--ls-primary);
+    box-shadow: 0 0 0 3px rgba(129, 140, 248, 0.15);
+}
+
+.ls-field input::placeholder {
+    color: var(--ls-text-muted);
+}
+
+.ls-btn-primary {
+    width: 100%;
+    padding: 14px 24px;
+    background: var(--ls-gradient);
+    border: none;
+    border-radius: var(--ls-radius);
+    color: white;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--ls-transition);
+    position: relative;
+    overflow: hidden;
+}
+
+.ls-btn-primary::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+    transition: left 0.5s;
+}
+
+.ls-btn-primary:hover::before {
+    left: 100%;
+}
+
+.ls-btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(129, 140, 248, 0.35);
+}
+
+.ls-btn-primary:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.ls-btn-primary .btn-content {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.ls-btn-primary .btn-loading {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+.ls-btn-primary.loading .btn-content { display: none; }
+.ls-btn-primary.loading .btn-loading { display: flex; }
+
+.ls-spinner {
+    width: 18px;
+    height: 18px;
+    border: 2px solid rgba(255,255,255,0.3);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.ls-error {
+    display: none;
+    margin-top: 16px;
+    padding: 12px 16px;
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    border-radius: var(--ls-radius);
+    color: var(--ls-error);
+    font-size: 13px;
+    text-align: center;
+}
+
+.ls-error.show { display: block; }
+
+.ls-setup-footer {
+    margin-top: 24px;
+}
+
+.ls-hint {
+    font-size: 12px;
+    color: var(--ls-text-muted);
+}
+
+/* ============================================
+   Chat Interface
+   ============================================ */
+.ls-chat {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    justify-content: center;
+}
+
+.ls-chat.has-messages {
+    justify-content: flex-start;
+}
+
+.ls-messages {
+    flex: 0 1 auto;
+    overflow-y: auto;
+    padding: 32px 24px;
+    scroll-behavior: smooth;
+    max-height: calc(100vh - 280px);
+}
+
+.ls-chat.has-messages .ls-messages {
+    flex: 1;
+}
+
+.ls-messages::-webkit-scrollbar {
+    width: 6px;
+}
+
+.ls-messages::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.ls-messages::-webkit-scrollbar-thumb {
+    background: var(--ls-border);
+    border-radius: 3px;
+}
+
+/* Welcome Screen */
+.ls-welcome {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 300px;
+    text-align: center;
+    animation: fadeUp 0.5s ease;
+    padding-bottom: 0;
+}
+
+@keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.ls-welcome-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 14px;
+    background: rgba(129, 140, 248, 0.1);
+    border: 1px solid rgba(129, 140, 248, 0.25);
+    border-radius: 100px;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--ls-primary);
+    margin-bottom: 24px;
+}
+
+.ls-badge-dot {
+    width: 6px;
+    height: 6px;
+    background: var(--ls-success);
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.7; transform: scale(1.2); }
+}
+
+.ls-welcome-title {
+    margin: 0 0 12px;
+    font-size: 32px;
+    font-weight: 700;
+    color: var(--ls-text);
+}
+
+.ls-welcome-subtitle {
+    margin: 0 0 28px;
+    font-size: 16px;
+    color: var(--ls-text-secondary);
+    max-width: 500px;
+    line-height: 1.6;
+}
+
+.ls-suggestions {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    max-width: 480px;
+    width: 100%;
+}
+
+.ls-suggestion {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px 20px;
+    background: var(--ls-surface);
+    border: 1px solid var(--ls-border);
+    border-radius: var(--ls-radius);
+    color: var(--ls-text);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: var(--ls-transition);
+    text-align: left;
+}
+
+.ls-suggestion:hover {
+    background: var(--ls-bg-tertiary);
+    border-color: var(--ls-primary);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(129, 140, 248, 0.12);
+}
+
+.ls-suggestion-icon {
+    font-size: 20px;
+}
+
+.ls-suggestion-text {
+    flex: 1;
+}
+
+/* Messages */
+.ls-message {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 24px;
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.ls-message.user {
+    flex-direction: row-reverse;
+}
+
+.ls-message-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.ls-message.bot .ls-message-avatar {
+    background: var(--ls-gradient);
+    color: white;
+}
+
+.ls-message.user .ls-message-avatar {
+    background: var(--ls-bg-tertiary);
+    color: var(--ls-text-secondary);
+}
+
+.ls-message-content {
+    max-width: 75%;
+}
+
+.ls-message-bubble {
+    padding: 14px 18px;
+    border-radius: var(--ls-radius);
+    font-size: 14px;
+    line-height: 1.7;
+}
+
+.ls-message.bot .ls-message-bubble {
+    background: var(--ls-surface);
+    border: 1px solid var(--ls-accent);
+    color: var(--ls-text);
+}
+
+.ls-message.user .ls-message-bubble {
+    background: var(--ls-gradient);
+    color: white;
+}
+
+/* Tool Results */
+.ls-tool-results {
+    margin-top: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.ls-tool-card {
+    padding: 14px 16px;
+    background: var(--ls-bg);
+    border: 1px solid var(--ls-border);
+    border-radius: var(--ls-radius);
+    animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn {
+    from { opacity: 0; transform: translateX(-10px); }
+    to { opacity: 1; transform: translateX(0); }
+}
+
+.ls-tool-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+}
+
+.ls-tool-icon {
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--ls-bg-tertiary);
+    border-radius: 8px;
+    font-size: 14px;
+}
+
+.ls-tool-name {
+    flex: 1;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ls-text);
+    text-transform: capitalize;
+}
+
+.ls-tool-status {
+    padding: 3px 8px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+.ls-tool-status.success {
+    background: rgba(34, 197, 94, 0.15);
+    color: var(--ls-success);
+}
+
+.ls-tool-status.error {
+    background: rgba(239, 68, 68, 0.15);
+    color: var(--ls-error);
+}
+
+.ls-tool-body {
+    font-size: 13px;
+    color: var(--ls-text-secondary);
+    line-height: 1.6;
+}
+
+.ls-tool-body strong {
+    color: var(--ls-text);
+}
+
+/* Typing Indicator */
+.ls-typing {
+    display: none;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 24px;
+    animation: fadeIn 0.3s ease;
+}
+
+.ls-typing.show { display: flex; }
+
+.ls-typing-avatar {
+    width: 32px;
+    height: 32px;
+    background: var(--ls-gradient);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+}
+
+.ls-typing-dots {
+    display: flex;
+    gap: 4px;
+}
+
+.ls-typing-dots span {
+    width: 6px;
+    height: 6px;
+    background: var(--ls-text-muted);
+    border-radius: 50%;
+    animation: typingDot 1.4s infinite ease-in-out;
+}
+
+.ls-typing-dots span:nth-child(1) { animation-delay: 0s; }
+.ls-typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+.ls-typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes typingDot {
+    0%, 80%, 100% { transform: scale(0.8); opacity: 0.5; }
+    40% { transform: scale(1); opacity: 1; }
+}
+
+.ls-typing-text {
+    font-size: 13px;
+    color: var(--ls-text-muted);
+    font-style: italic;
+}
+
+/* Input Area */
+.ls-input-area {
+    padding: 24px 24px 32px;
+    background: transparent;
+    max-width: 700px;
+    margin: 0 auto;
+    width: 100%;
+}
+
+.ls-form {
+    display: flex;
+}
+
+.ls-input-container {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    background: var(--ls-bg-secondary);
+    border: 1px solid var(--ls-border);
+    border-radius: 100px;
+    padding: 4px;
+    transition: var(--ls-transition);
+}
+
+.ls-input-container:focus-within {
+    border-color: var(--ls-primary);
+    box-shadow: 0 0 0 3px rgba(129, 140, 248, 0.1);
+}
+
+.ls-input {
+    flex: 1;
+    padding: 12px 20px;
+    background: transparent;
+    border: none;
+    color: var(--ls-text);
+    font-size: 15px;
+    outline: none;
+}
+
+.ls-input::placeholder {
+    color: var(--ls-text-muted);
+}
+
+.ls-send-btn {
+    width: 44px;
+    height: 44px;
+    border: none;
+    border-radius: 50%;
+    background: var(--ls-gradient);
+    color: white;
+    cursor: pointer;
+    transition: var(--ls-transition);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.ls-send-btn:hover {
+    transform: scale(1.05);
+    box-shadow: 0 4px 15px rgba(129, 140, 248, 0.35);
+}
+
+.ls-send-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* Voice Input Button */
+.ls-voice-btn {
+    width: 40px;
+    height: 40px;
+    border: none;
+    border-radius: 50%;
+    background: var(--ls-bg-tertiary);
+    color: var(--ls-text-secondary);
+    cursor: pointer;
+    transition: var(--ls-transition);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 4px;
+}
+
+.ls-voice-btn:hover {
+    background: var(--ls-border);
+    color: var(--ls-text);
+}
+
+.ls-voice-btn.recording {
+    background: rgba(239, 68, 68, 0.15);
+    color: var(--ls-error);
+    animation: pulse-recording 1.5s infinite;
+}
+
+.ls-voice-btn.recording .mic-icon {
+    display: none;
+}
+
+.ls-voice-btn.recording .stop-icon {
+    display: block !important;
+}
+
+@keyframes pulse-recording {
+    0%, 100% {
+        box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4);
+    }
+    50% {
+        box-shadow: 0 0 0 8px rgba(239, 68, 68, 0);
+    }
+}
+
+.ls-voice-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Voice not supported indicator */
+.ls-voice-btn.unsupported {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
+.ls-voice-btn.unsupported::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 70%;
+    height: 2px;
+    background: var(--ls-text-muted);
+    transform: translate(-50%, -50%) rotate(-45deg);
+}
+
+/* Status Bar */
+.ls-status-bar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    padding: 12px 24px;
+    background: var(--ls-bg-secondary);
+    border-top: 1px solid var(--ls-border);
+    font-size: 12px;
+}
+
+.ls-status-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--ls-text-secondary);
+}
+
+.ls-status-indicator {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--ls-warning);
+    animation: blink 2s infinite;
+}
+
+.ls-status-indicator.connected {
+    background: var(--ls-success);
+    animation: none;
+}
+
+.ls-status-indicator.error {
+    background: var(--ls-error);
+    animation: none;
+}
+
+.ls-status-indicator.warning {
+    background: var(--ls-warning);
+}
+
+@keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+}
+
+.ls-status-divider {
+    width: 1px;
+    height: 16px;
+    background: var(--ls-border);
+}
+
+.ls-status-stats {
+    display: flex;
+    gap: 16px;
+}
+
+.ls-stat {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--ls-text-muted);
+}
+
+.ls-stat svg {
+    color: var(--ls-primary);
+}
+
+/* ============================================
+   Daily Dashboard Styles
+   ============================================ */
+.ls-dashboard {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 32px 24px;
+    max-width: 800px;
+    margin: 0 auto;
+    animation: fadeIn 0.3s ease;
+}
+
+.ls-dashboard-header {
+    text-align: center;
+    margin-bottom: 32px;
+}
+
+.ls-dashboard-greeting {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--ls-text);
+    margin-bottom: 8px;
+}
+
+.ls-dashboard-subtitle {
+    font-size: 15px;
+    color: var(--ls-text-secondary);
+}
+
+.ls-dashboard-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    width: 100%;
+    margin-bottom: 32px;
+}
+
+.ls-dashboard-card {
+    background: var(--ls-bg-secondary);
+    border: 1px solid var(--ls-border);
+    border-radius: 16px;
+    overflow: hidden;
+    transition: var(--ls-transition);
+}
+
+.ls-dashboard-card:hover {
+    border-color: var(--ls-primary-light);
+    box-shadow: 0 4px 20px rgba(129, 140, 248, 0.1);
+}
+
+.ls-dashboard-card.full-width {
+    grid-column: 1 / -1;
+}
+
+.ls-card-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--ls-border);
+    background: linear-gradient(135deg, rgba(129, 140, 248, 0.05), transparent);
+}
+
+.ls-card-icon {
+    font-size: 18px;
+}
+
+.ls-card-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--ls-text);
+}
+
+.ls-card-body {
+    padding: 16px 20px;
+    min-height: 100px;
+}
+
+/* Hot Leads List */
+.ls-lead-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--ls-border);
+}
+
+.ls-lead-item:last-child {
+    border-bottom: none;
+}
+
+.ls-lead-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.ls-lead-name {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--ls-text);
+}
+
+.ls-lead-company {
+    font-size: 12px;
+    color: var(--ls-text-muted);
+}
+
+.ls-lead-points {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ls-primary);
+    background: rgba(129, 140, 248, 0.1);
+    padding: 4px 10px;
+    border-radius: 20px;
+}
+
+/* Stats Grid */
+.ls-stats-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}
+
+.ls-stat-item {
+    text-align: center;
+    padding: 12px;
+    background: var(--ls-bg);
+    border-radius: 12px;
+    border: 1px solid var(--ls-border);
+}
+
+.ls-stat-value {
+    display: block;
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--ls-primary);
+    margin-bottom: 4px;
+}
+
+.ls-stat-label {
+    font-size: 12px;
+    color: var(--ls-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* AI Insights */
+.ls-insights-text {
+    font-size: 14px;
+    line-height: 1.7;
+    color: var(--ls-text-secondary);
+    white-space: pre-line;
+}
+
+/* Dashboard Loading State */
+.ls-dashboard-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 20px;
+    color: var(--ls-text-muted);
+    font-size: 13px;
+}
+
+.ls-spinner-small {
+    width: 16px;
+    height: 16px;
+    border: 2px solid var(--ls-border);
+    border-top-color: var(--ls-primary);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* Start Chat Button */
+.ls-start-chat-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 16px 32px;
+    background: var(--ls-gradient);
+    color: white;
+    border: none;
+    border-radius: 100px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 15px rgba(129, 140, 248, 0.3);
+}
+
+.ls-start-chat-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 25px rgba(129, 140, 248, 0.4);
+}
+
+.ls-start-chat-btn:active {
+    transform: translateY(0);
+}
+
+/* No data message */
+.ls-no-data {
+    text-align: center;
+    color: var(--ls-text-muted);
+    font-size: 13px;
+    padding: 16px;
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+    .ls-dashboard-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .ls-dashboard-card.full-width {
+        grid-column: 1;
+    }
+
+    .ls-suggestions {
+        grid-template-columns: 1fr;
+    }
+
+    .ls-welcome-title {
+        font-size: 24px;
+    }
+
+    .ls-status-bar {
+        flex-wrap: wrap;
+        gap: 12px;
+    }
+}
+</style>
+
+<script>
+// Configuration
+const API_URL = 'http://localhost:8000';  // LeadSpot backend
+const MAUTIC_URL = window.location.origin;  // Current Mautic instance
+
+// Theme toggle
+function toggleTheme() {
+    const html = document.documentElement;
+    const btn = document.getElementById('theme-toggle');
+    const currentTheme = html.getAttribute('data-theme');
+
+    if (currentTheme === 'dark') {
+        html.removeAttribute('data-theme');
+        btn.innerHTML = '🌙 Dark Mode';
+    } else {
+        html.setAttribute('data-theme', 'dark');
+        btn.innerHTML = '☀️ Light Mode';
+    }
+}
+
+// ============================================
+// Daily Dashboard Functions
+// ============================================
+
+// Set greeting based on time of day
+function setGreeting() {
+    const hour = new Date().getHours();
+    const greetingEl = document.getElementById('dashboard-greeting');
+
+    if (hour < 12) {
+        greetingEl.textContent = 'Good morning!';
+    } else if (hour < 17) {
+        greetingEl.textContent = 'Good afternoon!';
+    } else {
+        greetingEl.textContent = 'Good evening!';
+    }
+}
+
+// Fetch and display daily insights
+async function loadDashboardInsights() {
+    try {
+        const response = await fetch(
+            `${API_URL}/api/insights/daily?mautic_url=${encodeURIComponent(MAUTIC_URL)}`
+        );
+
+        if (!response.ok) {
+            throw new Error('Failed to fetch insights');
+        }
+
+        const data = await response.json();
+
+        // Update hot leads
+        renderHotLeads(data.hot_leads || []);
+
+        // Update stats
+        if (data.stats) {
+            document.getElementById('stat-contacts').textContent = formatNumber(data.stats.total_contacts || 0);
+            document.getElementById('stat-emails').textContent = formatNumber(data.stats.total_emails || 0);
+            document.getElementById('stat-campaigns').textContent = formatNumber(data.stats.total_campaigns || 0);
+            document.getElementById('stat-segments').textContent = formatNumber(data.stats.total_segments || 0);
+        }
+
+        // Update AI insights
+        if (data.ai_insights) {
+            document.getElementById('ai-insights').innerHTML =
+                `<div class="ls-insights-text">${escapeHtml(data.ai_insights)}</div>`;
+        } else {
+            document.getElementById('ai-insights').innerHTML =
+                `<div class="ls-no-data">Connect Mautic to get AI-powered insights</div>`;
+        }
+
+    } catch (error) {
+        console.error('Error loading dashboard:', error);
+
+        // Show demo data on error (for preview)
+        showDemoDashboard();
+    }
+}
+
+// Render hot leads list
+function renderHotLeads(leads) {
+    const container = document.getElementById('hot-leads-list');
+
+    if (!leads || leads.length === 0) {
+        container.innerHTML = '<div class="ls-no-data">No leads data yet</div>';
+        return;
+    }
+
+    container.innerHTML = leads.slice(0, 5).map(lead => {
+        const name = `${lead.firstname || ''} ${lead.lastname || ''}`.trim() || 'Unknown';
+        return `
+            <div class="ls-lead-item">
+                <div class="ls-lead-info">
+                    <span class="ls-lead-name">${escapeHtml(name)}</span>
+                    ${lead.company ? `<span class="ls-lead-company">${escapeHtml(lead.company)}</span>` : ''}
+                </div>
+                <span class="ls-lead-points">${lead.points || 0} pts</span>
+            </div>
+        `;
+    }).join('');
+}
+
+// Show demo data for preview
+function showDemoDashboard() {
+    // Demo hot leads
+    const demoLeads = [
+        { firstname: 'Sarah', lastname: 'Johnson', company: 'Acme Corp', points: 2450 },
+        { firstname: 'Mike', lastname: 'Chen', company: 'TechStart', points: 1820 },
+        { firstname: 'Lisa', lastname: 'Park', company: 'Growth Labs', points: 1540 },
+        { firstname: 'James', lastname: 'Wilson', company: 'Innovate Inc', points: 1290 },
+        { firstname: 'Emma', lastname: 'Davis', company: 'Scale Up', points: 1105 },
+    ];
+    renderHotLeads(demoLeads);
+
+    // Demo stats
+    document.getElementById('stat-contacts').textContent = '3,942';
+    document.getElementById('stat-emails').textContent = '47';
+    document.getElementById('stat-campaigns').textContent = '12';
+    document.getElementById('stat-segments').textContent = '8';
+
+    // Demo insights
+    document.getElementById('ai-insights').innerHTML = `
+        <div class="ls-insights-text">📈 Sarah Johnson has visited your pricing page 4 times this week. Consider reaching out with a personalized proposal.
+
+🎯 Your "Holiday Sale" campaign has a 34% open rate - 12% above average. Great subject line performance!
+
+💡 3 contacts from TechStart have engaged recently. This could be a hot company account worth prioritizing.</div>
+    `;
+}
+
+// Format numbers for display
+function formatNumber(num) {
+    if (num >= 1000) {
+        return (num / 1000).toFixed(1) + 'k';
+    }
+    return num.toString();
+}
+
+// Escape HTML for safety
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+// Switch from dashboard to chat interface
+function showChatInterface() {
+    document.getElementById('dashboard-panel').style.display = 'none';
+    document.getElementById('chat-interface').style.display = 'flex';
+}
+
+// Switch from chat back to dashboard
+function showDashboard() {
+    document.getElementById('chat-interface').style.display = 'none';
+    document.getElementById('dashboard-panel').style.display = 'flex';
+}
+
+// Initialize dashboard on page load
+document.addEventListener('DOMContentLoaded', function() {
+    setGreeting();
+    loadDashboardInsights();
+});
+
+// Demo toggle functions
+function toggleSetup() {
+    const setup = document.getElementById('setup-panel');
+    const chat = document.getElementById('chat-interface');
+    const dashboard = document.getElementById('dashboard-panel');
+
+    if (setup.style.display === 'none') {
+        setup.style.display = 'flex';
+        chat.style.display = 'none';
+        dashboard.style.display = 'none';
+    } else {
+        setup.style.display = 'none';
+        dashboard.style.display = 'flex';
+        chat.style.display = 'none';
+    }
+}
+
+function toggleTyping() {
+    const typing = document.getElementById('typing-indicator');
+    typing.classList.toggle('show');
+}
+
+function addDemoMessages() {
+    const container = document.getElementById('messages-container');
+    const chat = document.getElementById('chat-interface');
+    const welcome = document.getElementById('welcome-state');
+    if (welcome) welcome.style.display = 'none';
+    chat.classList.add('has-messages');
+
+    // User message
+    const userMsg = document.createElement('div');
+    userMsg.className = 'ls-message user';
+    userMsg.innerHTML = `
+        <div class="ls-message-avatar">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 4a4 4 0 0 1 4 4 4 4 0 0 1-4 4 4 4 0 0 1-4-4 4 4 0 0 1 4-4m0 10c4.42 0 8 1.79 8 4v2H4v-2c0-2.21 3.58-4 8-4z"/>
+            </svg>
+        </div>
+        <div class="ls-message-content">
+            <div class="ls-message-bubble">Show me my top 10 contacts</div>
+        </div>
+    `;
+    container.appendChild(userMsg);
+
+    // Bot message with tool results
+    setTimeout(() => {
+        const botMsg = document.createElement('div');
+        botMsg.className = 'ls-message bot';
+        botMsg.innerHTML = `
+            <div class="ls-message-avatar">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 0 1 7 7h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v1a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-1H2a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1a7 7 0 0 1 7-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 0 1 2-2M7.5 13A2.5 2.5 0 0 0 5 15.5 2.5 2.5 0 0 0 7.5 18a2.5 2.5 0 0 0 2.5-2.5A2.5 2.5 0 0 0 7.5 13m9 0a2.5 2.5 0 0 0-2.5 2.5 2.5 2.5 0 0 0 2.5 2.5 2.5 2.5 0 0 0 2.5-2.5 2.5 2.5 0 0 0-2.5-2.5z"/>
+                </svg>
+            </div>
+            <div class="ls-message-content">
+                <div class="ls-message-bubble">Here are your <strong>top 10 contacts</strong> sorted by engagement score:</div>
+                <div class="ls-tool-results">
+                    <div class="ls-tool-card">
+                        <div class="ls-tool-header">
+                            <span class="ls-tool-icon">👥</span>
+                            <span class="ls-tool-name">get contacts</span>
+                            <span class="ls-tool-status success">Success</span>
+                        </div>
+                        <div class="ls-tool-body">
+                            Found <strong>10 contacts</strong> sorted by points (engagement score).<br>
+                            Top contact: <strong>Sarah Johnson</strong> - 2,450 points
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        container.appendChild(botMsg);
+        container.scrollTop = container.scrollHeight;
+    }, 500);
+}
+
+// Click handlers for suggestions
+document.querySelectorAll('.ls-suggestion').forEach(btn => {
+    btn.addEventListener('click', function() {
+        document.getElementById('message-input').value = this.dataset.prompt;
+        document.getElementById('message-input').focus();
+    });
+});
+
+// ============================================
+// Voice Input (Web Speech API)
+// ============================================
+
+let recognition = null;
+let isListening = false;
+
+// Initialize voice recognition
+function initVoiceRecognition() {
+    const voiceBtn = document.getElementById('voice-btn');
+    const messageInput = document.getElementById('message-input');
+
+    // Check for browser support
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+    if (!SpeechRecognition) {
+        console.warn('Speech recognition not supported in this browser');
+        voiceBtn.classList.add('unsupported');
+        voiceBtn.title = 'Voice input not supported in this browser';
+        voiceBtn.disabled = true;
+        return;
+    }
+
+    // Create recognition instance
+    recognition = new SpeechRecognition();
+    recognition.continuous = false;
+    recognition.interimResults = true;
+    recognition.lang = 'en-US';
+    recognition.maxAlternatives = 1;
+
+    // Handle results
+    recognition.onresult = (event) => {
+        let transcript = '';
+        let isFinal = false;
+
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+            transcript += event.results[i][0].transcript;
+            if (event.results[i].isFinal) {
+                isFinal = true;
+            }
+        }
+
+        // Update input with transcript
+        messageInput.value = transcript;
+
+        // If final result, optionally auto-send
+        if (isFinal) {
+            stopListening();
+            messageInput.focus();
+        }
+    };
+
+    // Handle errors
+    recognition.onerror = (event) => {
+        console.error('Speech recognition error:', event.error);
+
+        if (event.error === 'not-allowed') {
+            alert('Microphone access denied. Please enable microphone permissions.');
+        } else if (event.error === 'no-speech') {
+            // No speech detected, just stop quietly
+        }
+
+        stopListening();
+    };
+
+    // Handle end
+    recognition.onend = () => {
+        stopListening();
+    };
+
+    // Voice button click handler
+    voiceBtn.addEventListener('click', toggleVoiceInput);
+}
+
+// Toggle voice input
+function toggleVoiceInput() {
+    if (isListening) {
+        stopListening();
+    } else {
+        startListening();
+    }
+}
+
+// Start listening
+function startListening() {
+    if (!recognition) return;
+
+    try {
+        recognition.start();
+        isListening = true;
+
+        const voiceBtn = document.getElementById('voice-btn');
+        voiceBtn.classList.add('recording');
+        voiceBtn.title = 'Click to stop recording';
+
+        // Update placeholder
+        document.getElementById('message-input').placeholder = 'Listening...';
+
+    } catch (error) {
+        console.error('Error starting recognition:', error);
+        stopListening();
+    }
+}
+
+// Stop listening
+function stopListening() {
+    if (recognition && isListening) {
+        try {
+            recognition.stop();
+        } catch (e) {
+            // Already stopped
+        }
+    }
+
+    isListening = false;
+
+    const voiceBtn = document.getElementById('voice-btn');
+    voiceBtn.classList.remove('recording');
+    voiceBtn.title = 'Voice input';
+
+    // Restore placeholder
+    document.getElementById('message-input').placeholder = 'Ask me anything about your CRM...';
+}
+
+// Initialize voice on page load
+document.addEventListener('DOMContentLoaded', function() {
+    initVoiceRecognition();
+});
+</script>
+
+</body>
+</html>

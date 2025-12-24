@@ -1,0 +1,1109 @@
+{% extends "@MauticCore/Default/content.html.twig" %}
+
+{% block headerTitle %}AI Command Center{% endblock %}
+
+{% block content %}
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<div id="leadspot-app" class="ls-app">
+    <!-- Main Container -->
+    <div class="ls-container">
+
+        <!-- Setup Panel (OAuth) -->
+        <div class="ls-setup-panel" id="setup-panel" style="display: none;">
+            <div class="ls-setup-card">
+                <div class="ls-setup-glow"></div>
+                <div class="ls-setup-icon">
+                    <svg width="56" height="56" viewBox="0 0 56 56" fill="none">
+                        <circle cx="28" cy="28" r="28" fill="url(#grad1)"/>
+                        <path d="M20 24l8-6 8 6v12l-8 6-8-6V24z" stroke="white" stroke-width="2.5" fill="none"/>
+                        <circle cx="28" cy="30" r="4" fill="white"/>
+                        <defs><linearGradient id="grad1" x1="0" y1="0" x2="56" y2="56"><stop offset="0%" stop-color="#6366f1"/><stop offset="100%" stop-color="#8b5cf6"/></linearGradient></defs>
+                    </svg>
+                </div>
+                <h2 class="ls-setup-title">Connect LeadSpot AI</h2>
+                <p class="ls-setup-subtitle">Enter your Mautic API credentials to unlock AI-powered CRM features</p>
+
+                <form id="oauth-setup-form" class="ls-setup-form">
+                    <div class="ls-field">
+                        <label>Client ID</label>
+                        <input type="text" id="client-id" placeholder="Your OAuth Client ID" required />
+                    </div>
+                    <div class="ls-field">
+                        <label>Client Secret</label>
+                        <input type="password" id="client-secret" placeholder="Your OAuth Client Secret" required />
+                    </div>
+                    <button type="submit" class="ls-btn-primary" id="connect-btn">
+                        <span class="btn-content">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M10 17l5-5-5-5M13.8 12H3"/></svg>
+                            Connect
+                        </span>
+                        <span class="btn-loading">
+                            <span class="ls-spinner"></span>
+                            Connecting...
+                        </span>
+                    </button>
+                    <div class="ls-error" id="setup-error"></div>
+                </form>
+
+                <div class="ls-setup-footer">
+                    <span class="ls-hint">Create credentials at: Configuration → API Credentials</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Chat Interface -->
+        <div class="ls-chat" id="chat-interface">
+            <!-- Messages Area -->
+            <div class="ls-messages" id="messages-container">
+                <!-- Welcome Screen -->
+                <div class="ls-welcome" id="welcome-state">
+                    <div class="ls-welcome-badge">
+                        <span class="ls-badge-dot"></span>
+                        AI Agent Ready
+                    </div>
+                    <h1 class="ls-welcome-title">What can I help you with?</h1>
+                    <p class="ls-welcome-subtitle">I can manage contacts, create campaigns, send emails, and automate your marketing workflows.</p>
+
+                    <div class="ls-suggestions">
+                        <button class="ls-suggestion" data-prompt="Show me my CRM overview">
+                            <span class="ls-suggestion-icon">📊</span>
+                            <span class="ls-suggestion-text">CRM Overview</span>
+                        </button>
+                        <button class="ls-suggestion" data-prompt="Show me my top 10 contacts">
+                            <span class="ls-suggestion-icon">👥</span>
+                            <span class="ls-suggestion-text">Top Contacts</span>
+                        </button>
+                        <button class="ls-suggestion" data-prompt="Create a welcome email for new subscribers">
+                            <span class="ls-suggestion-icon">📧</span>
+                            <span class="ls-suggestion-text">Create Email</span>
+                        </button>
+                        <button class="ls-suggestion" data-prompt="Show me active campaigns">
+                            <span class="ls-suggestion-icon">🎯</span>
+                            <span class="ls-suggestion-text">Campaigns</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Typing Indicator -->
+            <div class="ls-typing" id="typing-indicator">
+                <div class="ls-typing-avatar">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 0 1 7 7h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v1a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-1H2a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1a7 7 0 0 1 7-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 0 1 2-2M7.5 13A2.5 2.5 0 0 0 5 15.5 2.5 2.5 0 0 0 7.5 18a2.5 2.5 0 0 0 2.5-2.5A2.5 2.5 0 0 0 7.5 13m9 0a2.5 2.5 0 0 0-2.5 2.5 2.5 2.5 0 0 0 2.5 2.5 2.5 2.5 0 0 0 2.5-2.5 2.5 2.5 0 0 0-2.5-2.5z"/></svg>
+                </div>
+                <div class="ls-typing-dots">
+                    <span></span><span></span><span></span>
+                </div>
+                <span class="ls-typing-text">LeadSpot is thinking...</span>
+            </div>
+
+            <!-- Input Area -->
+            <div class="ls-input-area">
+                <form id="chat-form" class="ls-form">
+                    <div class="ls-input-container">
+                        <input type="text" id="message-input" class="ls-input"
+                               placeholder="Ask me anything about your CRM..." autocomplete="off" />
+                        <button type="submit" class="ls-send-btn" id="send-btn">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/>
+                            </svg>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Status Bar -->
+        <div class="ls-status-bar">
+            <div class="ls-status-item" id="connection-status">
+                <span class="ls-status-indicator"></span>
+                <span class="ls-status-label">Connecting...</span>
+            </div>
+            <div class="ls-status-divider"></div>
+            <div class="ls-status-item" id="api-status">
+                <span class="ls-status-indicator warning"></span>
+                <span class="ls-status-label">API: Checking...</span>
+            </div>
+            <div class="ls-status-divider"></div>
+            <div class="ls-status-stats">
+                <span class="ls-stat"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 5.5A3.5 3.5 0 0 1 15.5 9a3.5 3.5 0 0 1-3.5 3.5A3.5 3.5 0 0 1 8.5 9 3.5 3.5 0 0 1 12 5.5M5 8c.56 0 1.08.15 1.53.42-.15 1.43.27 2.85 1.13 3.96C7.16 13.34 6.16 14 5 14a3 3 0 0 1-3-3 3 3 0 0 1 3-3m14 0a3 3 0 0 1 3 3 3 3 0 0 1-3 3c-1.16 0-2.16-.66-2.66-1.62a5.54 5.54 0 0 0 1.13-3.96c.45-.27.97-.42 1.53-.42M5.5 18.25c0-2.07 2.91-3.75 6.5-3.75s6.5 1.68 6.5 3.75V20h-13v-1.75M0 20v-1.5c0-1.39 1.89-2.56 4.45-2.9-.59.68-.95 1.62-.95 2.65V20H0m24 0h-3.5v-1.75c0-1.03-.36-1.97-.95-2.65 2.56.34 4.45 1.51 4.45 2.9V20z"/></svg> <span id="contact-count">--</span></span>
+                <span class="ls-stat"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20a2 2 0 0 0 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V9h14v11zM9 11H7v2h2v-2zm4 0h-2v2h2v-2zm4 0h-2v2h2v-2zm-8 4H7v2h2v-2zm4 0h-2v2h2v-2zm4 0h-2v2h2v-2z"/></svg> <span id="campaign-count">--</span></span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+/* ============================================
+   LeadSpot AI - Modern UI Design
+   Inspired by: ChatGPT, Claude, Linear, Vercel
+   ============================================ */
+
+:root {
+    /* Light Theme - LeadSpot.ai */
+    --ls-bg: #f8fafc;
+    --ls-bg-secondary: #f1f5f9;
+    --ls-bg-tertiary: #e2e8f0;
+    --ls-surface: rgba(255, 255, 255, 0.9);
+    --ls-border: rgba(203, 213, 225, 0.6);
+    --ls-text: #1e293b;
+    --ls-text-secondary: #475569;
+    --ls-text-muted: #94a3b8;
+    --ls-primary: #818cf8;
+    --ls-primary-hover: #6366f1;
+    --ls-gradient: linear-gradient(135deg, #818cf8 0%, #a5b4fc 50%, #c7d2fe 100%);
+    --ls-success: #22c55e;
+    --ls-warning: #f59e0b;
+    --ls-error: #ef4444;
+    --ls-radius: 12px;
+    --ls-radius-lg: 16px;
+    --ls-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -2px rgba(0,0,0,0.1);
+    --ls-shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.15), 0 4px 6px -4px rgba(0,0,0,0.1);
+    --ls-transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Reset & Base */
+.ls-app {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--ls-bg);
+    color: var(--ls-text);
+    min-height: 700px;
+    max-height: calc(100vh - 150px);
+    border-radius: var(--ls-radius-lg);
+    overflow: hidden;
+    margin-top: 10px;
+    box-shadow: var(--ls-shadow-lg);
+    position: relative;
+}
+
+.ls-app::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 200px;
+    background: linear-gradient(180deg, rgba(139, 92, 246, 0.08) 0%, transparent 100%);
+    pointer-events: none;
+}
+
+.ls-container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 700px;
+    position: relative;
+}
+
+/* ============================================
+   Setup Panel (OAuth)
+   ============================================ */
+.ls-setup-panel {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px;
+}
+
+.ls-setup-card {
+    position: relative;
+    width: 100%;
+    max-width: 420px;
+    padding: 48px 40px;
+    background: var(--ls-surface);
+    backdrop-filter: blur(20px);
+    border: 1px solid var(--ls-border);
+    border-radius: var(--ls-radius-lg);
+    text-align: center;
+}
+
+.ls-setup-glow {
+    position: absolute;
+    top: -50%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 300px;
+    height: 300px;
+    background: radial-gradient(circle, rgba(139, 92, 246, 0.15) 0%, transparent 70%);
+    pointer-events: none;
+}
+
+.ls-setup-icon {
+    margin-bottom: 24px;
+    animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-8px); }
+}
+
+.ls-setup-title {
+    margin: 0 0 8px;
+    font-size: 24px;
+    font-weight: 700;
+    background: var(--ls-gradient);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.ls-setup-subtitle {
+    margin: 0 0 32px;
+    font-size: 14px;
+    color: var(--ls-text-secondary);
+    line-height: 1.6;
+}
+
+.ls-setup-form {
+    text-align: left;
+}
+
+.ls-field {
+    margin-bottom: 20px;
+}
+
+.ls-field label {
+    display: block;
+    margin-bottom: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ls-text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.ls-field input {
+    width: 100%;
+    padding: 14px 16px;
+    background: var(--ls-bg);
+    border: 1px solid var(--ls-border);
+    border-radius: var(--ls-radius);
+    color: var(--ls-text);
+    font-size: 15px;
+    transition: var(--ls-transition);
+    box-sizing: border-box;
+}
+
+.ls-field input:focus {
+    outline: none;
+    border-color: var(--ls-primary);
+    box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.15);
+}
+
+.ls-field input::placeholder {
+    color: var(--ls-text-muted);
+}
+
+.ls-btn-primary {
+    width: 100%;
+    padding: 14px 24px;
+    background: var(--ls-gradient);
+    border: none;
+    border-radius: var(--ls-radius);
+    color: white;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--ls-transition);
+    position: relative;
+    overflow: hidden;
+}
+
+.ls-btn-primary::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+    transition: left 0.5s;
+}
+
+.ls-btn-primary:hover::before {
+    left: 100%;
+}
+
+.ls-btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(139, 92, 246, 0.4);
+}
+
+.ls-btn-primary:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.ls-btn-primary .btn-content {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.ls-btn-primary .btn-loading {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+.ls-btn-primary.loading .btn-content { display: none; }
+.ls-btn-primary.loading .btn-loading { display: flex; }
+
+.ls-spinner {
+    width: 18px;
+    height: 18px;
+    border: 2px solid rgba(255,255,255,0.3);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.ls-error {
+    display: none;
+    margin-top: 16px;
+    padding: 12px 16px;
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    border-radius: var(--ls-radius);
+    color: var(--ls-error);
+    font-size: 13px;
+    text-align: center;
+}
+
+.ls-error.show { display: block; }
+
+.ls-setup-footer {
+    margin-top: 24px;
+}
+
+.ls-hint {
+    font-size: 12px;
+    color: var(--ls-text-muted);
+}
+
+/* ============================================
+   Chat Interface
+   ============================================ */
+.ls-chat {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+.ls-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 32px 24px;
+    scroll-behavior: smooth;
+}
+
+.ls-messages::-webkit-scrollbar {
+    width: 6px;
+}
+
+.ls-messages::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.ls-messages::-webkit-scrollbar-thumb {
+    background: var(--ls-border);
+    border-radius: 3px;
+}
+
+/* Welcome Screen */
+.ls-welcome {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 400px;
+    text-align: center;
+    animation: fadeUp 0.5s ease;
+}
+
+@keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.ls-welcome-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 14px;
+    background: rgba(139, 92, 246, 0.15);
+    border: 1px solid rgba(139, 92, 246, 0.3);
+    border-radius: 100px;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--ls-primary-hover);
+    margin-bottom: 24px;
+}
+
+.ls-badge-dot {
+    width: 6px;
+    height: 6px;
+    background: var(--ls-success);
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.7; transform: scale(1.2); }
+}
+
+.ls-welcome-title {
+    margin: 0 0 12px;
+    font-size: 32px;
+    font-weight: 700;
+    color: var(--ls-text);
+}
+
+.ls-welcome-subtitle {
+    margin: 0 0 40px;
+    font-size: 16px;
+    color: var(--ls-text-secondary);
+    max-width: 500px;
+    line-height: 1.6;
+}
+
+.ls-suggestions {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    max-width: 480px;
+    width: 100%;
+}
+
+.ls-suggestion {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px 20px;
+    background: var(--ls-surface);
+    border: 1px solid var(--ls-border);
+    border-radius: var(--ls-radius);
+    color: var(--ls-text);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: var(--ls-transition);
+    text-align: left;
+}
+
+.ls-suggestion:hover {
+    background: var(--ls-bg-tertiary);
+    border-color: var(--ls-primary);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(139, 92, 246, 0.15);
+}
+
+.ls-suggestion-icon {
+    font-size: 20px;
+}
+
+.ls-suggestion-text {
+    flex: 1;
+}
+
+/* Messages */
+.ls-message {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 24px;
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.ls-message.user {
+    flex-direction: row-reverse;
+}
+
+.ls-message-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.ls-message.bot .ls-message-avatar {
+    background: var(--ls-gradient);
+    color: white;
+}
+
+.ls-message.user .ls-message-avatar {
+    background: var(--ls-bg-tertiary);
+    color: var(--ls-text-secondary);
+}
+
+.ls-message-content {
+    max-width: 75%;
+}
+
+.ls-message-bubble {
+    padding: 14px 18px;
+    border-radius: var(--ls-radius);
+    font-size: 14px;
+    line-height: 1.7;
+}
+
+.ls-message.bot .ls-message-bubble {
+    background: var(--ls-surface);
+    border: 1px solid #2dd4bf;
+    color: var(--ls-text);
+}
+
+.ls-message.user .ls-message-bubble {
+    background: var(--ls-gradient);
+    color: white;
+}
+
+/* Tool Results */
+.ls-tool-results {
+    margin-top: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.ls-tool-card {
+    padding: 14px 16px;
+    background: var(--ls-bg);
+    border: 1px solid var(--ls-border);
+    border-radius: var(--ls-radius);
+    animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn {
+    from { opacity: 0; transform: translateX(-10px); }
+    to { opacity: 1; transform: translateX(0); }
+}
+
+.ls-tool-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+}
+
+.ls-tool-icon {
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--ls-bg-tertiary);
+    border-radius: 8px;
+    font-size: 14px;
+}
+
+.ls-tool-name {
+    flex: 1;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ls-text);
+    text-transform: capitalize;
+}
+
+.ls-tool-status {
+    padding: 3px 8px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+.ls-tool-status.success {
+    background: rgba(34, 197, 94, 0.15);
+    color: var(--ls-success);
+}
+
+.ls-tool-status.error {
+    background: rgba(239, 68, 68, 0.15);
+    color: var(--ls-error);
+}
+
+.ls-tool-body {
+    font-size: 13px;
+    color: var(--ls-text-secondary);
+    line-height: 1.6;
+}
+
+.ls-tool-body strong {
+    color: var(--ls-text);
+}
+
+/* Typing Indicator */
+.ls-typing {
+    display: none;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 24px;
+    animation: fadeIn 0.3s ease;
+}
+
+.ls-typing.show { display: flex; }
+
+.ls-typing-avatar {
+    width: 32px;
+    height: 32px;
+    background: var(--ls-gradient);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+}
+
+.ls-typing-dots {
+    display: flex;
+    gap: 4px;
+}
+
+.ls-typing-dots span {
+    width: 6px;
+    height: 6px;
+    background: var(--ls-text-muted);
+    border-radius: 50%;
+    animation: typingDot 1.4s infinite ease-in-out;
+}
+
+.ls-typing-dots span:nth-child(1) { animation-delay: 0s; }
+.ls-typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+.ls-typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes typingDot {
+    0%, 80%, 100% { transform: scale(0.8); opacity: 0.5; }
+    40% { transform: scale(1); opacity: 1; }
+}
+
+.ls-typing-text {
+    font-size: 13px;
+    color: var(--ls-text-muted);
+    font-style: italic;
+}
+
+/* Input Area */
+.ls-input-area {
+    padding: 16px 24px 20px;
+    background: linear-gradient(180deg, transparent 0%, var(--ls-bg) 30%);
+}
+
+.ls-form {
+    display: flex;
+}
+
+.ls-input-container {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    background: var(--ls-bg-secondary);
+    border: 1px solid var(--ls-border);
+    border-radius: 100px;
+    padding: 4px;
+    transition: var(--ls-transition);
+}
+
+.ls-input-container:focus-within {
+    border-color: var(--ls-primary);
+    box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
+}
+
+.ls-input {
+    flex: 1;
+    padding: 12px 20px;
+    background: transparent;
+    border: none;
+    color: var(--ls-text);
+    font-size: 15px;
+    outline: none;
+}
+
+.ls-input::placeholder {
+    color: var(--ls-text-muted);
+}
+
+.ls-send-btn {
+    width: 44px;
+    height: 44px;
+    border: none;
+    border-radius: 50%;
+    background: var(--ls-gradient);
+    color: white;
+    cursor: pointer;
+    transition: var(--ls-transition);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.ls-send-btn:hover {
+    transform: scale(1.05);
+    box-shadow: 0 4px 15px rgba(139, 92, 246, 0.4);
+}
+
+.ls-send-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* Status Bar */
+.ls-status-bar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    padding: 12px 24px;
+    background: var(--ls-bg-secondary);
+    border-top: 1px solid var(--ls-border);
+    font-size: 12px;
+}
+
+.ls-status-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--ls-text-secondary);
+}
+
+.ls-status-indicator {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--ls-warning);
+    animation: blink 2s infinite;
+}
+
+.ls-status-indicator.connected {
+    background: var(--ls-success);
+    animation: none;
+}
+
+.ls-status-indicator.error {
+    background: var(--ls-error);
+    animation: none;
+}
+
+.ls-status-indicator.warning {
+    background: var(--ls-warning);
+}
+
+@keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+}
+
+.ls-status-divider {
+    width: 1px;
+    height: 16px;
+    background: var(--ls-border);
+}
+
+.ls-status-stats {
+    display: flex;
+    gap: 16px;
+}
+
+.ls-stat {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--ls-text-muted);
+}
+
+.ls-stat svg {
+    color: var(--ls-primary);
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+    .ls-suggestions {
+        grid-template-columns: 1fr;
+    }
+
+    .ls-welcome-title {
+        font-size: 24px;
+    }
+
+    .ls-status-bar {
+        flex-wrap: wrap;
+        gap: 12px;
+    }
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // DOM Elements
+    const setupPanel = document.getElementById('setup-panel');
+    const chatInterface = document.getElementById('chat-interface');
+    const messagesContainer = document.getElementById('messages-container');
+    const welcomeState = document.getElementById('welcome-state');
+    const typingIndicator = document.getElementById('typing-indicator');
+    const chatForm = document.getElementById('chat-form');
+    const oauthSetupForm = document.getElementById('oauth-setup-form');
+    const messageInput = document.getElementById('message-input');
+    const sendBtn = document.getElementById('send-btn');
+    const connectBtn = document.getElementById('connect-btn');
+    const connectionStatus = document.getElementById('connection-status');
+    const apiStatus = document.getElementById('api-status');
+
+    // Config
+    const backendUrl = '{{ backendUrl }}';
+    const mauticUrl = window.location.origin;
+    let isLoading = false;
+    let organizationId = null;
+    let isConnected = false;
+
+    // Tool icons
+    const toolIcons = {
+        'get_contacts': '👥', 'get_contact': '👤', 'get_contact_activity': '📋',
+        'search_contacts': '🔍', 'get_emails': '📧', 'get_email': '📧',
+        'get_campaigns': '🎯', 'get_campaign': '🎯', 'get_segments': '📊',
+        'get_summary_stats': '📈', 'create_contact': '➕', 'update_contact': '✏️',
+        'add_tag': '🏷️', 'remove_tag': '🏷️', 'add_to_segment': '📊',
+        'create_email': '📝', 'send_email': '📤', 'create_campaign': '🎯',
+        'add_contact_to_campaign': '➕', 'create_segment': '📊', 'add_contact_note': '📝'
+    };
+
+    // Initialize
+    checkApiStatus();
+    checkConnection();
+    setInterval(checkConnection, 30000);
+
+    // Check OAuth callback
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('connected') === 'true') {
+        checkApiStatus();
+        window.history.replaceState({}, document.title, window.location.pathname);
+    }
+
+    function checkApiStatus() {
+        const indicator = apiStatus.querySelector('.ls-status-indicator');
+        const label = apiStatus.querySelector('.ls-status-label');
+
+        fetch(backendUrl + '/api/settings/plugin/mautic/status?mautic_url=' + encodeURIComponent(mauticUrl), {
+            method: 'GET', mode: 'cors', credentials: 'omit'
+        })
+        .then(r => r.json())
+        .then(data => {
+            organizationId = data.organization_id;
+            isConnected = data.connected;
+
+            if (data.connected) {
+                indicator.className = 'ls-status-indicator connected';
+                label.textContent = 'API: Connected';
+                showChat();
+            } else {
+                indicator.className = 'ls-status-indicator warning';
+                label.textContent = data.has_credentials ? 'API: Needs Auth' : 'API: Setup Required';
+                showSetup();
+            }
+        })
+        .catch(() => {
+            indicator.className = 'ls-status-indicator error';
+            label.textContent = 'API: Error';
+        });
+    }
+
+    function checkConnection() {
+        const indicator = connectionStatus.querySelector('.ls-status-indicator');
+        const label = connectionStatus.querySelector('.ls-status-label');
+
+        fetch(backendUrl + '/health', { method: 'GET', mode: 'cors', credentials: 'omit' })
+            .then(r => {
+                if (r.ok) {
+                    indicator.className = 'ls-status-indicator connected';
+                    label.textContent = 'Connected';
+                } else throw new Error();
+            })
+            .catch(() => {
+                indicator.className = 'ls-status-indicator error';
+                label.textContent = 'Disconnected';
+            });
+
+        loadStats();
+    }
+
+    function loadStats() {
+        fetch('/api/contacts?limit=1').then(r => r.json()).then(data => {
+            if (data.total) document.getElementById('contact-count').textContent = formatNum(data.total);
+        }).catch(() => {});
+        fetch('/api/campaigns?limit=1').then(r => r.json()).then(data => {
+            if (data.total) document.getElementById('campaign-count').textContent = formatNum(data.total);
+        }).catch(() => {});
+    }
+
+    function formatNum(n) { return n >= 1000 ? (n/1000).toFixed(1) + 'k' : n; }
+
+    function showSetup() {
+        setupPanel.style.display = 'flex';
+        chatInterface.style.display = 'none';
+    }
+
+    function showChat() {
+        setupPanel.style.display = 'none';
+        chatInterface.style.display = 'flex';
+    }
+
+    // OAuth Form
+    oauthSetupForm.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const clientId = document.getElementById('client-id').value.trim();
+        const clientSecret = document.getElementById('client-secret').value.trim();
+        const errorEl = document.getElementById('setup-error');
+
+        if (!clientId || !clientSecret) {
+            errorEl.textContent = 'Please fill in both fields';
+            errorEl.classList.add('show');
+            return;
+        }
+
+        connectBtn.classList.add('loading');
+        connectBtn.disabled = true;
+        errorEl.classList.remove('show');
+
+        try {
+            const response = await fetch(backendUrl + '/api/settings/plugin/mautic/setup', {
+                method: 'POST', mode: 'cors', credentials: 'omit',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ mautic_url: mauticUrl, client_id: clientId, client_secret: clientSecret })
+            });
+
+            const data = await response.json();
+            if (response.ok && data.authorization_url) {
+                window.location.href = data.authorization_url;
+            } else {
+                throw new Error(data.detail || 'Setup failed');
+            }
+        } catch (error) {
+            errorEl.textContent = error.message;
+            errorEl.classList.add('show');
+            connectBtn.classList.remove('loading');
+            connectBtn.disabled = false;
+        }
+    });
+
+    // Quick suggestions
+    document.querySelectorAll('.ls-suggestion').forEach(btn => {
+        btn.addEventListener('click', function() {
+            messageInput.value = this.dataset.prompt;
+            messageInput.focus();
+        });
+    });
+
+    // Chat form
+    chatForm.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const message = messageInput.value.trim();
+        if (!message || isLoading) return;
+
+        if (welcomeState) welcomeState.style.display = 'none';
+
+        addMessage(message, 'user');
+        messageInput.value = '';
+        isLoading = true;
+        sendBtn.disabled = true;
+        typingIndicator.classList.add('show');
+
+        try {
+            const response = await fetch(backendUrl + '/api/chat', {
+                method: 'POST', mode: 'cors', credentials: 'omit',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    message: message,
+                    mautic_url: mauticUrl,
+                    organization_id: organizationId,
+                    enable_tools: true
+                })
+            });
+
+            typingIndicator.classList.remove('show');
+
+            if (response.ok) {
+                const data = await response.json();
+                addMessage(data.response || data.message || 'Done.', 'bot', data.tool_results);
+            } else {
+                addMessage('Sorry, something went wrong. Please try again.', 'bot');
+            }
+        } catch (error) {
+            typingIndicator.classList.remove('show');
+            addMessage('Unable to connect. Please check your connection.', 'bot');
+        }
+
+        isLoading = false;
+        sendBtn.disabled = false;
+        messageInput.focus();
+    });
+
+    function addMessage(content, type, toolResults) {
+        const msgEl = document.createElement('div');
+        msgEl.className = 'ls-message ' + type;
+
+        // Format content
+        let formatted = content
+            .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+            .replace(/\n/g, '<br>');
+
+        // Tool results
+        let toolsHtml = '';
+        if (type === 'bot' && toolResults && toolResults.length > 0) {
+            toolsHtml = '<div class="ls-tool-results">';
+            toolResults.forEach(result => {
+                const icon = toolIcons[result.tool] || '🔧';
+                const status = result.success ? 'success' : 'error';
+                toolsHtml += `
+                    <div class="ls-tool-card">
+                        <div class="ls-tool-header">
+                            <span class="ls-tool-icon">${icon}</span>
+                            <span class="ls-tool-name">${result.tool.replace(/_/g, ' ')}</span>
+                            <span class="ls-tool-status ${status}">${result.success ? 'Success' : 'Error'}</span>
+                        </div>
+                        <div class="ls-tool-body">${result.display || ''}</div>
+                    </div>
+                `;
+            });
+            toolsHtml += '</div>';
+        }
+
+        msgEl.innerHTML = `
+            <div class="ls-message-avatar">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                    ${type === 'bot'
+                        ? '<path d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 0 1 7 7h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v1a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-1H2a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1a7 7 0 0 1 7-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 0 1 2-2M7.5 13A2.5 2.5 0 0 0 5 15.5 2.5 2.5 0 0 0 7.5 18a2.5 2.5 0 0 0 2.5-2.5A2.5 2.5 0 0 0 7.5 13m9 0a2.5 2.5 0 0 0-2.5 2.5 2.5 2.5 0 0 0 2.5 2.5 2.5 2.5 0 0 0 2.5-2.5 2.5 2.5 0 0 0-2.5-2.5z"/>'
+                        : '<path d="M12 4a4 4 0 0 1 4 4 4 4 0 0 1-4 4 4 4 0 0 1-4-4 4 4 0 0 1 4-4m0 10c4.42 0 8 1.79 8 4v2H4v-2c0-2.21 3.58-4 8-4z"/>'
+                    }
+                </svg>
+            </div>
+            <div class="ls-message-content">
+                <div class="ls-message-bubble">${formatted}</div>
+                ${toolsHtml}
+            </div>
+        `;
+
+        messagesContainer.appendChild(msgEl);
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+});
+</script>
+{% endblock content %}
