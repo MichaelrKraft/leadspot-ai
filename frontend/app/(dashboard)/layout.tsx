@@ -46,7 +46,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             <div className="border-b border-gray-200 p-6 dark:border-white/10">
               <Link href="/dashboard" className="flex items-center gap-2">
                 <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-                  InnoSynth<span className="text-blue-500">.ai</span>
+                  LeadSpot<span className="text-blue-500">.ai</span>
                 </h1>
               </Link>
             </div>

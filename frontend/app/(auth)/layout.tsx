@@ -14,10 +14,10 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
         {/* Logo and branding */}
         <div className="mb-8 text-center">
           <h1 className="mb-2 text-3xl font-bold text-gray-900 dark:text-white">
-            InnoSynth<span className="text-blue-500">.ai</span>
+            LeadSpot<span className="text-blue-500">.ai</span>
           </h1>
           <p className="text-sm text-gray-600 dark:text-gray-400">
-            Enterprise Knowledge Synthesis Platform
+            AI Agent Command Center for CRM
           </p>
         </div>
 
@@ -28,7 +28,7 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
 
         {/* Footer */}
         <div className="mt-6 text-center text-sm text-gray-500">
-          <p>© 2025 InnoSynth.ai. All rights reserved.</p>
+          <p>© 2025 LeadSpot.ai. All rights reserved.</p>
         </div>
       </div>
     </div>

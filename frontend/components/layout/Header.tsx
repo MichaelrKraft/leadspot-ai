@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { Menu, X, Settings, User } from "lucide-react";
 import Button from "@/components/ui/Button";
 import { useAuthStore } from "@/stores/useAuthStore";
@@ -12,7 +11,7 @@ export default function Header() {
   const { isAuthenticated, user } = useAuthStore();
 
   const navigation = [
-    { name: "Command Center", href: "/" },
+    { name: "Command Center", href: "/command-center" },
     { name: "Dashboard", href: "/dashboard" },
     { name: "Scheduled Tasks", href: "/scheduled" },
     { name: "Contacts", href: "/contacts" },
@@ -26,13 +25,9 @@ export default function Header() {
           {/* Logo */}
           <div className="flex items-center">
             <Link href="/" className="flex items-center">
-              <Image
-                src="/logo.png"
-                alt="LeadSpot.ai Logo"
-                width={200}
-                height={72}
-                className=""
-              />
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+                LeadSpot<span className="text-blue-500">.ai</span>
+              </h1>
             </Link>
           </div>
 

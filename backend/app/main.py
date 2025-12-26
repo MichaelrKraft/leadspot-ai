@@ -37,16 +37,20 @@ from app.middleware.security import (
 )
 from app.routers import (
     admin,
+    agency,
     auth,
+    chat,
     decisions,
     documents_local,
     health,
+    insights,
     integrations,
     knowledge_health_local,
     oauth,
     query,
     query_local,
-    settings,
+    scoring,
+    settings as settings_router,
     superadmin,
 )
 from app.services.ingestion.pipeline import IngestionPipeline
@@ -164,6 +168,10 @@ app.add_middleware(
 # Include routers
 app.include_router(health.router, tags=["health"])
 app.include_router(auth.router, prefix="/auth", tags=["auth"])
+app.include_router(chat.router, prefix="/api", tags=["chat"])
+app.include_router(insights.router, prefix="/api", tags=["insights"])
+app.include_router(scoring.router, prefix="/api", tags=["scoring"])
+app.include_router(agency.router, prefix="/api", tags=["agency"])
 app.include_router(query.router, prefix="/api", tags=["query"])
 app.include_router(oauth.router, prefix="/api", tags=["oauth"])
 app.include_router(documents_local.router, tags=["documents"])
@@ -173,7 +181,7 @@ app.include_router(admin.router, tags=["admin"])
 app.include_router(superadmin.router, tags=["superadmin"])
 app.include_router(integrations.router, prefix="/api", tags=["integrations"])
 app.include_router(decisions.router, tags=["decisions"])
-app.include_router(settings.router, tags=["settings"])
+app.include_router(settings_router.router, tags=["settings"])
 
 
 @app.get("/")
