@@ -1,7 +1,7 @@
 """
 LeadSpot.ai Subscription Tiers Configuration
 
-GoHighLevel-inspired pricing tiers with feature gating.
+Three tiers: Free, Pro ($39/mo, 5k contacts), Business ($79/mo, 25k contacts)
 """
 
 from decimal import Decimal
@@ -9,55 +9,68 @@ from decimal import Decimal
 
 # Subscription tier configuration
 SUBSCRIPTION_TIERS = {
-    "pilot": {
-        "name": "Pilot",
-        "description": "Perfect for getting started with AI-powered CRM",
-        "price_monthly": Decimal("49.00"),
-        "price_annual": Decimal("490.00"),  # ~17% discount
-        "stripe_price_id_monthly": None,  # Set in production
-        "stripe_price_id_annual": None,
+    "free": {
+        "name": "Free",
+        "description": "Get started with AI-powered CRM",
+        "price_monthly": Decimal("0.00"),
+        "stripe_price_id_monthly": None,
         "features": {
-            # Usage limits
-            "max_mautic_instances": 1,
-            "max_contacts": 10000,
-            "max_users": 3,
+            "max_contacts": 100,
+            "max_users": 1,
             "max_sub_organizations": 0,
-
-            # Feature flags
-            "ai_insights_enabled": True,
-            "lead_scoring_enabled": True,
+            "ai_insights_enabled": False,
+            "lead_scoring_enabled": False,
             "voice_input_enabled": False,
             "white_label_enabled": False,
-            "rebilling_enabled": False,
-
-            # AI tokens (monthly allocation)
-            "monthly_ai_credits": Decimal("10.00"),
         },
     },
 
     "pro": {
         "name": "Pro",
-        "description": "For growing teams with advanced needs",
-        "price_monthly": Decimal("149.00"),
-        "price_annual": Decimal("1490.00"),
-        "stripe_price_id_monthly": None,
-        "stripe_price_id_annual": None,
+        "description": "For growing teams with advanced AI features",
+        "price_monthly": Decimal("39.00"),
+        "stripe_price_id_monthly": None,  # Set via STRIPE_PRICE_ID_PRO env var
         "features": {
-            # Usage limits
-            "max_mautic_instances": -1,  # Unlimited
-            "max_contacts": 50000,
-            "max_users": 10,
+            "max_contacts": 5000,
+            "max_users": 5,
             "max_sub_organizations": 0,
+            "ai_insights_enabled": True,
+            "lead_scoring_enabled": True,
+            "voice_input_enabled": False,
+            "white_label_enabled": False,
+        },
+    },
 
-            # Feature flags
+    "business": {
+        "name": "Business",
+        "description": "For scaling businesses with full AI power",
+        "price_monthly": Decimal("79.00"),
+        "stripe_price_id_monthly": None,  # Set via STRIPE_PRICE_ID_BUSINESS env var
+        "features": {
+            "max_contacts": 25000,
+            "max_users": 25,
+            "max_sub_organizations": 5,
             "ai_insights_enabled": True,
             "lead_scoring_enabled": True,
             "voice_input_enabled": True,
             "white_label_enabled": True,
-            "rebilling_enabled": False,
+        },
+    },
 
-            # AI tokens (monthly allocation)
-            "monthly_ai_credits": Decimal("50.00"),
+    # Legacy tiers kept for backward compatibility
+    "pilot": {
+        "name": "Pilot",
+        "description": "Legacy pilot tier",
+        "price_monthly": Decimal("49.00"),
+        "stripe_price_id_monthly": None,
+        "features": {
+            "max_contacts": 10000,
+            "max_users": 3,
+            "max_sub_organizations": 0,
+            "ai_insights_enabled": True,
+            "lead_scoring_enabled": True,
+            "voice_input_enabled": False,
+            "white_label_enabled": False,
         },
     },
 
@@ -65,26 +78,15 @@ SUBSCRIPTION_TIERS = {
         "name": "Agency",
         "description": "Full white-label SaaS with client management",
         "price_monthly": Decimal("297.00"),
-        "price_annual": Decimal("2970.00"),
         "stripe_price_id_monthly": None,
-        "stripe_price_id_annual": None,
         "features": {
-            # Usage limits
-            "max_mautic_instances": -1,  # Unlimited
             "max_contacts": -1,  # Unlimited
-            "max_users": -1,  # Unlimited
-            "max_sub_organizations": -1,  # Unlimited
-
-            # Feature flags
+            "max_users": -1,     # Unlimited
+            "max_sub_organizations": -1,
             "ai_insights_enabled": True,
             "lead_scoring_enabled": True,
             "voice_input_enabled": True,
             "white_label_enabled": True,
-            "rebilling_enabled": True,
-            "rebilling_max_markup": 10,  # Up to 10x
-
-            # AI tokens (monthly allocation)
-            "monthly_ai_credits": Decimal("200.00"),
         },
     },
 }
@@ -94,8 +96,7 @@ def get_tier_features(tier_name: str) -> dict:
     """Get features for a subscription tier."""
     tier = SUBSCRIPTION_TIERS.get(tier_name)
     if not tier:
-        # Default to pilot tier
-        return SUBSCRIPTION_TIERS["pilot"]["features"]
+        return SUBSCRIPTION_TIERS["free"]["features"]
     return tier["features"]
 
 
@@ -104,9 +105,6 @@ def get_tier_price(tier_name: str, annual: bool = False) -> Decimal:
     tier = SUBSCRIPTION_TIERS.get(tier_name)
     if not tier:
         return Decimal("0")
-
-    if annual:
-        return tier["price_annual"]
     return tier["price_monthly"]
 
 

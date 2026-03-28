@@ -39,6 +39,7 @@ from app.routers import (
     admin,
     agency,
     auth,
+    billing,
     chat,
     decisions,
     documents_local,
@@ -182,6 +183,7 @@ app.include_router(superadmin.router, tags=["superadmin"])
 app.include_router(integrations.router, prefix="/api", tags=["integrations"])
 app.include_router(decisions.router, tags=["decisions"])
 app.include_router(settings_router.router, tags=["settings"])
+app.include_router(billing.router, tags=["billing"])
 
 
 @app.get("/")

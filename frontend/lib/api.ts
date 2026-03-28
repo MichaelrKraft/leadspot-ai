@@ -194,6 +194,18 @@ export const api = {
       apiClient.post("/feedback", data),
   },
 
+  // Billing
+  billing: {
+    getStatus: () =>
+      apiClient.get("/api/billing/status"),
+
+    createCheckout: (plan: "pro" | "business") =>
+      apiClient.post("/api/billing/checkout", { plan }),
+
+    createPortal: () =>
+      apiClient.post("/api/billing/portal"),
+  },
+
   // Decisions - Decision Archaeology
   decisions: {
     // List all decisions with pagination

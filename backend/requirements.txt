@@ -78,3 +78,6 @@ httpx>=0.26.0
 
 # Error tracking
 sentry-sdk[fastapi]>=1.50.0
+
+# Stripe billing
+stripe>=7.0.0

@@ -98,6 +98,8 @@ class Organization(Base):
     wallet_recharge_amount = Column(Numeric(10, 2), default=Decimal("50.00"), nullable=False)
     wallet_recharge_threshold = Column(Numeric(10, 2), default=Decimal("10.00"), nullable=False)
     stripe_customer_id = Column(String(255), nullable=True)
+    stripe_subscription_id = Column(String(255), nullable=True)
+    stripe_price_id = Column(String(255), nullable=True)
     subscription_status = Column(String(50), default="active", nullable=False)
 
     # =========================================================================

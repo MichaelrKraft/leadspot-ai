@@ -119,6 +119,13 @@ class Settings(BaseSettings):
     # Frontend URL (for OAuth redirects)
     FRONTEND_URL: str = "http://localhost:3000"
 
+    # Stripe Billing
+    STRIPE_SECRET_KEY: str = ""
+    STRIPE_PUBLISHABLE_KEY: str = ""
+    STRIPE_WEBHOOK_SECRET: str = ""
+    STRIPE_PRICE_ID_PRO: str = ""      # Pro plan $39/mo
+    STRIPE_PRICE_ID_BUSINESS: str = "" # Business plan $79/mo
+
     def validate_production_settings(self) -> list[str]:
         """
         Validate that all required settings are properly configured for production.

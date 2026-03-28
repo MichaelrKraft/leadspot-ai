@@ -5,6 +5,17 @@ import Link from 'next/link';
 export default function SettingsPage() {
   const settingsSections = [
     {
+      name: 'Billing & Plans',
+      description: 'Manage your subscription, upgrade plans, and view billing history',
+      href: '/settings/billing',
+      icon: (
+        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+        </svg>
+      ),
+      color: 'indigo',
+    },
+    {
       name: 'Mautic CRM',
       description: 'Connect your Mautic instance for AI-powered CRM',
       href: '/settings/integrations',
@@ -53,6 +64,7 @@ export default function SettingsPage() {
   ];
 
   const colorClasses = {
+    indigo: 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20 group-hover:bg-indigo-500/20',
     blue: 'bg-blue-500/10 text-blue-400 border-blue-500/20 group-hover:bg-blue-500/20',
     purple: 'bg-purple-500/10 text-purple-400 border-purple-500/20 group-hover:bg-purple-500/20',
     yellow: 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20 group-hover:bg-yellow-500/20',
