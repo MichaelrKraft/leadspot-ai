@@ -1,0 +1,34 @@
+
+> dashboard@0.1.0 build
+> next build
+
+  ▲ Next.js 14.2.33
+  - Environments: .env.local, .env
+
+   Creating an optimized production build ...
+Failed to compile.
+
+./src/components/courses/ProgressTracker.tsx
+Error: 
+  [31mx[0m Expected ',', got 'return'
+    ,-[[36;1;4m/Users/michaelkraft/mautic-platform/dashboard/src/components/courses/ProgressTracker.tsx[0m:6:1]
+ [2m 6[0m | }
+ [2m 7[0m | 
+ [2m 8[0m | export default function ProgressTracker({ currentProgress// totalLessons }: ProgressTrackerProps) {
+ [2m 9[0m |   return (
+    : [31;1m  ^^^^^^[0m
+ [2m10[0m |     <div>
+ [2m11[0m |       <div className="flex items-center justify-between text-sm mb-2">
+ [2m12[0m |         <span className="text-[#a0a0a0]">Progress</span>
+    `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./src/components/courses/ProgressTracker.tsx
+./src/components/courses/CourseSidebar.tsx
+./src/app/community/[slug]/courses/[courseId]/learn/page.tsx
+
+
+> Build failed because of webpack errors

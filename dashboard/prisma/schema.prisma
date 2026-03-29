@@ -1,0 +1,578 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id                String             @id @default(cuid())
+  email             String             @unique
+  hashedPassword    String?
+  name              String?
+  avatar            String?
+  bio               String?
+  role              String             @default("user")
+  emailVerified     DateTime?
+  image             String?
+  accounts          Account[]
+  sessions          Session[]
+  memberships       TenantMember[]
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  comments          Comment[]
+  communityMembers  CommunityMember[]
+  courseEnrollments CourseEnrollment[]
+  instructorCourses Course[]           @relation("CourseInstructor")
+  eventAttendances  EventAttendee[]
+  hostedEvents      Event[]            @relation("EventHost")
+  lessonProgress    LessonProgress[]
+  notifications     Notification[]
+  pointTransactions PointTransaction[]
+  posts             Post[]
+  reactions         Reaction[]
+  achievements      UserAchievement[]
+  voiceAgents       VoiceAgent[]
+  wallet            Wallet?
+
+  @@index([email])
+  @@map("users")
+}
+
+model Community {
+  id           String            @id @default(cuid())
+  tenantId     String?
+  name         String
+  slug         String            @unique
+  description  String?
+  settings     Json?
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+  achievements Achievement[]
+  members      CommunityMember[]
+  courses      Course[]
+  events       Event[]
+  posts        Post[]
+
+  @@index([slug])
+  @@index([tenantId])
+  @@map("communities")
+}
+
+model CommunityMember {
+  id          String    @id @default(cuid())
+  communityId String
+  userId      String
+  role        String    @default("member")
+  points      Int       @default(0)
+  level       Int       @default(1)
+  joinedAt    DateTime  @default(now())
+  community   Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([communityId, userId])
+  @@index([communityId])
+  @@index([userId])
+  @@index([points])
+  @@map("community_members")
+}
+
+model Post {
+  id          String    @id @default(cuid())
+  communityId String
+  authorId    String
+  title       String
+  content     String
+  type        String    @default("discussion")
+  isPinned    Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  comments    Comment[]
+  tags        PostTag[]
+  author      User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  community   Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
+
+  @@index([communityId])
+  @@index([authorId])
+  @@index([createdAt])
+  @@index([isPinned])
+  @@map("posts")
+}
+
+model Comment {
+  id              String    @id @default(cuid())
+  postId          String
+  authorId        String
+  parentCommentId String?
+  content         String
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  author          User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  parentComment   Comment?  @relation("CommentReplies", fields: [parentCommentId], references: [id], onDelete: Cascade)
+  replies         Comment[] @relation("CommentReplies")
+  post            Post      @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@index([postId])
+  @@index([authorId])
+  @@index([parentCommentId])
+  @@index([createdAt])
+  @@map("comments")
+}
+
+model Reaction {
+  id            String   @id @default(cuid())
+  reactableType String
+  reactableId   String
+  userId        String
+  reactionType  String
+  createdAt     DateTime @default(now())
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([reactableType, reactableId, userId, reactionType])
+  @@index([reactableType, reactableId])
+  @@index([userId])
+  @@map("reactions")
+}
+
+model PostTag {
+  id     String @id @default(cuid())
+  postId String
+  name   String
+  color  String @default("#3b82f6")
+  post   Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, name])
+  @@index([postId])
+  @@index([name])
+  @@map("post_tags")
+}
+
+model Course {
+  id           String             @id @default(cuid())
+  communityId  String
+  title        String
+  description  String?
+  instructorId String
+  level        String             @default("beginner")
+  price        Decimal            @default(0) @db.Decimal(10, 6)
+  isFree       Boolean            @default(true)
+  isPublished  Boolean            @default(false)
+  coverImage   String?
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+  enrollments  CourseEnrollment[]
+  modules      CourseModule[]
+  community    Community          @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  instructor   User               @relation("CourseInstructor", fields: [instructorId], references: [id], onDelete: Cascade)
+
+  @@index([communityId])
+  @@index([instructorId])
+  @@index([isPublished])
+  @@map("courses")
+}
+
+model CourseModule {
+  id          String         @id @default(cuid())
+  courseId    String
+  title       String
+  description String?
+  order       Int
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  lessons     CourseLesson[]
+  course      Course         @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@index([courseId])
+  @@index([order])
+  @@map("course_modules")
+}
+
+model CourseLesson {
+  id            String           @id @default(cuid())
+  moduleId      String
+  title         String
+  content       String?
+  videoUrl      String?
+  videoDuration Int?
+  order         Int
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+  module        CourseModule     @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  progress      LessonProgress[]
+
+  @@index([moduleId])
+  @@index([order])
+  @@map("course_lessons")
+}
+
+model CourseEnrollment {
+  id              String           @id @default(cuid())
+  courseId        String
+  userId          String
+  progressPercent Int              @default(0)
+  isCompleted     Boolean          @default(false)
+  enrolledAt      DateTime         @default(now())
+  completedAt     DateTime?
+  course          Course           @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lessonProgress  LessonProgress[]
+
+  @@unique([courseId, userId])
+  @@index([courseId])
+  @@index([userId])
+  @@index([isCompleted])
+  @@map("course_enrollments")
+}
+
+model LessonProgress {
+  id             String           @id @default(cuid())
+  enrollmentId   String
+  lessonId       String
+  userId         String
+  isCompleted    Boolean          @default(false)
+  watchedSeconds Int              @default(0)
+  completedAt    DateTime?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  enrollment     CourseEnrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+  lesson         CourseLesson     @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([enrollmentId, lessonId])
+  @@index([enrollmentId])
+  @@index([lessonId])
+  @@index([userId])
+  @@map("lesson_progress")
+}
+
+model Event {
+  id           String          @id @default(cuid())
+  communityId  String
+  hostId       String
+  title        String
+  description  String?
+  type         String          @default("webinar")
+  startTime    DateTime
+  endTime      DateTime?
+  meetingUrl   String?
+  maxAttendees Int?
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+  attendees    EventAttendee[]
+  community    Community       @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  host         User            @relation("EventHost", fields: [hostId], references: [id], onDelete: Cascade)
+
+  @@index([communityId])
+  @@index([hostId])
+  @@index([startTime])
+  @@map("events")
+}
+
+model EventAttendee {
+  id           String    @id @default(cuid())
+  eventId      String
+  userId       String
+  status       String    @default("registered")
+  registeredAt DateTime  @default(now())
+  attendedAt   DateTime?
+  event        Event     @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, userId])
+  @@index([eventId])
+  @@index([userId])
+  @@map("event_attendees")
+}
+
+model Achievement {
+  id               String            @id @default(cuid())
+  communityId      String
+  name             String
+  description      String?
+  criteria         Json
+  pointsValue      Int               @default(0)
+  icon             String?
+  createdAt        DateTime          @default(now())
+  community        Community         @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  userAchievements UserAchievement[]
+
+  @@index([communityId])
+  @@map("achievements")
+}
+
+model UserAchievement {
+  id            String      @id @default(cuid())
+  achievementId String
+  userId        String
+  earnedAt      DateTime    @default(now())
+  achievement   Achievement @relation(fields: [achievementId], references: [id], onDelete: Cascade)
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([achievementId, userId])
+  @@index([achievementId])
+  @@index([userId])
+  @@map("user_achievements")
+}
+
+model PointTransaction {
+  id         String   @id @default(cuid())
+  userId     String
+  points     Int
+  reason     String
+  sourceType String
+  sourceId   String?
+  createdAt  DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([createdAt])
+  @@map("point_transactions")
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  type      String
+  message   String
+  actionUrl String?
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([isRead])
+  @@index([createdAt])
+  @@map("notifications")
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Voice AI Models (LiveKit Integration)
+// ═══════════════════════════════════════════════════════════════════════════
+
+model VoiceAgent {
+  id           String      @id @default(cuid())
+  name         String
+  type         String // "lead_qualification", "appointment_booking", "customer_support"
+  status       String      @default("inactive") // "active", "inactive", "testing"
+  systemPrompt String      @db.Text
+  voiceId      String? // TTS voice identifier
+  phoneNumber  String? // Associated phone number
+  config       Json? // LiveKit agent configuration
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  userId       String
+  tenantId     String
+  user         User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  calls        VoiceCall[]
+
+  @@index([userId])
+  @@index([tenantId])
+  @@index([status])
+  @@map("voice_agents")
+}
+
+model VoiceCall {
+  id          String           @id @default(cuid())
+  roomId      String           @unique // LiveKit room ID
+  direction   String // "inbound", "outbound"
+  status      String // "in_progress", "completed", "failed", "no_answer"
+  phoneNumber String
+  duration    Int? // Duration in seconds
+  outcome     String? // "qualified", "appointment_booked", "callback_requested", "not_interested"
+  summary     String?          @db.Text
+  startedAt   DateTime
+  endedAt     DateTime?
+  agentId     String
+  tenantId    String
+  agent       VoiceAgent       @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  contactId   String? // Mautic contact ID if synced
+  transcript  VoiceTranscript?
+  usage       VoiceUsage? // Billing usage record
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  @@index([agentId])
+  @@index([tenantId])
+  @@index([status])
+  @@index([startedAt])
+  @@index([phoneNumber])
+  @@map("voice_calls")
+}
+
+model VoiceTranscript {
+  id        String    @id @default(cuid())
+  callId    String    @unique
+  call      VoiceCall @relation(fields: [callId], references: [id], onDelete: Cascade)
+  content   Json // Array of { role: "agent"|"user", text: string, timestamp: number }
+  fullText  String    @db.Text
+  createdAt DateTime  @default(now())
+
+  @@index([callId])
+  @@map("voice_transcripts")
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Voice AI Billing Models
+// ═══════════════════════════════════════════════════════════════════════════
+
+model Wallet {
+  id           String               @id @default(cuid())
+  userId       String               @unique
+  tenantId     String
+  user         User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  balance      Decimal              @default(0) @db.Decimal(10, 6) // Balance in dollars
+  lowBalanceAt Decimal              @default(5) @db.Decimal(10, 6) // Alert when balance falls below this
+  autoTopUp    Boolean              @default(false)
+  autoTopUpAmt Decimal?             @db.Decimal(10, 6) // Amount to auto-charge when low
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
+  transactions BillingTransaction[]
+
+  @@index([userId])
+  @@index([tenantId])
+  @@map("wallets")
+}
+
+model VoiceUsage {
+  id        String    @id @default(cuid())
+  userId    String
+  tenantId  String
+  callId    String    @unique
+  call      VoiceCall @relation(fields: [callId], references: [id], onDelete: Cascade)
+  minutes   Decimal   @db.Decimal(10, 6) // Duration in minutes
+  costRate  Decimal   @default(0.10) @db.Decimal(10, 6) // Cost per minute charged to user
+  totalCost Decimal   @db.Decimal(10, 6) // minutes * costRate
+  baseCost  Decimal   @db.Decimal(10, 6) // Actual cost to platform (~$0.04/min)
+  margin    Decimal   @db.Decimal(10, 6) // totalCost - baseCost (profit)
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
+  @@index([tenantId])
+  @@index([callId])
+  @@index([createdAt])
+  @@map("voice_usage")
+}
+
+model BillingTransaction {
+  id              String   @id @default(cuid())
+  walletId        String
+  tenantId        String
+  wallet          Wallet   @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  type            String // "top_up", "usage_deduction", "refund", "bonus"
+  amount          Decimal  @db.Decimal(10, 6) // Positive for credits, negative for debits
+  balanceAfter    Decimal  @db.Decimal(10, 6) // Wallet balance after this transaction
+  description     String?
+  stripePaymentId String? // Stripe payment intent ID for top-ups
+  callId          String? // Reference to VoiceCall for usage deductions
+  createdAt       DateTime @default(now())
+
+  @@index([walletId])
+  @@index([tenantId])
+  @@index([type])
+  @@index([createdAt])
+  @@index([stripePaymentId])
+  @@map("billing_transactions")
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// NextAuth Adapter Models (next-auth v4 / @next-auth/prisma-adapter)
+// ═══════════════════════════════════════════════════════════════════════════
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Multi-Tenancy Models
+// ═══════════════════════════════════════════════════════════════════════════
+
+model Tenant {
+  id          String         @id @default(cuid())
+  name        String
+  slug        String         @unique
+  mauticUrl   String
+  plan        String         @default("starter")
+  isActive    Boolean        @default(true)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  members     TenantMember[]
+  mauticToken MauticToken?
+
+  @@index([slug])
+  @@map("tenants")
+}
+
+model TenantMember {
+  id       String @id @default(cuid())
+  tenantId String
+  userId   String
+  role     String @default("member") // "owner", "admin", "member"
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, userId])
+  @@index([tenantId])
+  @@index([userId])
+  @@map("tenant_members")
+}
+
+model MauticToken {
+  id            String   @id @default(cuid())
+  tenantId      String   @unique
+  tenant        Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  encryptedData String   @db.Text // AES-256-GCM encrypted { accessToken, refreshToken, expiresAt }
+  keyVersion    Int      @default(1)
+  updatedAt     DateTime @updatedAt
+
+  @@index([tenantId])
+  @@map("mautic_tokens")
+}
+
+model RevokedToken {
+  id        String   @id @default(cuid())
+  jti       String   @unique // JWT ID (jti claim) — for denylist on logout
+  userId    String
+  expiresAt DateTime // Copy of JWT exp — for cleanup cron
+  revokedAt DateTime @default(now())
+
+  @@index([jti])
+  @@index([expiresAt])
+  @@map("revoked_tokens")
+}

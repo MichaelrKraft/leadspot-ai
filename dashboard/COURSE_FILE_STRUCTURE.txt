@@ -1,0 +1,285 @@
+# Course System - File Structure
+
+mautic-platform/dashboard/
+│
+├── src/
+│   ├── app/
+│   │   ├── api/
+│   │   │   ├── courses/
+│   │   │   │   ├── route.ts                          # GET /api/courses (list), POST (create)
+│   │   │   │   └── [id]/
+│   │   │   │       ├── route.ts                      # GET/PATCH/DELETE /api/courses/[id]
+│   │   │   │       ├── enroll/
+│   │   │   │       │   └── route.ts                  # POST /api/courses/[id]/enroll
+│   │   │   │       └── lessons/
+│   │   │   │           └── [lessonId]/
+│   │   │   │               └── route.ts              # GET /api/courses/[id]/lessons/[lessonId]
+│   │   │   └── lessons/
+│   │   │       └── [id]/
+│   │   │           └── progress/
+│   │   │               └── route.ts                  # POST /api/lessons/[id]/progress
+│   │   │
+│   │   └── community/
+│   │       └── [slug]/
+│   │           └── courses/
+│   │               ├── page.tsx                      # Course catalog page
+│   │               └── [courseId]/
+│   │                   ├── page.tsx                  # Course details page
+│   │                   └── learn/
+│   │                       └── page.tsx              # Course player page
+│   │
+│   └── components/
+│       └── courses/
+│           ├── CourseCatalog.tsx                     # Browse/search component
+│           ├── CourseCard.tsx                        # Course preview card
+│           ├── CoursePlayer.tsx                      # Video player + content
+│           ├── CourseSidebar.tsx                     # Module/lesson navigation
+│           ├── ProgressTracker.tsx                   # Progress bar widget
+│           └── CourseBuilder.tsx                     # Admin course creator
+│
+├── prisma/
+│   ├── schema.prisma                                 # Database models (already exists)
+│   └── seed-courses.ts                               # Sample data seeding script
+│
+├── COURSE_SYSTEM_README.md                           # Complete documentation
+├── COURSE_QUICK_START.md                             # 5-minute setup guide
+├── COURSE_IMPLEMENTATION_SUMMARY.md                  # This implementation summary
+└── COURSE_FILE_STRUCTURE.txt                         # This file
+
+---
+
+## API Endpoint Map
+
+### GET Endpoints
+/api/courses                                 → List all courses (with filters)
+/api/courses/[id]                            → Get course details
+/api/courses/[id]/lessons/[lessonId]         → Get lesson content
+
+### POST Endpoints
+/api/courses                                 → Create new course
+/api/courses/[id]/enroll                     → Enroll user
+/api/lessons/[id]/progress                   → Update watch progress
+
+### PATCH Endpoints
+/api/courses/[id]                            → Update course
+
+### DELETE Endpoints
+/api/courses/[id]                            → Delete course
+
+---
+
+## Page Route Map
+
+/community/[slug]/courses                    → Course catalog
+/community/[slug]/courses/[courseId]         → Course details
+/community/[slug]/courses/[courseId]/learn   → Course player
+
+Example URLs:
+http://localhost:3000/community/marketing-masters/courses
+http://localhost:3000/community/marketing-masters/courses/clx123abc/
+http://localhost:3000/community/marketing-masters/courses/clx123abc/learn
+
+---
+
+## Component Usage Map
+
+CourseCatalog
+  └── CourseCard (multiple instances)
+
+CourseDetailsPage
+  └── Uses course data from API
+
+CourseLearnPage
+  ├── CoursePlayer
+  │   └── ProgressTracker (internal)
+  └── CourseSidebar
+      └── ProgressTracker
+
+CourseBuilder
+  └── Standalone admin tool
+
+---
+
+## Data Flow
+
+1. User visits course catalog
+   → GET /api/courses?communityId=xxx&isPublished=true
+   → CourseCatalog renders CourseCard for each
+
+2. User clicks course
+   → Navigate to course details page
+   → GET /api/courses/[id]
+   → Display modules/lessons
+
+3. User enrolls
+   → POST /api/courses/[id]/enroll
+   → Navigate to course player
+
+4. User watches video
+   → CoursePlayer loads Video.js
+   → Every 5 seconds: POST /api/lessons/[id]/progress
+   → CourseSidebar updates in real-time
+
+5. Lesson completes (90% watched)
+   → Progress API marks isCompleted=true
+   → Awards 25 points
+   → Updates course progress percentage
+
+6. Course completes (100% progress)
+   → Awards 100 bonus points
+   → Certificate button appears in sidebar
+
+---
+
+## Database Models (from schema.prisma)
+
+Course
+  ├── id: String (PK)
+  ├── communityId: String (FK → Community)
+  ├── title: String
+  ├── description: String
+  ├── instructorId: String (FK → User)
+  ├── level: String (beginner/intermediate/advanced)
+  ├── price: Float
+  ├── isFree: Boolean
+  ├── isPublished: Boolean
+  ├── coverImage: String
+  └── Relations:
+      ├── instructor: User
+      ├── modules: CourseModule[]
+      └── enrollments: CourseEnrollment[]
+
+CourseModule
+  ├── id: String (PK)
+  ├── courseId: String (FK → Course)
+  ├── title: String
+  ├── description: String
+  ├── order: Int
+  └── Relations:
+      ├── course: Course
+      └── lessons: CourseLesson[]
+
+CourseLesson
+  ├── id: String (PK)
+  ├── moduleId: String (FK → CourseModule)
+  ├── title: String
+  ├── content: String (text content)
+  ├── videoUrl: String (optional)
+  ├── videoDuration: Int (seconds)
+  ├── order: Int
+  └── Relations:
+      ├── module: CourseModule
+      └── progress: LessonProgress[]
+
+CourseEnrollment
+  ├── id: String (PK)
+  ├── courseId: String (FK → Course)
+  ├── userId: String (FK → User)
+  ├── progressPercent: Int (0-100)
+  ├── isCompleted: Boolean
+  ├── enrolledAt: DateTime
+  ├── completedAt: DateTime
+  └── Relations:
+      ├── course: Course
+      ├── user: User
+      └── lessonProgress: LessonProgress[]
+
+LessonProgress
+  ├── id: String (PK)
+  ├── enrollmentId: String (FK → CourseEnrollment)
+  ├── lessonId: String (FK → CourseLesson)
+  ├── userId: String (FK → User)
+  ├── isCompleted: Boolean
+  ├── watchedSeconds: Int
+  ├── completedAt: DateTime
+  └── Relations:
+      ├── enrollment: CourseEnrollment
+      ├── lesson: CourseLesson
+      └── user: User
+
+---
+
+## Key Features by File
+
+### CoursePlayer.tsx
+- Video.js initialization
+- Auto-save progress (every 5s)
+- Resume from last position
+- 90% completion detection
+- Manual "Mark Complete" for text lessons
+
+### CourseSidebar.tsx
+- Module expand/collapse
+- Lesson status icons (completed/active/pending)
+- Progress tracker integration
+- Certificate button (when 100% complete)
+
+### CourseBuilder.tsx
+- 3-step wizard (Info → Modules → Settings)
+- Module management (add/remove)
+- Lesson management (add/remove)
+- Publish controls
+
+### /api/lessons/[id]/progress/route.ts
+- Progress tracking logic
+- 90% auto-completion
+- Point awarding (25 per lesson, 100 per course)
+- Course progress calculation
+- Community points update
+
+---
+
+## Sample Data (from seed-courses.ts)
+
+Community: Marketing Masters
+  ├── slug: marketing-masters
+  └── Members:
+      ├── instructor@mautic.com (admin, 1000 points)
+      └── student@mautic.com (member, 100 points)
+
+Courses:
+  ├── Introduction to Marketing Automation (Beginner)
+  │   ├── Module 1: Getting Started (3 lessons)
+  │   └── Module 2: Email Marketing Essentials (2 lessons)
+  │
+  ├── Advanced Campaign Building (Intermediate)
+  │   └── Module 1: Complex Campaign Workflows (2 lessons)
+  │
+  └── Mautic API & Integration Mastery (Advanced)
+      └── Module 1: API Fundamentals (3 lessons)
+
+Enrollments:
+  └── student@mautic.com → Introduction to Marketing Automation
+      ├── Progress: 40%
+      └── Completed Lessons: 1/5
+
+---
+
+## Quick Reference: Common Tasks
+
+### Add New Course (Admin)
+1. Import CourseBuilder component
+2. Pass communityId and instructorId
+3. User fills 3-step wizard
+4. Course created via POST /api/courses
+
+### Enroll User (Student)
+1. User visits course details page
+2. Clicks "Enroll Now" button
+3. POST /api/courses/[id]/enroll
+4. Redirects to course player
+
+### Track Progress (Automatic)
+1. User watches video in CoursePlayer
+2. Every 5s: POST /api/lessons/[id]/progress
+3. At 90% watched: Auto-marks complete
+4. Awards points, updates sidebar
+
+### Check Completion (Query)
+GET /api/courses/[id]
+  → enrollment.progressPercent
+  → enrollment.isCompleted
+
+---
+
+End of File Structure Documentation
