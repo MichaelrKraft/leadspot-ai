@@ -27,74 +27,72 @@ interface ConnectedSource {
   lastSync?: string;
 }
 
-// Demo recent queries for bond trading / financial services
 const DEMO_RECENT_QUERIES: RecentQuery[] = [
   {
     id: 'q1',
-    query: 'What are current yield spreads on investment-grade corporate bonds vs treasuries?',
+    query: 'Show me all leads who visited the pricing page more than 3 times this week',
     timestamp: '2 hours ago',
     status: 'completed',
   },
   {
     id: 'q2',
-    query: 'Show me all municipal bond trades over $5M from last week',
+    query: 'Create a follow-up email sequence for leads who downloaded the whitepaper',
     timestamp: '5 hours ago',
     status: 'completed',
   },
   {
     id: 'q3',
-    query: 'Which clients have ESG mandate requirements for fixed income?',
+    query: 'Which contacts in the "Enterprise" segment haven\'t been contacted in 30 days?',
     timestamp: 'Yesterday',
     status: 'completed',
   },
   {
     id: 'q4',
-    query: 'What is our current inventory exposure to BBB-rated bonds?',
+    query: 'Schedule a call with all hot leads in the Negotiation stage',
     timestamp: 'Yesterday',
     status: 'completed',
   },
   {
     id: 'q5',
-    query: 'Pull FINRA compliance reports for Q4 trade surveillance',
+    query: 'Generate a campaign performance report for the Q1 nurture sequence',
     timestamp: '2 days ago',
     status: 'completed',
   },
 ];
 
-// Demo connected sources for bond trading / financial services
 const DEMO_CONNECTED_SOURCES: ConnectedSource[] = [
   {
     id: 's1',
-    name: 'Bloomberg Terminal',
-    type: 'Market Data Feed',
+    name: 'Mautic CRM',
+    type: 'Marketing Automation',
     status: 'active',
     lastSync: '2 minutes ago',
   },
   {
     id: 's2',
-    name: 'FINRA TRACE',
-    type: 'Trade Reporting',
+    name: 'Google Calendar',
+    type: 'Scheduling',
     status: 'active',
     lastSync: '5 minutes ago',
   },
   {
     id: 's3',
-    name: 'MSRB EMMA',
-    type: 'Municipal Bond Data',
+    name: 'Voice AI Agent',
+    type: 'Outbound Calls',
     status: 'active',
     lastSync: '15 minutes ago',
   },
   {
     id: 's4',
-    name: 'Internal CRM',
-    type: 'Client Database',
+    name: 'Email (SMTP)',
+    type: 'Email Delivery',
     status: 'syncing',
     lastSync: 'Syncing now...',
   },
   {
     id: 's5',
-    name: 'Risk Management System',
-    type: 'VaR & Position Limits',
+    name: 'Stripe Billing',
+    type: 'Payments & Usage',
     status: 'active',
     lastSync: '1 hour ago',
   },
@@ -165,7 +163,7 @@ export default function DashboardPage() {
           Welcome back, {user?.name?.split(' ')[0] || 'User'}!
         </h1>
         <p className="text-gray-600 dark:text-gray-400">
-          Here's what's happening with your knowledge synthesis platform.
+          Here's what's happening with your leads and campaigns.
         </p>
       </div>
 

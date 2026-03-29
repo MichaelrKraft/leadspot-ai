@@ -1,0 +1,31 @@
+{
+  "name": "@leadspot/mcp-server",
+  "version": "1.0.0",
+  "description": "MCP server for LeadSpot.ai - exposes Mautic CRM tools to Claude Code and other MCP clients",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "leadspot-mcp": "dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "tsx src/index.ts"
+  },
+  "keywords": [
+    "mcp",
+    "leadspot",
+    "mautic",
+    "crm",
+    "ai"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.12.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.8.0"
+  }
+}

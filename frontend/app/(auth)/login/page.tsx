@@ -41,11 +41,34 @@ export default function LoginPage() {
     loginWithMicrosoft();
   };
 
+  const handleDemoLogin = () => {
+    // Write to localStorage directly so AuthGuard picks it up immediately
+    const demoState = {
+      state: {
+        user: {
+          id: 'demo-user',
+          email: 'demo@leadspot.ai',
+          name: 'Demo User',
+          organization: 'LeadSpot Demo',
+          role: 'admin',
+        },
+        token: 'demo-token',
+        isAuthenticated: true,
+      },
+      version: 0,
+    };
+    localStorage.setItem('auth-storage', JSON.stringify(demoState));
+
+    // Full page navigation to ensure AuthGuard re-reads localStorage
+    window.location.href = '/dashboard';
+  };
+
   return (
     <LoginForm
       onSubmit={handleLogin}
       onGoogleLogin={handleGoogleLogin}
       onMicrosoftLogin={handleMicrosoftLogin}
+      onDemoLogin={handleDemoLogin}
       error={error}
       loading={loading}
     />

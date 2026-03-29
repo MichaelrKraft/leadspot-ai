@@ -62,6 +62,7 @@ export function DecisionFactors({ factors, width = 400, height = 400 }: Decision
 
     // Add arc paths with animation
     arcs.append('path')
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       .attr('d', arc as any)
       .attr('fill', (d, i) => FACTOR_COLORS[i % FACTOR_COLORS.length])
       .attr('stroke', '#0A0F1C')
@@ -86,6 +87,7 @@ export function DecisionFactors({ factors, width = 400, height = 400 }: Decision
       .attrTween('d', function(d) {
         const interpolate = d3.interpolate({ startAngle: 0, endAngle: 0 }, d);
         return function(t) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           return arc(interpolate(t) as any) || '';
         };
       });
@@ -93,6 +95,7 @@ export function DecisionFactors({ factors, width = 400, height = 400 }: Decision
     // Add percentage labels
     arcs.append('text')
       .attr('transform', d => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const pos = arc.centroid(d as any);
         return `translate(${pos})`;
       })

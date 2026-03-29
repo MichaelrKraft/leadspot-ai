@@ -89,6 +89,7 @@ export function DecisionTimeline({ events, onEventClick }: DecisionTimelineProps
     if (svgRef.current) {
       const svg = d3.select(svgRef.current);
       svg.transition().duration(300).call(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         d3.zoom<SVGSVGElement, unknown>().scaleBy as any,
         1.3
       );
@@ -99,6 +100,7 @@ export function DecisionTimeline({ events, onEventClick }: DecisionTimelineProps
     if (svgRef.current) {
       const svg = d3.select(svgRef.current);
       svg.transition().duration(300).call(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         d3.zoom<SVGSVGElement, unknown>().scaleBy as any,
         0.7
       );

@@ -22,6 +22,8 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
   const navigation = [
     { name: 'Dashboard', href: '/dashboard' },
+    { name: 'Deals', href: '/deals' },
+    { name: 'Calendar', href: '/calendar' },
     { name: 'Decisions', href: '/decisions' },
     { name: 'Query', href: '/query' },
     { name: 'Documents', href: '/documents' },

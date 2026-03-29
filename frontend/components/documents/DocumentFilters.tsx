@@ -20,7 +20,7 @@ const AVAILABLE_TAGS = ['RAG', 'AI', 'Vector DB', 'LLM', 'Best Practices', 'Tuto
 export default function DocumentFilters({ filters, onFiltersChange }: DocumentFiltersProps) {
   const [isExpanded, setIsExpanded] = useState(false);
 
-  const updateFilter = (key: keyof FilterType, value: any) => {
+  const updateFilter = (key: keyof FilterType, value: FilterType[keyof FilterType]) => {
     onFiltersChange({ ...filters, [key]: value });
   };
 
