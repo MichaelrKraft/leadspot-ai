@@ -26,7 +26,8 @@ import { registerTimelineRoutes } from './routes/timeline';
 import { registerVoiceRoutes } from './routes/voice-commands';
 import { registerReportingRoutes } from './routes/reporting';
 import { resetCronService } from './cron';
-import { closeAll } from './db';
+import { closeAll, getLatestBrief, getSuggestions } from './db';
+import { buildContactContext, buildBriefContext, formatContextForPrompt } from './memory/context-builder';
 
 // ============================================================================
 // Configuration
@@ -208,6 +209,54 @@ function createApp(): express.Application {
       await orchestrator.dismissSuggestion(String(body.organizationId), String(id));
 
       res.json({ success: true, suggestionId: id });
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  // --------------------------------------------------------------------------
+  // Chat Context (consumed by FastAPI chat backend for prompt injection)
+  // --------------------------------------------------------------------------
+
+  app.get('/api/agent/context', async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const organizationId = req.query.organizationId as string;
+      const contactId = req.query.contactId as string | undefined;
+      const currentMessage = req.query.message as string | undefined;
+
+      if (!organizationId) {
+        throw createApiError('organizationId query parameter is required', 400);
+      }
+
+      if (contactId) {
+        // Contact-level context
+        const context = await buildContactContext(organizationId, contactId, currentMessage);
+        const formatted = formatContextForPrompt(context);
+        res.json({ context: formatted, type: 'contact', contactId });
+      } else {
+        // Org-level context
+        const briefContext = await buildBriefContext(organizationId);
+        const latestBrief = getLatestBrief(organizationId);
+        const recentSuggestions = getSuggestions(organizationId, { limit: 5 });
+
+        res.json({
+          context: briefContext,
+          type: 'organization',
+          latestBrief: latestBrief ? {
+            summary: latestBrief.summary,
+            generatedAt: latestBrief.generatedAt,
+            newLeads: latestBrief.newLeads,
+            followUpsNeeded: latestBrief.followUpsNeeded,
+            dealsAtRisk: latestBrief.dealsAtRisk,
+          } : null,
+          recentSuggestions: recentSuggestions.map(s => ({
+            type: s.type,
+            title: s.title,
+            status: s.status,
+            contactId: s.contactId,
+          })),
+        });
+      }
     } catch (err) {
       next(err);
     }

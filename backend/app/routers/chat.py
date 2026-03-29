@@ -7,9 +7,11 @@ This is the main entry point for the AI agent system with full tool calling supp
 
 import json
 import logging
+import os
 from datetime import datetime
 from typing import Any, Optional
 
+import httpx
 from anthropic import AsyncAnthropic
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
@@ -17,6 +19,8 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
+
+AGENT_SERVICE_URL = os.environ.get("AGENT_SERVICE_URL", "http://localhost:3008")
 from app.database import get_db
 from app.models.organization import Organization
 from app.services.mautic_client import MauticClient, MauticAuthError
@@ -122,6 +126,60 @@ User: "What's my CRM overview?"
 """
 
 
+async def fetch_agent_context(
+    organization_id: str,
+    contact_id: str = None,
+    message: str = None,
+) -> str:
+    """Fetch memory context from the agent-service to enrich chat prompts."""
+    try:
+        params = {"organizationId": organization_id}
+        if contact_id:
+            params["contactId"] = contact_id
+        if message:
+            params["message"] = message
+
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            resp = await client.get(
+                f"{AGENT_SERVICE_URL}/api/agent/context",
+                params=params,
+            )
+            if resp.status_code == 200:
+                data = resp.json()
+                context_parts = []
+
+                if data.get("context"):
+                    context_parts.append(data["context"])
+
+                if data.get("latestBrief"):
+                    brief = data["latestBrief"]
+                    context_parts.append(
+                        f"\n## Latest Pipeline Brief ({brief.get('generatedAt', 'unknown')})\n"
+                        f"{brief.get('summary', 'No summary available.')}\n"
+                        f"New leads: {brief.get('newLeads', 0)}, "
+                        f"Follow-ups needed: {brief.get('followUpsNeeded', 0)}, "
+                        f"Deals at risk: {brief.get('dealsAtRisk', 0)}"
+                    )
+
+                if data.get("recentSuggestions"):
+                    suggestions = data["recentSuggestions"]
+                    if suggestions:
+                        lines = ["\n## Recent AI Suggestions"]
+                        for s in suggestions:
+                            lines.append(
+                                f"- [{s.get('status', 'pending')}] "
+                                f"{s.get('type', '')}: {s.get('title', '')}"
+                            )
+                        context_parts.append("\n".join(lines))
+
+                return "\n\n".join(context_parts) if context_parts else ""
+            return ""
+    except Exception as e:
+        # Agent service may not be running - graceful fallback
+        logger.debug(f"Agent context fetch failed (non-critical): {e}")
+        return ""
+
+
 async def get_mautic_client_for_org(
     organization_id: str,
     session: AsyncSession,
@@ -138,6 +196,7 @@ async def run_tool_loop(
     messages: list[dict],
     tools: list[dict],
     mautic_client: MauticClient,
+    system_prompt: str = SYSTEM_PROMPT,
     max_iterations: int = 10,
 ) -> tuple[str, list[str], list[dict]]:
     """
@@ -154,7 +213,7 @@ async def run_tool_loop(
         response = await client.messages.create(
             model=settings.SYNTHESIS_MODEL,
             max_tokens=2048,
-            system=SYSTEM_PROMPT,
+            system=system_prompt,
             messages=messages,
             tools=tools,
         )
@@ -295,6 +354,22 @@ async def process_chat(
                 except MauticAuthError as e:
                     logger.warning(f"Could not create Mautic client: {e}")
 
+        # Fetch agent memory context
+        agent_context = await fetch_agent_context(
+            organization_id=request.organization_id or "demo-org",
+            message=request.message,
+        )
+
+        # Inject into system prompt if available
+        enriched_system_prompt = SYSTEM_PROMPT
+        if agent_context:
+            enriched_system_prompt += (
+                "\n\n---\n\n## Agent Intelligence\n"
+                "The following context comes from your AI agent's memory system. "
+                "Use it to give informed, personalized responses:\n\n"
+                f"{agent_context}"
+            )
+
         # Build initial messages
         messages = [{"role": "user", "content": request.message}]
 
@@ -314,6 +389,7 @@ async def process_chat(
                 messages=messages,
                 tools=tools,
                 mautic_client=mautic_client,
+                system_prompt=enriched_system_prompt,
             )
 
             logger.info(f"Chat completed. Tools used: {tools_used}")
@@ -331,7 +407,7 @@ async def process_chat(
             response = await client.messages.create(
                 model=settings.SYNTHESIS_MODEL,
                 max_tokens=1024,
-                system=SYSTEM_PROMPT,
+                system=enriched_system_prompt,
                 messages=messages,
             )
 
