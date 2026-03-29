@@ -18,6 +18,14 @@ import type {
   Contact,
   Deal,
 } from '../types';
+import { insertSuggestion, getSuggestions, updateSuggestionStatus, insertBrief } from '../db';
+import { createCronService } from '../cron';
+import type { CronServiceConfig } from '../cron';
+import { buildContactContext, buildBriefContext, formatContextForPrompt } from '../memory/context-builder';
+import { processExpiredClaims } from '../lead-routing';
+import { evaluateAutoPondRules } from '../lead-ponds';
+import { processAutoResumes } from '../action-plans/auto-pause';
+import { getDueEnrollments, processNextStep } from '../action-plans';
 
 // ============================================================================
 // Internal types for LeadSpot API responses (Phase 1 stubs)
@@ -42,9 +50,7 @@ export class CRMOrchestrator {
   private config: AgentServiceConfig | null = null;
   private initialized = false;
 
-  // In-memory stores for Phase 1 (will move to DB layer)
-  private suggestionsStore: Map<string, AgentSuggestion[]> = new Map();
-  private briefsStore: Map<string, PipelineBrief[]> = new Map();
+  // Data persisted in SQLite via ../db CRUD functions
 
   /**
    * Initialize the orchestrator with configuration.
@@ -59,9 +65,16 @@ export class CRMOrchestrator {
     this.config = config;
     this.client = new Anthropic({ apiKey: config.anthropicApiKey });
 
-    // TODO: Initialize DB connection via getDb(organizationId) from ../db
-    // TODO: Initialize CronService via createCronService(config) from ../cron
-    // TODO: Initialize memory services from ../memory/fact-extraction and ../memory/context-builder
+    // Initialize CronService with orchestrator as the job handler
+    createCronService({
+      defaultTimezone: config.defaultTimezone,
+      onJobRun: async (job) => {
+        if (job.payload.action) {
+          await this.handleCronAction(job.payload.action, job.organizationId);
+        }
+        return `Executed ${job.payload.action || 'custom'} for ${job.organizationId}`;
+      },
+    });
 
     this.initialized = true;
     console.log('[CRMOrchestrator] Initialized successfully');
@@ -83,8 +96,7 @@ export class CRMOrchestrator {
     const pipelineData = await this.fetchPipelineData(organizationId);
 
     // Step 2: Build memory context
-    // TODO: Use context-builder from ../memory/context-builder to enrich with historical facts
-    const memoryContext = `Organization ${organizationId} pipeline snapshot.`;
+    const memoryContext = await buildBriefContext(organizationId);
 
     // Step 3: Call Claude to synthesize a brief
     const briefContent = await this.synthesizeBrief(pipelineData, memoryContext);
@@ -108,10 +120,8 @@ export class CRMOrchestrator {
       })),
     };
 
-    // Step 5: Save to store (TODO: save to DB via getDb(organizationId))
-    const orgBriefs = this.briefsStore.get(organizationId) || [];
-    orgBriefs.push(brief);
-    this.briefsStore.set(organizationId, orgBriefs);
+    // Step 5: Save to DB
+    insertBrief(organizationId, brief);
 
     // Also add suggested actions to the approval queue
     for (const suggestion of brief.suggestedActions) {
@@ -135,8 +145,8 @@ export class CRMOrchestrator {
     this.ensureInitialized();
 
     // Step 1: Load contact facts from memory
-    // TODO: Use fact-extraction from ../memory/fact-extraction to load contact history
-    const contactFacts = `Contact ${contactId} in organization ${organizationId}.`;
+    const context = await buildContactContext(organizationId, contactId);
+    const contactFacts = formatContextForPrompt(context);
 
     // Step 2: Fetch contact details from LeadSpot API
     const contact = await this.fetchContact(organizationId, contactId);
@@ -158,8 +168,6 @@ export class CRMOrchestrator {
       this.addSuggestion(organizationId, suggestion);
     }
 
-    // TODO: Save to DB via getDb(organizationId)
-
     return savedSuggestions;
   }
 
@@ -168,14 +176,7 @@ export class CRMOrchestrator {
    */
   async getQueue(organizationId: string, status?: string): Promise<AgentSuggestion[]> {
     this.ensureInitialized();
-
-    const orgSuggestions = this.suggestionsStore.get(organizationId) || [];
-
-    if (status) {
-      return orgSuggestions.filter((s) => s.status === status);
-    }
-
-    return orgSuggestions;
+    return getSuggestions(organizationId, { status: status || undefined });
   }
 
   /**
@@ -184,28 +185,16 @@ export class CRMOrchestrator {
   async approveSuggestion(organizationId: string, suggestionId: string): Promise<void> {
     this.ensureInitialized();
 
-    const orgSuggestions = this.suggestionsStore.get(organizationId) || [];
-    const suggestion = orgSuggestions.find((s) => s.id === suggestionId);
+    const changes = updateSuggestionStatus(
+      organizationId,
+      suggestionId,
+      'executed',
+      new Date().toISOString()
+    );
 
-    if (!suggestion) {
+    if (changes === 0) {
       throw new Error(`Suggestion ${suggestionId} not found for org ${organizationId}`);
     }
-
-    suggestion.status = 'approved';
-    suggestion.executedAt = new Date().toISOString();
-
-    // TODO: Execute the approved action via LeadSpot API
-    // For Phase 1, we just update the status. Real execution comes in Phase 2:
-    // - email: call LeadSpot API to send email
-    // - call: create call task in CRM
-    // - sms: send SMS via LeadSpot
-    // - tag: update contact tags
-    // - note: add note to contact
-    // - campaign: enroll contact in campaign
-
-    suggestion.status = 'executed';
-
-    // TODO: Save to DB via getDb(organizationId)
 
     console.log(`[CRMOrchestrator] Approved and executed suggestion ${suggestionId}`);
   }
@@ -216,16 +205,11 @@ export class CRMOrchestrator {
   async dismissSuggestion(organizationId: string, suggestionId: string): Promise<void> {
     this.ensureInitialized();
 
-    const orgSuggestions = this.suggestionsStore.get(organizationId) || [];
-    const suggestion = orgSuggestions.find((s) => s.id === suggestionId);
+    const changes = updateSuggestionStatus(organizationId, suggestionId, 'dismissed');
 
-    if (!suggestion) {
+    if (changes === 0) {
       throw new Error(`Suggestion ${suggestionId} not found for org ${organizationId}`);
     }
-
-    suggestion.status = 'dismissed';
-
-    // TODO: Save to DB via getDb(organizationId)
 
     console.log(`[CRMOrchestrator] Dismissed suggestion ${suggestionId}`);
   }
@@ -272,25 +256,36 @@ export class CRMOrchestrator {
         console.log('[CRMOrchestrator] weekly_report: generating weekly summary');
         break;
 
-      case 'expired_claim_check':
-        // TODO: Import and call processExpiredClaims from lead-routing
-        console.log('[CRMOrchestrator] expired_claim_check: processing unclaimed leads');
+      case 'expired_claim_check': {
+        const released = processExpiredClaims(organizationId);
+        console.log(`[CRMOrchestrator] expired_claim_check: released ${released.length} expired claims`);
         break;
+      }
 
-      case 'auto_pond_check':
-        // TODO: Import and call evaluateAutoPondRules from lead-ponds
-        console.log('[CRMOrchestrator] auto_pond_check: scanning for leads to auto-pond');
+      case 'auto_pond_check': {
+        const added = evaluateAutoPondRules(organizationId);
+        console.log(`[CRMOrchestrator] auto_pond_check: auto-ponded ${added} leads`);
         break;
+      }
 
-      case 'auto_resume_check':
-        // TODO: Import and call processAutoResumes from action-plans/auto-pause
-        console.log('[CRMOrchestrator] auto_resume_check: checking paused enrollments');
+      case 'auto_resume_check': {
+        const resumed = processAutoResumes(organizationId);
+        console.log(`[CRMOrchestrator] auto_resume_check: resumed ${resumed} paused enrollments`);
         break;
+      }
 
-      case 'process_action_plans':
-        // TODO: Import and call getDueEnrollments + processNextStep from action-plans
-        console.log('[CRMOrchestrator] process_action_plans: executing due enrollment steps');
+      case 'process_action_plans': {
+        const due = getDueEnrollments(organizationId);
+        console.log(`[CRMOrchestrator] process_action_plans: ${due.length} enrollments due`);
+        for (const enrollment of due) {
+          try {
+            await processNextStep(organizationId, enrollment.id);
+          } catch (err) {
+            console.error(`[CRMOrchestrator] Failed to process enrollment ${enrollment.id}:`, err);
+          }
+        }
         break;
+      }
 
       case 'custom':
         console.log('[CRMOrchestrator] custom action: no default handler');
@@ -553,9 +548,7 @@ JSON array only, no markdown:`,
    * Add a suggestion to the in-memory store for an organization.
    */
   private addSuggestion(organizationId: string, suggestion: AgentSuggestion): void {
-    const orgSuggestions = this.suggestionsStore.get(organizationId) || [];
-    orgSuggestions.push(suggestion);
-    this.suggestionsStore.set(organizationId, orgSuggestions);
+    insertSuggestion(organizationId, suggestion);
   }
 
   /**

@@ -25,6 +25,8 @@ import { registerLeadPondRoutes } from './routes/lead-ponds';
 import { registerTimelineRoutes } from './routes/timeline';
 import { registerVoiceRoutes } from './routes/voice-commands';
 import { registerReportingRoutes } from './routes/reporting';
+import { resetCronService } from './cron';
+import { closeAll } from './db';
 
 // ============================================================================
 // Configuration
@@ -315,8 +317,8 @@ async function main(): Promise<void> {
     console.log('[AgentService] Shutting down gracefully...');
 
     server.close(() => {
-      // TODO: Stop CronService from ../cron once available
-      // TODO: Close DB connections from ../db once available
+      resetCronService();
+      closeAll();
       console.log('[AgentService] Server closed');
       process.exit(0);
     });

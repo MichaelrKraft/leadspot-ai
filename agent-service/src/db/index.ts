@@ -10,6 +10,7 @@
 import Database from 'better-sqlite3';
 import * as fs from 'fs';
 import * as path from 'path';
+import type { AgentSuggestion, PipelineBrief } from '../types';
 
 // ============================================================================
 // Configuration
@@ -206,4 +207,182 @@ export function closeDb(organizationId: string): void {
  */
 export function connectionCount(): number {
   return connections.size;
+}
+
+// ============================================================================
+// Row Types
+// ============================================================================
+
+interface SuggestionRow {
+  id: string;
+  organization_id: string;
+  type: string;
+  contact_id: string;
+  title: string;
+  description: string;
+  draft: string | null;
+  priority: string;
+  status: string;
+  created_at: string;
+  executed_at: string | null;
+}
+
+// ============================================================================
+// Row Mappers
+// ============================================================================
+
+function rowToSuggestion(r: SuggestionRow): AgentSuggestion {
+  return {
+    id: r.id,
+    organizationId: r.organization_id,
+    type: r.type as AgentSuggestion['type'],
+    contactId: r.contact_id,
+    title: r.title,
+    description: r.description,
+    draft: r.draft ?? undefined,
+    priority: r.priority as AgentSuggestion['priority'],
+    status: r.status as AgentSuggestion['status'],
+    createdAt: r.created_at,
+    executedAt: r.executed_at ?? undefined,
+  };
+}
+
+// ============================================================================
+// CRUD - Suggestions
+// ============================================================================
+
+/**
+ * Insert or replace a suggestion for the given organization.
+ */
+export function insertSuggestion(organizationId: string, suggestion: AgentSuggestion): void {
+  const db = getDb(organizationId);
+  const stmt = db.prepare(`
+    INSERT OR REPLACE INTO suggestions
+      (id, organization_id, type, contact_id, title, description, draft, priority, status, created_at, executed_at)
+    VALUES
+      (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `);
+  stmt.run(
+    suggestion.id,
+    organizationId,
+    suggestion.type,
+    suggestion.contactId,
+    suggestion.title,
+    suggestion.description,
+    suggestion.draft ?? null,
+    suggestion.priority,
+    suggestion.status,
+    suggestion.createdAt,
+    suggestion.executedAt ?? null,
+  );
+}
+
+/**
+ * Query suggestions for an organization with optional filters.
+ */
+export function getSuggestions(
+  organizationId: string,
+  options?: { status?: string; contactId?: string; limit?: number },
+): AgentSuggestion[] {
+  const db = getDb(organizationId);
+
+  let sql = 'SELECT * FROM suggestions WHERE organization_id = ?';
+  const params: (string | number)[] = [organizationId];
+
+  if (options?.status) {
+    sql += ' AND status = ?';
+    params.push(options.status);
+  }
+  if (options?.contactId) {
+    sql += ' AND contact_id = ?';
+    params.push(options.contactId);
+  }
+
+  sql += ' ORDER BY created_at DESC';
+
+  if (options?.limit) {
+    sql += ' LIMIT ?';
+    params.push(options.limit);
+  }
+
+  const rows = db.prepare(sql).all(...params) as SuggestionRow[];
+  return rows.map(rowToSuggestion);
+}
+
+/**
+ * Update the status (and optionally executed_at) of a suggestion.
+ * Returns the number of rows changed (0 if not found, 1 if updated).
+ */
+export function updateSuggestionStatus(
+  organizationId: string,
+  suggestionId: string,
+  status: AgentSuggestion['status'],
+  executedAt?: string,
+): number {
+  const db = getDb(organizationId);
+  const result = db.prepare(`
+    UPDATE suggestions
+    SET status = ?, executed_at = ?
+    WHERE id = ? AND organization_id = ?
+  `).run(status, executedAt ?? null, suggestionId, organizationId);
+  return result.changes;
+}
+
+// ============================================================================
+// CRUD - Briefs
+// ============================================================================
+
+/**
+ * Insert a pipeline brief for the given organization.
+ * Extra fields (newLeads, followUpsNeeded, etc.) are serialized into the data column.
+ */
+export function insertBrief(organizationId: string, brief: PipelineBrief): void {
+  const db = getDb(organizationId);
+  const data = JSON.stringify({
+    newLeads: brief.newLeads,
+    followUpsNeeded: brief.followUpsNeeded,
+    dealsAtRisk: brief.dealsAtRisk,
+    campaignHighlights: brief.campaignHighlights,
+    suggestedActions: brief.suggestedActions,
+  });
+  db.prepare(`
+    INSERT INTO briefs (id, organization_id, generated_at, summary, data)
+    VALUES (?, ?, ?, ?, ?)
+  `).run(brief.id, organizationId, brief.generatedAt, brief.summary, data);
+}
+
+/**
+ * Get the most recent pipeline brief for an organization.
+ * Returns null if no briefs exist.
+ */
+export function getLatestBrief(organizationId: string): PipelineBrief | null {
+  const db = getDb(organizationId);
+  const row = db.prepare(`
+    SELECT * FROM briefs
+    WHERE organization_id = ?
+    ORDER BY generated_at DESC
+    LIMIT 1
+  `).get(organizationId) as { id: string; organization_id: string; generated_at: string; summary: string; data: string } | undefined;
+
+  if (!row) return null;
+
+  const data = JSON.parse(row.data) as {
+    newLeads: number;
+    followUpsNeeded: number;
+    dealsAtRisk: number;
+    campaignHighlights: string[];
+    suggestedActions: AgentSuggestion[];
+  };
+
+  return {
+    id: row.id,
+    organizationId: row.organization_id,
+    generatedAt: row.generated_at,
+    summary: row.summary,
+    newLeads: data.newLeads,
+    followUpsNeeded: data.followUpsNeeded,
+    dealsAtRisk: data.dealsAtRisk,
+    campaignHighlights: data.campaignHighlights,
+    suggestedActions: data.suggestedActions,
+  };
 }

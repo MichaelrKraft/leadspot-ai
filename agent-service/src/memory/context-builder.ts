@@ -50,7 +50,7 @@ function getRecentSuggestions(
 
   const stmt = db.prepare(`
     SELECT type, title, status, created_at
-    FROM agent_suggestions
+    FROM suggestions
     WHERE organization_id = ? AND contact_id = ?
     ORDER BY created_at DESC
     LIMIT ?
@@ -85,8 +85,8 @@ function getRecentInteractions(
 
   try {
     const stmt = db.prepare(`
-      SELECT type, summary, created_at
-      FROM contact_interactions
+      SELECT type, title || ': ' || COALESCE(description, '') AS summary, created_at
+      FROM timeline_events
       WHERE organization_id = ? AND contact_id = ?
       ORDER BY created_at DESC
       LIMIT ?
@@ -128,7 +128,7 @@ function getSuggestionOutcomes(organizationId: string): string {
   try {
     const stmt = db.prepare(`
       SELECT status, COUNT(*) as count
-      FROM agent_suggestions
+      FROM suggestions
       WHERE organization_id = ?
       GROUP BY status
     `);
