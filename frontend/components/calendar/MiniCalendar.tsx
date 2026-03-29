@@ -108,7 +108,7 @@ export default function MiniCalendar({
   return (
     <div className="space-y-4">
       {/* Mini Calendar */}
-      <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800/50">
+      <div className="rounded-2xl border border-gray-200 bg-white p-4 dark:border-zinc-800/50 dark:bg-zinc-900/50">
         {/* Header */}
         <div className="mb-3 flex items-center justify-between">
           <button
@@ -164,15 +164,15 @@ export default function MiniCalendar({
                 onClick={() => onDateClick(date)}
                 className={`relative mx-auto flex h-7 w-7 items-center justify-center rounded-full text-xs transition-colors ${
                   isToday
-                    ? 'bg-blue-500 font-bold text-white'
+                    ? 'bg-primary-500 font-bold text-white'
                     : isSelected
-                    ? 'bg-blue-100 font-medium text-blue-700 dark:bg-blue-500/20 dark:text-blue-400'
+                    ? 'bg-primary-100 font-medium text-primary-700 dark:bg-primary-500/20 dark:text-primary-400'
                     : 'text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/10'
                 }`}
               >
                 {date.getDate()}
                 {hasEvents && !isToday && (
-                  <span className="absolute bottom-0.5 left-1/2 h-1 w-1 -translate-x-1/2 rounded-full bg-blue-500" />
+                  <span className="absolute bottom-0.5 left-1/2 h-1 w-1 -translate-x-1/2 rounded-full bg-primary-500" />
                 )}
               </button>
             );
@@ -181,7 +181,7 @@ export default function MiniCalendar({
       </div>
 
       {/* Upcoming Events */}
-      <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800/50">
+      <div className="rounded-2xl border border-gray-200 bg-white p-4 dark:border-zinc-800/50 dark:bg-zinc-900/50">
         <h3 className="mb-3 text-sm font-semibold text-gray-900 dark:text-white">
           Upcoming Events
         </h3>

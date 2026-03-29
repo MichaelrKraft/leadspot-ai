@@ -9,7 +9,13 @@ export default function ThemeToggle() {
   useEffect(() => {
     setMounted(true);
     // Read theme from localStorage on mount
-    const savedTheme = localStorage.getItem('innosynth-theme') as 'dark' | 'light' | null;
+    // Migrate from old InnoSynth key if present
+    const oldTheme = localStorage.getItem('innosynth-theme');
+    if (oldTheme && !localStorage.getItem('leadspot-theme')) {
+      localStorage.setItem('leadspot-theme', oldTheme);
+      localStorage.removeItem('innosynth-theme');
+    }
+    const savedTheme = localStorage.getItem('leadspot-theme') as 'dark' | 'light' | null;
     if (savedTheme) {
       setTheme(savedTheme);
     }
@@ -22,7 +28,7 @@ export default function ThemeToggle() {
     const root = document.documentElement;
     root.classList.remove('light', 'dark');
     root.classList.add(theme);
-    localStorage.setItem('innosynth-theme', theme);
+    localStorage.setItem('leadspot-theme', theme);
   }, [theme, mounted]);
 
   const toggleTheme = () => {

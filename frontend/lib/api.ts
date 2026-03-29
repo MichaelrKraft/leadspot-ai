@@ -98,6 +98,7 @@ const createAPIClient = (): AxiosInstance => {
 
 // Create singleton instance
 const apiClient = createAPIClient();
+export { apiClient };
 
 // API methods
 export const api = {

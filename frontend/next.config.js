@@ -18,7 +18,7 @@ const nextConfig = {
   },
   // Environment variables
   env: {
-    NEXT_PUBLIC_APP_NAME: 'InnoSynth.ai',
+    NEXT_PUBLIC_APP_NAME: 'LeadSpot.ai',
     NEXT_PUBLIC_APP_VERSION: '0.1.0',
   },
 };

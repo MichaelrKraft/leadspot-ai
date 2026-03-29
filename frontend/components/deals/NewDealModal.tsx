@@ -59,7 +59,7 @@ export default function NewDealModal({ isOpen, onClose, onSubmit }: NewDealModal
   }
 
   const inputClasses =
-    'w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400';
+    'w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white dark:placeholder-gray-400';
 
   const labelClasses = 'mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300';
 
@@ -68,13 +68,13 @@ export default function NewDealModal({ isOpen, onClose, onSubmit }: NewDealModal
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
       onClick={handleBackdropClick}
     >
-      <div className="mx-4 w-full max-w-lg rounded-xl border border-gray-200 bg-white p-6 shadow-2xl dark:border-gray-700 dark:bg-gray-800">
+      <div className="mx-4 w-full max-w-lg rounded-2xl border border-gray-200 bg-white p-6 shadow-2xl dark:border-zinc-800/50 dark:bg-zinc-900">
         {/* Header */}
         <div className="mb-6 flex items-center justify-between">
           <h2 className="text-xl font-bold text-gray-900 dark:text-white">New Deal</h2>
           <button
             onClick={onClose}
-            className="rounded-lg p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-700 dark:hover:text-gray-200"
+            className="rounded-lg p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-zinc-800 dark:hover:text-gray-200"
           >
             <X className="h-5 w-5" />
           </button>
@@ -182,7 +182,7 @@ export default function NewDealModal({ isOpen, onClose, onSubmit }: NewDealModal
                         : p === 'warm'
                           ? 'border-orange-500 bg-orange-500/20 text-orange-400'
                           : 'border-blue-500 bg-blue-500/20 text-blue-400'
-                      : 'border-gray-300 text-gray-500 hover:border-gray-400 dark:border-gray-600 dark:text-gray-400'
+                      : 'border-gray-300 text-gray-500 hover:border-gray-400 dark:border-zinc-700 dark:text-gray-400'
                   }`}
                 >
                   {p}
@@ -209,7 +209,7 @@ export default function NewDealModal({ isOpen, onClose, onSubmit }: NewDealModal
           {/* Submit */}
           <button
             type="submit"
-            className="w-full rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+            className="w-full rounded-lg bg-gradient-to-r from-primary-500 to-primary-400 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-primary-500/20 transition-colors hover:from-primary-600 hover:to-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 dark:focus:ring-offset-zinc-900"
           >
             Create Deal
           </button>

@@ -47,7 +47,7 @@ export default function DealCard({ deal }: DealCardProps) {
     <div
       draggable
       onDragStart={handleDragStart}
-      className="group cursor-grab rounded-lg border border-gray-200 bg-white p-3 shadow-sm transition-all hover:shadow-md active:cursor-grabbing dark:border-gray-700 dark:bg-gray-800"
+      className="group cursor-grab rounded-2xl border border-gray-200 bg-white p-3 shadow-sm transition-all hover:shadow-md hover:shadow-primary-500/10 active:cursor-grabbing dark:border-zinc-800/50 dark:bg-zinc-900"
     >
       {/* Header: grip + name */}
       <div className="mb-2 flex items-start gap-2">

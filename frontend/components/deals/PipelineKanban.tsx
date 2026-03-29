@@ -6,7 +6,7 @@ import DealCard from './DealCard';
 
 const STAGES: PipelineStage[] = [
   { id: 'lead', label: 'Lead', color: 'bg-gray-500' },
-  { id: 'qualified', label: 'Qualified', color: 'bg-blue-500' },
+  { id: 'qualified', label: 'Qualified', color: 'bg-primary-500' },
   { id: 'proposal', label: 'Proposal', color: 'bg-purple-500' },
   { id: 'negotiation', label: 'Negotiation', color: 'bg-yellow-500' },
   { id: 'won', label: 'Won', color: 'bg-green-500' },
@@ -238,21 +238,21 @@ export default function PipelineKanban({ pendingDeal, onDealAdded }: PipelineKan
             key={stage.id}
             className={`flex min-w-[280px] flex-shrink-0 flex-col rounded-xl border transition-colors ${
               isDragOver
-                ? 'border-blue-500 bg-blue-500/5'
-                : 'border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-900/50'
+                ? 'border-primary-500 bg-primary-500/5'
+                : 'border-gray-200 bg-gray-50 dark:border-zinc-800/50 dark:bg-[#0f0f12]/50'
             }`}
             onDragOver={(e) => handleDragOver(e, stage.id)}
             onDragLeave={handleDragLeave}
             onDrop={(e) => handleDrop(e, stage.id)}
           >
             {/* Column Header */}
-            <div className="border-b border-gray-200 p-3 dark:border-gray-700">
+            <div className="border-b border-gray-200 p-3 dark:border-zinc-800/50">
               <div className="flex items-center gap-2">
                 <div className={`h-3 w-3 rounded-full ${stage.color}`} />
                 <h3 className="text-sm font-semibold text-gray-900 dark:text-white">
                   {stage.label}
                 </h3>
-                <span className="rounded-full bg-gray-200 px-2 py-0.5 text-xs font-medium text-gray-600 dark:bg-gray-700 dark:text-gray-300">
+                <span className="rounded-full bg-gray-200 px-2 py-0.5 text-xs font-medium text-gray-600 dark:bg-zinc-800 dark:text-gray-300">
                   {stageDeals.length}
                 </span>
               </div>
@@ -267,7 +267,7 @@ export default function PipelineKanban({ pendingDeal, onDealAdded }: PipelineKan
                 <DealCard key={deal.id} deal={deal} />
               ))}
               {stageDeals.length === 0 && (
-                <div className="flex h-20 items-center justify-center rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600">
+                <div className="flex h-20 items-center justify-center rounded-lg border-2 border-dashed border-gray-300 dark:border-zinc-700">
                   <p className="text-xs text-gray-400">Drop deals here</p>
                 </div>
               )}

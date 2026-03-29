@@ -11,51 +11,46 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // Professional blue tones for enterprise
         primary: {
-          50: "#E6F0FF",
-          100: "#B3D4FF",
-          200: "#80B8FF",
-          300: "#4D9CFF",
-          400: "#1A80FF",
-          500: "#0066E6",
-          600: "#0052B3",
-          700: "#003D80",
-          800: "#00294D",
-          900: "#001A33",
+          DEFAULT: '#818cf8',
+          50:  '#eef2ff',
+          100: '#e0e7ff',
+          200: '#c7d2fe',
+          300: '#a5b4fc',
+          400: '#818cf8',
+          500: '#6366f1',
+          600: '#4f46e5',
+          700: '#4338ca',
+          800: '#3730a3',
+          900: '#312e81',
         },
-        // Dark background tones - Softer, less harsh
         background: {
-          DEFAULT: "#111318",
-          secondary: "#181B22",
-          tertiary: "#1F232B",
+          DEFAULT: '#0f0f12',
+          secondary: '#18181b',
+          tertiary: '#27272a',
         },
-        // Light background tones
-        "background-light": {
-          DEFAULT: "#F9FAFB",
-          secondary: "#FFFFFF",
-          tertiary: "#F3F4F6",
+        'background-light': {
+          DEFAULT: '#ffffff',
+          secondary: '#f8fafc',
+          tertiary: '#f1f5f9',
         },
-        // Accent colors - Softer blues
-        accent: {
-          blue: "#1E3A5F",
-          darkBlue: "#1A2D45",
-          lightBlue: "#3B5A7F",
+        surface: {
+          dark: 'rgba(39, 39, 42, 0.8)',
+          light: 'rgba(255, 255, 255, 0.9)',
         },
-        // Semantic colors
-        success: "#10B981",
-        warning: "#F59E0B",
-        error: "#EF4444",
-        info: "#3B82F6",
+        success: '#22c55e',
+        warning: '#f59e0b',
+        error: '#ef4444',
+        info: '#3b82f6',
       },
       fontFamily: {
         sans: ["Inter", "system-ui", "sans-serif"],
         mono: ["JetBrains Mono", "monospace"],
       },
       boxShadow: {
-        glow: "0 0 20px rgba(30, 58, 95, 0.5)",
-        "glow-lg": "0 0 40px rgba(30, 58, 95, 0.6)",
-        "glow-light": "0 0 20px rgba(59, 130, 246, 0.3)",
+        glow: "0 0 20px rgba(99, 102, 241, 0.4)",
+        "glow-lg": "0 0 40px rgba(99, 102, 241, 0.5)",
+        "glow-light": "0 0 20px rgba(129, 140, 248, 0.3)",
       },
       animation: {
         "fade-in": "fadeIn 0.5s ease-in-out",

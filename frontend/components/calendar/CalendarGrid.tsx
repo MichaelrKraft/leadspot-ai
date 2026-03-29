@@ -135,7 +135,7 @@ export default function CalendarGrid({
       return (
         <div
           key={`empty-${index}`}
-          className="min-h-[100px] border border-gray-200 bg-gray-50 dark:border-gray-700/50 dark:bg-gray-800/30"
+          className="min-h-[100px] border border-gray-200 bg-gray-50 dark:border-zinc-800/50 dark:bg-zinc-900/30"
         />
       );
     }
@@ -149,15 +149,15 @@ export default function CalendarGrid({
       <div
         key={dateKey}
         onClick={() => onDateClick(date)}
-        className={`min-h-[100px] cursor-pointer border border-gray-200 p-1.5 transition-colors hover:bg-blue-50 dark:border-gray-700/50 dark:hover:bg-blue-500/5 ${
-          isSelected ? 'bg-blue-50 dark:bg-blue-500/10' : 'bg-white dark:bg-gray-800/50'
+        className={`min-h-[100px] cursor-pointer border border-gray-200 p-1.5 transition-colors hover:bg-primary-50 dark:border-zinc-800/50 dark:hover:bg-primary-500/5 ${
+          isSelected ? 'bg-primary-50 dark:bg-primary-500/10' : 'bg-white dark:bg-zinc-900/50'
         }`}
       >
         <div className="mb-1 flex items-center justify-between">
           <span
             className={`inline-flex h-7 w-7 items-center justify-center rounded-full text-sm font-medium ${
               isToday
-                ? 'bg-blue-500 text-white ring-2 ring-blue-500 ring-offset-1 ring-offset-white dark:ring-offset-gray-900'
+                ? 'bg-primary-500 text-white ring-2 ring-primary-500 ring-offset-1 ring-offset-white dark:ring-offset-zinc-900'
                 : 'text-gray-700 dark:text-gray-300'
             }`}
           >
@@ -201,15 +201,15 @@ export default function CalendarGrid({
       <div className="overflow-auto">
         <div className="grid grid-cols-[60px_repeat(7,1fr)] gap-0">
           {/* Header */}
-          <div className="border-b border-gray-200 dark:border-gray-700" />
+          <div className="border-b border-gray-200 dark:border-zinc-800/50" />
           {weekDates.map((date) => {
             const isToday = isSameDay(date, today);
             return (
               <div
                 key={formatDateKey(date)}
                 onClick={() => onDateClick(date)}
-                className={`cursor-pointer border-b border-l border-gray-200 p-2 text-center dark:border-gray-700 ${
-                  isToday ? 'bg-blue-50 dark:bg-blue-500/10' : ''
+                className={`cursor-pointer border-b border-l border-gray-200 p-2 text-center dark:border-zinc-800/50 ${
+                  isToday ? 'bg-primary-50 dark:bg-primary-500/10' : ''
                 }`}
               >
                 <div className="text-xs text-gray-500 dark:text-gray-400">
@@ -218,7 +218,7 @@ export default function CalendarGrid({
                 <div
                   className={`mt-1 inline-flex h-8 w-8 items-center justify-center rounded-full text-sm font-semibold ${
                     isToday
-                      ? 'bg-blue-500 text-white'
+                      ? 'bg-primary-500 text-white'
                       : 'text-gray-900 dark:text-white'
                   }`}
                 >
@@ -233,7 +233,7 @@ export default function CalendarGrid({
             <>
               <div
                 key={`label-${hour}`}
-                className="border-b border-gray-200 pr-2 pt-1 text-right text-xs text-gray-400 dark:border-gray-700"
+                className="border-b border-gray-200 pr-2 pt-1 text-right text-xs text-gray-400 dark:border-zinc-800/50"
               >
                 {hour > 12 ? `${hour - 12} PM` : hour === 12 ? '12 PM' : `${hour} AM`}
               </div>
@@ -248,7 +248,7 @@ export default function CalendarGrid({
                 return (
                   <div
                     key={`${dateKey}-${hour}`}
-                    className="min-h-[48px] border-b border-l border-gray-200 p-0.5 dark:border-gray-700"
+                    className="min-h-[48px] border-b border-l border-gray-200 p-0.5 dark:border-zinc-800/50"
                   >
                     {hourEvents.map((event) => {
                       const colors = EVENT_TYPE_COLORS[event.type];
@@ -273,9 +273,9 @@ export default function CalendarGrid({
   };
 
   return (
-    <div className="rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800/50">
+    <div className="rounded-2xl border border-gray-200 bg-white dark:border-zinc-800/50 dark:bg-zinc-900/50">
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4 dark:border-gray-700">
+      <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4 dark:border-zinc-800/50">
         <div className="flex items-center gap-4">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
             {viewMode === 'month' ? monthLabel : `Week of ${weekDates[0].toLocaleDateString('default', { month: 'short', day: 'numeric' })}`}
@@ -322,12 +322,12 @@ export default function CalendarGrid({
           </div>
 
           {/* View toggle */}
-          <div className="flex rounded-lg border border-gray-200 dark:border-gray-600">
+          <div className="flex rounded-lg border border-gray-200 dark:border-zinc-700">
             <button
               onClick={() => setViewMode('month')}
               className={`rounded-l-lg px-3 py-1.5 text-sm font-medium transition-colors ${
                 viewMode === 'month'
-                  ? 'bg-blue-500 text-white'
+                  ? 'bg-primary-500 text-white'
                   : 'text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-white/10'
               }`}
             >
@@ -337,7 +337,7 @@ export default function CalendarGrid({
               onClick={() => setViewMode('week')}
               className={`rounded-r-lg px-3 py-1.5 text-sm font-medium transition-colors ${
                 viewMode === 'week'
-                  ? 'bg-blue-500 text-white'
+                  ? 'bg-primary-500 text-white'
                   : 'text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-white/10'
               }`}
             >
@@ -355,7 +355,7 @@ export default function CalendarGrid({
             {DAYS_OF_WEEK.map((day) => (
               <div
                 key={day}
-                className="border-b border-gray-200 bg-gray-50 px-2 py-2 text-center text-xs font-semibold uppercase tracking-wider text-gray-500 dark:border-gray-700 dark:bg-gray-800/80 dark:text-gray-400"
+                className="border-b border-gray-200 bg-gray-50 px-2 py-2 text-center text-xs font-semibold uppercase tracking-wider text-gray-500 dark:border-zinc-800/50 dark:bg-zinc-900/80 dark:text-gray-400"
               >
                 {day}
               </div>

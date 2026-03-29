@@ -2,408 +2,233 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useAuthStore } from '@/stores/useAuthStore';
+import { fetchDailyInsights } from '@/lib/api/dashboard';
 
-interface QuickStat {
-  label: string;
-  value: string;
-  icon: string;
-  trend?: string;
-  trendUp?: boolean;
+interface HotLead {
+  firstname: string;
+  lastname: string;
+  company: string;
+  points: number;
 }
 
-interface RecentQuery {
-  id: string;
-  query: string;
-  timestamp: string;
-  status: 'completed' | 'processing' | 'failed';
+interface CrmStats {
+  total_contacts: number;
+  total_emails: number;
+  total_campaigns: number;
+  total_segments: number;
 }
 
-interface ConnectedSource {
-  id: string;
-  name: string;
-  type: string;
-  status: 'active' | 'syncing' | 'error';
-  lastSync?: string;
-}
-
-const DEMO_RECENT_QUERIES: RecentQuery[] = [
-  {
-    id: 'q1',
-    query: 'Show me all leads who visited the pricing page more than 3 times this week',
-    timestamp: '2 hours ago',
-    status: 'completed',
-  },
-  {
-    id: 'q2',
-    query: 'Create a follow-up email sequence for leads who downloaded the whitepaper',
-    timestamp: '5 hours ago',
-    status: 'completed',
-  },
-  {
-    id: 'q3',
-    query: 'Which contacts in the "Enterprise" segment haven\'t been contacted in 30 days?',
-    timestamp: 'Yesterday',
-    status: 'completed',
-  },
-  {
-    id: 'q4',
-    query: 'Schedule a call with all hot leads in the Negotiation stage',
-    timestamp: 'Yesterday',
-    status: 'completed',
-  },
-  {
-    id: 'q5',
-    query: 'Generate a campaign performance report for the Q1 nurture sequence',
-    timestamp: '2 days ago',
-    status: 'completed',
-  },
+const DEMO_LEADS: HotLead[] = [
+  { firstname: 'Sarah', lastname: 'Johnson', company: 'Acme Corp', points: 2450 },
+  { firstname: 'Mike', lastname: 'Chen', company: 'TechStart', points: 1820 },
+  { firstname: 'Lisa', lastname: 'Park', company: 'Growth Labs', points: 1540 },
+  { firstname: 'James', lastname: 'Wilson', company: 'Innovate Inc', points: 1290 },
+  { firstname: 'Emma', lastname: 'Davis', company: 'Scale Up', points: 1105 },
 ];
 
-const DEMO_CONNECTED_SOURCES: ConnectedSource[] = [
-  {
-    id: 's1',
-    name: 'Mautic CRM',
-    type: 'Marketing Automation',
-    status: 'active',
-    lastSync: '2 minutes ago',
-  },
-  {
-    id: 's2',
-    name: 'Google Calendar',
-    type: 'Scheduling',
-    status: 'active',
-    lastSync: '5 minutes ago',
-  },
-  {
-    id: 's3',
-    name: 'Voice AI Agent',
-    type: 'Outbound Calls',
-    status: 'active',
-    lastSync: '15 minutes ago',
-  },
-  {
-    id: 's4',
-    name: 'Email (SMTP)',
-    type: 'Email Delivery',
-    status: 'syncing',
-    lastSync: 'Syncing now...',
-  },
-  {
-    id: 's5',
-    name: 'Stripe Billing',
-    type: 'Payments & Usage',
-    status: 'active',
-    lastSync: '1 hour ago',
-  },
-];
+const DEMO_STATS: CrmStats = {
+  total_contacts: 3942,
+  total_emails: 47,
+  total_campaigns: 12,
+  total_segments: 8,
+};
+
+const DEMO_INSIGHTS = `\u{1F4C8} Sarah Johnson has visited your pricing page 4 times this week. Consider reaching out with a personalized proposal.
+
+\u{1F3AF} Your "Holiday Sale" campaign has a 34% open rate - 12% above average. Great subject line performance!
+
+\u{1F4A1} 3 contacts from TechStart have engaged recently. This could be a hot company account worth prioritizing.`;
+
+function getGreeting(): string {
+  const hour = new Date().getHours();
+  if (hour < 12) return 'Good morning!';
+  if (hour < 17) return 'Good afternoon!';
+  return 'Good evening!';
+}
+
+function formatNumber(num: number): string {
+  if (num >= 1000) {
+    return num.toLocaleString();
+  }
+  return num.toString();
+}
 
 export default function DashboardPage() {
-  const { user } = useAuthStore();
-  const [stats, setStats] = useState<QuickStat[]>([]);
+  const [hotLeads, setHotLeads] = useState<HotLead[]>(DEMO_LEADS);
+  const [stats, setStats] = useState<CrmStats | null>(DEMO_STATS);
+  const [insights, setInsights] = useState<string>(DEMO_INSIGHTS);
+  const [isLoading, setIsLoading] = useState(true);
+  const [demoMode, setDemoMode] = useState(true);
 
-  const [recentQueries, setRecentQueries] = useState<RecentQuery[]>([]);
-  const [connectedSources, setConnectedSources] = useState<ConnectedSource[]>([]);
-  const [searchQuery, setSearchQuery] = useState('');
-
-  // Fetch dashboard data
   useEffect(() => {
-    const fetchDashboardData = async () => {
-      try {
-        // TODO: Replace with actual API calls
-        // const response = await fetch('/api/dashboard/stats');
-        // const data = await response.json();
-        // setStats(data.stats);
-        // setRecentQueries(data.recentQueries);
-        // setConnectedSources(data.connectedSources);
-
-        // For now, use demo data
-        setRecentQueries(DEMO_RECENT_QUERIES);
-        setConnectedSources(DEMO_CONNECTED_SOURCES);
-      } catch (error) {
-        console.error('Failed to fetch dashboard data:', error);
-        // Fallback to demo data on error
-        setRecentQueries(DEMO_RECENT_QUERIES);
-        setConnectedSources(DEMO_CONNECTED_SOURCES);
-      }
-    };
-
-    fetchDashboardData();
+    fetchDailyInsights()
+      .then((data) => {
+        if (data.hot_leads?.length) {
+          setHotLeads(
+            data.hot_leads.map((lead) => ({
+              firstname: lead.firstname || '',
+              lastname: lead.lastname || '',
+              company: lead.company || '',
+              points: lead.points || 0,
+            }))
+          );
+        }
+        if (data.stats) {
+          setStats(data.stats);
+        }
+        if (data.ai_insights) {
+          setInsights(data.ai_insights);
+        }
+        setDemoMode(!data.mautic_connected);
+      })
+      .catch(() => {
+        // Demo data already set as initial state defaults
+        setDemoMode(true);
+      })
+      .finally(() => {
+        setIsLoading(false);
+      });
   }, []);
 
-  const handleQuickSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (searchQuery.trim()) {
-      // Redirect to query page with search
-      window.location.href = `/query?q=${encodeURIComponent(searchQuery)}`;
-    }
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'completed':
-      case 'active':
-        return 'text-green-400 bg-green-500/10';
-      case 'processing':
-      case 'syncing':
-        return 'text-yellow-400 bg-yellow-500/10';
-      case 'failed':
-      case 'error':
-        return 'text-red-400 bg-red-500/10';
-      default:
-        return 'text-gray-400 bg-gray-500/10';
-    }
-  };
-
   return (
-    <div className="p-8">
-      {/* Header */}
-      <div className="mb-8">
-        <h1 className="mb-2 text-3xl font-bold text-gray-900 dark:text-white">
-          Welcome back, {user?.name?.split(' ')[0] || 'User'}!
+    <div className="flex flex-col items-center px-6 py-8 max-w-[800px] mx-auto animate-in fade-in duration-300">
+      {/* Greeting Header */}
+      <div className="text-center mb-8">
+        <h1 className="text-[28px] font-bold text-slate-900 dark:text-zinc-50 mb-2">
+          {getGreeting()}
         </h1>
-        <p className="text-gray-600 dark:text-gray-400">
-          Here's what's happening with your leads and campaigns.
+        <p className="text-[15px] text-slate-500 dark:text-zinc-400">
+          Here&apos;s your daily briefing
+          {demoMode && (
+            <span className="ml-2 inline-flex items-center gap-1 bg-amber-500/10 text-amber-400 text-xs px-2 py-0.5 rounded-full">
+              Demo Mode
+            </span>
+          )}
         </p>
       </div>
 
-      {/* Quick Search - Large, prominent */}
-      <div className="mb-8">
-        <form onSubmit={handleQuickSearch}>
-          <div className="relative">
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Ask a question or search your knowledge base..."
-              className="w-full rounded-2xl border border-gray-200 bg-white px-6 py-5 pl-14 text-lg text-gray-900 placeholder-gray-400 shadow-sm transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500 focus:shadow-md dark:border-gray-700 dark:bg-gray-800/60 dark:text-white dark:placeholder-gray-500"
-            />
-            <svg
-              className="absolute left-5 top-1/2 h-6 w-6 -translate-y-1/2 text-gray-400"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-              />
-            </svg>
-            <button
-              type="submit"
-              className="absolute right-3 top-1/2 -translate-y-1/2 rounded-xl bg-blue-600 px-6 py-2.5 text-base font-medium text-white shadow-sm transition-all hover:bg-blue-700 hover:shadow-md"
-            >
-              Search
-            </button>
+      {/* Two-column grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5 w-full mb-8">
+        {/* Hot Leads Card */}
+        <div className="bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800/50 rounded-2xl overflow-hidden transition-all hover:border-indigo-300/30 dark:hover:border-indigo-400/30 hover:shadow-lg hover:shadow-indigo-400/10">
+          <div className="flex items-center gap-2.5 px-5 py-4 border-b border-slate-200 dark:border-zinc-800/50 bg-gradient-to-br from-indigo-400/5 to-transparent">
+            <span className="text-lg">{'\u{1F525}'}</span>
+            <span className="text-sm font-semibold text-slate-900 dark:text-zinc-50">Hot Leads</span>
           </div>
-        </form>
-      </div>
-
-      {/* Stats Grid - Only show when stats have real data */}
-      {stats.length > 0 && (
-        <div className="mb-8 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
-          {stats.map((stat, index) => (
-            <div
-              key={index}
-              className="rounded-xl border border-gray-200 bg-white p-5 transition-colors hover:bg-gray-50 dark:border-gray-700/50 dark:bg-gray-800/40 dark:hover:bg-gray-800/60"
-            >
-              <div className="mb-3 flex items-center justify-between">
-                <span className="text-2xl">{stat.icon}</span>
-                {stat.trend && stat.trend !== '+0%' && stat.trend !== '-0%' && stat.trend !== '+0' && (
-                  <span
-                    className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                      stat.trendUp
-                        ? 'bg-green-100 text-green-600 dark:bg-green-500/10 dark:text-green-400'
-                        : 'bg-red-100 text-red-600 dark:bg-red-500/10 dark:text-red-400'
-                    }`}
-                  >
-                    {stat.trend}
+          <div className="px-5 py-4 min-h-[100px]">
+            {isLoading ? (
+              <div className="flex items-center justify-center gap-2.5 py-5 text-zinc-400 text-sm">
+                <div className="w-4 h-4 border-2 border-slate-200 dark:border-zinc-700 border-t-indigo-400 rounded-full animate-spin" />
+                <span>Loading...</span>
+              </div>
+            ) : hotLeads.length === 0 ? (
+              <p className="text-center text-zinc-400 text-sm py-4">No leads data yet</p>
+            ) : (
+              hotLeads.slice(0, 5).map((lead, i) => (
+                <div
+                  key={i}
+                  className={`flex items-center justify-between py-2.5 ${
+                    i < hotLeads.length - 1 ? 'border-b border-slate-200 dark:border-zinc-800/50' : ''
+                  }`}
+                >
+                  <div className="flex flex-col gap-0.5">
+                    <span className="text-sm font-medium text-slate-900 dark:text-zinc-50">
+                      {lead.firstname} {lead.lastname}
+                    </span>
+                    {lead.company && (
+                      <span className="text-xs text-slate-400 dark:text-zinc-500">
+                        {lead.company}
+                      </span>
+                    )}
+                  </div>
+                  <span className="bg-indigo-400/10 text-indigo-500 dark:text-indigo-400 px-2.5 py-1 rounded-full text-[13px] font-semibold">
+                    {lead.points} pts
                   </span>
-                )}
-              </div>
-              <p className="mb-0.5 text-2xl font-bold text-gray-900 dark:text-white">{stat.value}</p>
-              <p className="text-sm text-gray-500 dark:text-gray-400">{stat.label}</p>
-            </div>
-          ))}
-        </div>
-      )}
-
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        {/* Recent Queries */}
-        <div className="rounded-2xl border border-gray-200 bg-white p-6 backdrop-blur-xl dark:border-white/10 dark:bg-white/5">
-          <div className="mb-6 flex items-center justify-between">
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white">Recent Queries</h2>
-            <Link
-              href="/query"
-              className="text-sm text-blue-600 transition-colors hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
-            >
-              View all →
-            </Link>
-          </div>
-
-          {recentQueries.length === 0 ? (
-            <div className="py-12 text-center">
-              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-gray-100 dark:bg-white/5">
-                <svg
-                  className="h-8 w-8 text-gray-400"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                  />
-                </svg>
-              </div>
-              <p className="mb-4 text-gray-500 dark:text-gray-400">No queries yet</p>
-              <Link
-                href="/query"
-                className="inline-block rounded-lg bg-blue-600 px-4 py-2 text-sm text-white transition-colors hover:bg-blue-700"
-              >
-                Create Your First Query
-              </Link>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {recentQueries.map((query) => (
-                <div
-                  key={query.id}
-                  className="cursor-pointer rounded-lg bg-gray-50 p-4 transition-colors hover:bg-gray-100 dark:bg-white/5 dark:hover:bg-white/10"
-                >
-                  <div className="mb-2 flex items-start justify-between">
-                    <p className="flex-1 text-sm font-medium text-gray-900 dark:text-white">
-                      {query.query}
-                    </p>
-                    <span
-                      className={`ml-2 rounded-full px-2 py-1 text-xs ${getStatusColor(
-                        query.status
-                      )}`}
-                    >
-                      {query.status}
-                    </span>
-                  </div>
-                  <p className="text-xs text-gray-500">{query.timestamp}</p>
                 </div>
-              ))}
-            </div>
-          )}
+              ))
+            )}
+          </div>
         </div>
 
-        {/* Connected Sources */}
-        <div className="rounded-2xl border border-gray-200 bg-white p-6 backdrop-blur-xl dark:border-white/10 dark:bg-white/5">
-          <div className="mb-6 flex items-center justify-between">
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white">Connected Sources</h2>
-            <Link
-              href="/sources"
-              className="text-sm text-blue-600 transition-colors hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
-            >
-              Manage →
-            </Link>
+        {/* CRM Stats Card */}
+        <div className="bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800/50 rounded-2xl overflow-hidden transition-all hover:border-indigo-300/30 dark:hover:border-indigo-400/30 hover:shadow-lg hover:shadow-indigo-400/10">
+          <div className="flex items-center gap-2.5 px-5 py-4 border-b border-slate-200 dark:border-zinc-800/50 bg-gradient-to-br from-indigo-400/5 to-transparent">
+            <span className="text-lg">{'\u{1F4CA}'}</span>
+            <span className="text-sm font-semibold text-slate-900 dark:text-zinc-50">CRM Stats</span>
           </div>
-
-          {connectedSources.length === 0 ? (
-            <div className="py-12 text-center">
-              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-gray-100 dark:bg-white/5">
-                <svg
-                  className="h-8 w-8 text-gray-400"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
-                  />
-                </svg>
+          <div className="px-5 py-4 min-h-[100px]">
+            {isLoading ? (
+              <div className="flex items-center justify-center gap-2.5 py-5 text-zinc-400 text-sm">
+                <div className="w-4 h-4 border-2 border-slate-200 dark:border-zinc-700 border-t-indigo-400 rounded-full animate-spin" />
+                <span>Loading...</span>
               </div>
-              <p className="mb-4 text-gray-500 dark:text-gray-400">No sources connected</p>
-              <Link
-                href="/sources"
-                className="inline-block rounded-lg bg-blue-600 px-4 py-2 text-sm text-white transition-colors hover:bg-blue-700"
-              >
-                Connect Data Source
-              </Link>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {connectedSources.map((source) => (
-                <div
-                  key={source.id}
-                  className="rounded-lg bg-gray-50 p-4 transition-colors hover:bg-gray-100 dark:bg-white/5 dark:hover:bg-white/10"
-                >
-                  <div className="mb-2 flex items-start justify-between">
-                    <div className="flex-1">
-                      <p className="text-sm font-medium text-gray-900 dark:text-white">
-                        {source.name}
-                      </p>
-                      <p className="text-xs text-gray-500">{source.type}</p>
-                    </div>
-                    <span
-                      className={`ml-2 rounded-full px-2 py-1 text-xs ${getStatusColor(
-                        source.status
-                      )}`}
-                    >
-                      {source.status}
+            ) : (
+              <div className="grid grid-cols-2 gap-4">
+                {[
+                  { value: stats ? formatNumber(stats.total_contacts) : '-', label: 'Contacts' },
+                  { value: stats ? formatNumber(stats.total_emails) : '-', label: 'Emails' },
+                  { value: stats ? formatNumber(stats.total_campaigns) : '-', label: 'Campaigns' },
+                  { value: stats ? formatNumber(stats.total_segments) : '-', label: 'Segments' },
+                ].map((item, i) => (
+                  <div
+                    key={i}
+                    className="text-center p-3 bg-white dark:bg-zinc-950 rounded-xl border border-slate-200 dark:border-zinc-800/50"
+                  >
+                    <span className="block text-2xl font-bold text-indigo-500 dark:text-indigo-400 mb-1">
+                      {item.value}
+                    </span>
+                    <span className="text-xs text-slate-400 dark:text-zinc-500 uppercase tracking-wider">
+                      {item.label}
                     </span>
                   </div>
-                  {source.lastSync && (
-                    <p className="text-xs text-gray-500">Last sync: {source.lastSync}</p>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* AI Insights Card - Full Width */}
+        <div className="md:col-span-2 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800/50 rounded-2xl overflow-hidden transition-all hover:border-indigo-300/30 dark:hover:border-indigo-400/30 hover:shadow-lg hover:shadow-indigo-400/10">
+          <div className="flex items-center gap-2.5 px-5 py-4 border-b border-slate-200 dark:border-zinc-800/50 bg-gradient-to-br from-indigo-400/5 to-transparent">
+            <span className="text-lg">{'\u{1F4A1}'}</span>
+            <span className="text-sm font-semibold text-slate-900 dark:text-zinc-50">AI Insights</span>
+          </div>
+          <div className="px-5 py-4 min-h-[100px]">
+            {isLoading ? (
+              <div className="flex items-center justify-center gap-2.5 py-5 text-zinc-400 text-sm">
+                <div className="w-4 h-4 border-2 border-slate-200 dark:border-zinc-700 border-t-indigo-400 rounded-full animate-spin" />
+                <span>Generating insights...</span>
+              </div>
+            ) : insights ? (
+              <p className="text-sm leading-7 text-slate-600 dark:text-zinc-400 whitespace-pre-line">
+                {insights}
+              </p>
+            ) : (
+              <p className="text-center text-zinc-400 text-sm py-4">
+                Connect Mautic to get AI-powered insights
+              </p>
+            )}
+          </div>
         </div>
       </div>
 
-      {/* Quick Actions */}
-      <div className="mt-8 grid grid-cols-1 gap-6 md:grid-cols-3">
-        <Link
-          href="/query"
-          className="group rounded-2xl border border-gray-200 bg-white p-6 backdrop-blur-xl transition-all hover:bg-gray-50 dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10"
+      {/* Start Chatting Button */}
+      <Link
+        href="/command-center"
+        className="inline-flex items-center justify-center gap-2.5 px-8 py-4 bg-gradient-to-br from-indigo-500 via-indigo-400 to-indigo-300 text-white rounded-full text-base font-semibold shadow-[0_4px_15px_rgba(129,140,248,0.3)] transition-all hover:-translate-y-0.5 hover:shadow-[0_6px_25px_rgba(129,140,248,0.4)] active:translate-y-0"
+      >
+        <svg
+          width="20"
+          height="20"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
         >
-          <div className="mb-4 text-4xl">🔍</div>
-          <h3 className="mb-2 text-lg font-bold text-gray-900 transition-colors group-hover:text-blue-600 dark:text-white dark:group-hover:text-blue-400">
-            New Query
-          </h3>
-          <p className="text-sm text-gray-600 dark:text-gray-400">
-            Ask questions across your entire knowledge base
-          </p>
-        </Link>
-
-        <Link
-          href="/documents"
-          className="group rounded-2xl border border-gray-200 bg-white p-6 backdrop-blur-xl transition-all hover:bg-gray-50 dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10"
-        >
-          <div className="mb-4 text-4xl">📄</div>
-          <h3 className="mb-2 text-lg font-bold text-gray-900 transition-colors group-hover:text-purple-600 dark:text-white dark:group-hover:text-purple-400">
-            Upload Documents
-          </h3>
-          <p className="text-sm text-gray-600 dark:text-gray-400">
-            Add new documents to your knowledge base
-          </p>
-        </Link>
-
-        <Link
-          href="/settings/integrations"
-          className="group rounded-2xl border border-gray-200 bg-white p-6 backdrop-blur-xl transition-all hover:bg-gray-50 dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10"
-        >
-          <div className="mb-4 text-4xl">🔗</div>
-          <h3 className="mb-2 text-lg font-bold text-gray-900 transition-colors group-hover:text-green-600 dark:text-white dark:group-hover:text-green-400">
-            Connect Sources
-          </h3>
-          <p className="text-sm text-gray-600 dark:text-gray-400">
-            Link external data sources and APIs
-          </p>
-        </Link>
-      </div>
+          <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
+        </svg>
+        Start Chatting
+      </Link>
     </div>
   );
 }

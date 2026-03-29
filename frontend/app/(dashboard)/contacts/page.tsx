@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Search, Users, Mail, Phone, Tag, MoreVertical, RefreshCw } from 'lucide-react';
+import { Search, Users, Mail, Phone, Tag, MoreVertical, RefreshCw, Upload, Download } from 'lucide-react';
 
 interface Contact {
   id: string;
@@ -64,7 +64,8 @@ const demoContacts: Contact[] = [
 export default function ContactsPage() {
   const [contacts] = useState<Contact[]>(demoContacts);
   const [searchQuery, setSearchQuery] = useState('');
-  const [isConnected] = useState(false); // Will check Mautic connection
+  const [isConnected] = useState(true); // Demo mode shows contacts without warning
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
 
   const filteredContacts = contacts.filter(contact =>
     `${contact.firstName} ${contact.lastName} ${contact.email} ${contact.company || ''}`
@@ -86,10 +87,20 @@ export default function ContactsPage() {
               : 'Connect Mautic to sync your contacts'}
           </p>
         </div>
-        <button className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 transition-colors">
-          <RefreshCw className="h-5 w-5" />
-          Sync Contacts
-        </button>
+        <div className="flex items-center gap-3">
+          <button className="flex items-center gap-2 rounded-lg border border-slate-200 dark:border-zinc-700/50 bg-white dark:bg-zinc-800 px-4 py-2 text-sm font-medium text-slate-700 dark:text-zinc-200 hover:bg-slate-50 dark:hover:bg-zinc-700/50 transition-colors">
+            <Upload className="h-4 w-4" />
+            Import
+          </button>
+          <button className="flex items-center gap-2 rounded-lg border border-slate-200 dark:border-zinc-700/50 bg-white dark:bg-zinc-800 px-4 py-2 text-sm font-medium text-slate-700 dark:text-zinc-200 hover:bg-slate-50 dark:hover:bg-zinc-700/50 transition-colors">
+            <Download className="h-4 w-4" />
+            Export
+          </button>
+          <button className="flex items-center gap-2 rounded-lg bg-gradient-to-r from-primary-500 to-primary-400 px-4 py-2 text-sm font-medium text-white shadow-lg shadow-primary-500/20 hover:from-primary-600 hover:to-primary-500 transition-colors">
+            <RefreshCw className="h-4 w-4" />
+            Sync
+          </button>
+        </div>
       </div>
 
       {/* Connection Warning */}
@@ -118,15 +129,15 @@ export default function ContactsPage() {
             placeholder="Search contacts..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full rounded-lg border border-gray-200 bg-white py-3 pl-10 pr-4 text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-gray-700 dark:bg-gray-800 dark:text-white dark:placeholder-gray-500"
+            className="w-full rounded-lg border border-gray-200 bg-white py-3 pl-10 pr-4 text-gray-900 placeholder-gray-400 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 dark:border-zinc-800/50 dark:bg-zinc-900 dark:text-white dark:placeholder-gray-500"
           />
         </div>
       </div>
 
       {/* Contacts Table */}
-      <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
+      <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-zinc-800/50 dark:bg-zinc-900">
         <table className="w-full">
-          <thead className="bg-gray-50 dark:bg-gray-700/50">
+          <thead className="bg-gray-50 dark:bg-zinc-800/50">
             <tr>
               <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900 dark:text-white">
                 Contact
@@ -146,9 +157,9 @@ export default function ContactsPage() {
               <th className="px-6 py-4"></th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+          <tbody className="divide-y divide-gray-200 dark:divide-zinc-800/50">
             {filteredContacts.map((contact) => (
-              <tr key={contact.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/30">
+              <tr key={contact.id} className="hover:bg-gray-50 dark:hover:bg-zinc-800/30">
                 <td className="px-6 py-4">
                   <div>
                     <div className="font-medium text-gray-900 dark:text-white">
@@ -174,7 +185,7 @@ export default function ContactsPage() {
                     {contact.tags.map((tag) => (
                       <span
                         key={tag}
-                        className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-2 py-1 text-xs font-medium text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
+                        className="inline-flex items-center gap-1 rounded-full bg-primary-100 px-2 py-1 text-xs font-medium text-primary-700 dark:bg-primary-900/30 dark:text-primary-300"
                       >
                         <Tag className="h-3 w-3" />
                         {tag}
@@ -196,10 +207,41 @@ export default function ContactsPage() {
                 <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
                   {contact.lastActive || '-'}
                 </td>
-                <td className="px-6 py-4">
-                  <button className="rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-700 dark:hover:text-gray-300">
+                <td className="px-6 py-4 relative">
+                  <button
+                    onClick={() => setOpenMenuId(openMenuId === contact.id ? null : contact.id)}
+                    className="rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-zinc-800 dark:hover:text-gray-300"
+                  >
                     <MoreVertical className="h-5 w-5" />
                   </button>
+                  {openMenuId === contact.id && (
+                    <div className="absolute right-6 top-12 z-50 w-48 rounded-xl border border-slate-200 dark:border-zinc-700/50 bg-white dark:bg-zinc-800 shadow-lg py-1">
+                      <button
+                        onClick={() => { setOpenMenuId(null); window.location.href = `/command-center`; }}
+                        className="w-full text-left px-4 py-2 text-sm text-slate-700 dark:text-zinc-200 hover:bg-slate-50 dark:hover:bg-zinc-700/50"
+                      >
+                        Chat about contact
+                      </button>
+                      <button
+                        onClick={() => setOpenMenuId(null)}
+                        className="w-full text-left px-4 py-2 text-sm text-slate-700 dark:text-zinc-200 hover:bg-slate-50 dark:hover:bg-zinc-700/50"
+                      >
+                        Send email
+                      </button>
+                      <button
+                        onClick={() => setOpenMenuId(null)}
+                        className="w-full text-left px-4 py-2 text-sm text-slate-700 dark:text-zinc-200 hover:bg-slate-50 dark:hover:bg-zinc-700/50"
+                      >
+                        Add to segment
+                      </button>
+                      <button
+                        onClick={() => setOpenMenuId(null)}
+                        className="w-full text-left px-4 py-2 text-sm text-slate-700 dark:text-zinc-200 hover:bg-slate-50 dark:hover:bg-zinc-700/50"
+                      >
+                        View in Mautic
+                      </button>
+                    </div>
+                  )}
                 </td>
               </tr>
             ))}

@@ -192,8 +192,8 @@ function MauticSection() {
           </div>
         </div>
       ) : (
-        <div className="bg-yellow-500/5 border border-yellow-500/20 rounded-xl p-4 mb-4 text-sm text-yellow-300">
-          No active Mautic connection. Connect your Mautic instance to enable AI-powered CRM features.
+        <div className="bg-indigo-500/5 border border-indigo-500/20 rounded-xl p-4 mb-4 text-sm text-indigo-300">
+          Connect your Mautic instance to sync live CRM data. The app works in demo mode without it.
         </div>
       )}
 

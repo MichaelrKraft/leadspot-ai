@@ -240,7 +240,7 @@ export default function CalendarPage() {
         </div>
         <button
           onClick={handleNewEvent}
-          className="flex items-center gap-2 rounded-lg bg-blue-500 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-blue-600"
+          className="flex items-center gap-2 rounded-lg bg-gradient-to-r from-primary-500 to-primary-400 px-4 py-2.5 text-sm font-medium text-white shadow-lg shadow-primary-500/20 transition-colors hover:from-primary-600 hover:to-primary-500"
         >
           <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
