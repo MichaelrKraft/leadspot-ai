@@ -15,8 +15,18 @@ export default function AuthGuard({ children, fallback }: AuthGuardProps) {
   const [isHydrated, setIsHydrated] = useState(false);
   const [hasAuth, setHasAuth] = useState(false);
 
+  // Dev mode bypass: skip auth entirely when backend is unavailable
+  const isDev = process.env.NEXT_PUBLIC_APP_ENV === 'development';
+
   // Check localStorage directly on mount to handle zustand hydration timing
   useEffect(() => {
+    // In dev mode, always grant access
+    if (isDev) {
+      setHasAuth(true);
+      setIsHydrated(true);
+      return;
+    }
+
     try {
       const authStorage = localStorage.getItem('auth-storage');
       if (authStorage) {
@@ -29,13 +39,14 @@ export default function AuthGuard({ children, fallback }: AuthGuardProps) {
       // Ignore parse errors
     }
     setIsHydrated(true);
-  }, []);
+  }, [isDev]);
 
   useEffect(() => {
+    if (isDev) return; // Skip redirect in dev mode
     if (isHydrated && !hasAuth && !isAuthenticated) {
       router.push('/login');
     }
-  }, [isHydrated, hasAuth, isAuthenticated, router]);
+  }, [isHydrated, hasAuth, isAuthenticated, router, isDev]);
 
   // Show loading state while hydrating
   if (!isHydrated) {
@@ -51,8 +62,8 @@ export default function AuthGuard({ children, fallback }: AuthGuardProps) {
     );
   }
 
-  // Show nothing while redirecting if not authenticated
-  if (!hasAuth && !isAuthenticated) {
+  // Show nothing while redirecting if not authenticated (skip in dev)
+  if (!isDev && !hasAuth && !isAuthenticated) {
     return null;
   }
 

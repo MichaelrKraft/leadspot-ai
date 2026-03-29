@@ -37,6 +37,7 @@ from app.middleware.security import (
 )
 from app.routers import (
     admin,
+    agent_proxy,
     agency,
     auth,
     billing,
@@ -184,6 +185,7 @@ app.include_router(integrations.router, prefix="/api", tags=["integrations"])
 app.include_router(decisions.router, tags=["decisions"])
 app.include_router(settings_router.router, tags=["settings"])
 app.include_router(billing.router, tags=["billing"])
+app.include_router(agent_proxy.router, prefix="/api/agent", tags=["agent"])
 
 
 @app.get("/")
