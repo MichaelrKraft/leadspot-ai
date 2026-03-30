@@ -6,8 +6,7 @@ import uuid
 from datetime import datetime
 from decimal import Decimal
 
-from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Numeric, String, Text
-from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy import Boolean, Column, DateTime, ForeignKey, JSON, Numeric, String, Text
 from sqlalchemy.orm import relationship
 
 from app.database import Base
@@ -85,10 +84,10 @@ class Organization(Base):
     custom_domain = Column(String(255), nullable=True, unique=True)
 
     # Branding configuration (JSON)
-    branding = Column(JSONB, default=DEFAULT_BRANDING, nullable=False)
+    branding = Column(JSON, default=DEFAULT_BRANDING, nullable=False)
 
     # Feature flags (JSON)
-    features = Column(JSONB, default=DEFAULT_FEATURES, nullable=False)
+    features = Column(JSON, default=DEFAULT_FEATURES, nullable=False)
 
     # =========================================================================
     # Billing & Wallet (GoHighLevel-style)

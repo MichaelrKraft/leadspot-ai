@@ -35,7 +35,7 @@ class Settings(BaseSettings):
     SENTRY_DSN: str = ""  # Optional - set to enable error tracking
 
     # CORS - comma-separated origins in env, parsed to list
-    CORS_ORIGINS: list[str] = ["http://localhost:3000", "http://localhost:3001", "http://localhost:3002"]
+    CORS_ORIGINS: list[str] = ["http://localhost:3000", "http://localhost:3001", "http://localhost:3002", "http://localhost:3003", "http://localhost:3006"]
 
     @field_validator("CORS_ORIGINS", mode="before")
     @classmethod
@@ -103,7 +103,7 @@ class Settings(BaseSettings):
     EMBEDDING_DIMENSION: int = 1536
 
     # Synthesis settings
-    SYNTHESIS_MODEL: str = "claude-3-5-sonnet-20241022"
+    SYNTHESIS_MODEL: str = "claude-sonnet-4-6"
     MAX_SOURCES: int = 10
 
     # Query settings

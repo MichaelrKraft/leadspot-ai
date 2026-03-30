@@ -85,8 +85,8 @@ export default function ContactsPage() {
           </h1>
           <p className="mt-2 text-gray-600 dark:text-gray-400">
             {isConnected
-              ? 'Synced from your Mautic CRM'
-              : 'Connect Mautic to sync your contacts'}
+              ? 'Synced from your CRM'
+              : 'Connect your CRM to sync contacts'}
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -119,10 +119,10 @@ export default function ContactsPage() {
             <Users className="h-5 w-5 text-yellow-600 dark:text-yellow-400" />
             <div>
               <p className="font-medium text-yellow-800 dark:text-yellow-200">
-                Mautic not connected
+                CRM not connected
               </p>
               <p className="text-sm text-yellow-700 dark:text-yellow-300">
-                Go to Settings → Mautic to connect your CRM and sync contacts.
+                Go to Settings → Integrations to connect your CRM and sync contacts.
               </p>
             </div>
           </div>
@@ -247,7 +247,7 @@ export default function ContactsPage() {
                         onClick={() => setOpenMenuId(null)}
                         className="w-full text-left px-4 py-2 text-sm text-slate-700 dark:text-zinc-200 hover:bg-slate-50 dark:hover:bg-zinc-700/50"
                       >
-                        View in Mautic
+                        View Details
                       </button>
                     </div>
                   )}
@@ -268,7 +268,7 @@ export default function ContactsPage() {
           <p className="mt-2 text-gray-500 dark:text-gray-400">
             {searchQuery
               ? 'Try a different search term'
-              : 'Connect Mautic to sync your contacts'}
+              : 'Connect your CRM to sync contacts'}
           </p>
         </div>
       )}

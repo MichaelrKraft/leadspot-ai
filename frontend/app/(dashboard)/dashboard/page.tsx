@@ -233,7 +233,7 @@ export default function DashboardPage() {
               </p>
             ) : (
               <p className="text-center text-zinc-400 text-sm py-4">
-                Connect Mautic to get AI-powered insights
+                Connect your CRM to get AI-powered insights
               </p>
             )}
           </div>

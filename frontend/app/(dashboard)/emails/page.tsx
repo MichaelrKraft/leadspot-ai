@@ -1,6 +1,20 @@
 'use client';
 
-const DEMO_EMAILS = [
+import { useState } from 'react';
+import { X, Plus } from 'lucide-react';
+
+interface Email {
+  id: string;
+  name: string;
+  subject: string;
+  status: string;
+  sentCount: number;
+  openRate: string;
+  clickRate: string;
+  dateModified: string;
+}
+
+const DEMO_EMAILS: Email[] = [
   { id: '1', name: 'Welcome Email', subject: 'Welcome to LeadSpot!', status: 'published', sentCount: 3200, openRate: '45%', clickRate: '22%', dateModified: 'Mar 15, 2026' },
   { id: '2', name: 'Q1 Newsletter', subject: 'Your March Marketing Digest', status: 'published', sentCount: 2100, openRate: '34%', clickRate: '12%', dateModified: 'Mar 20, 2026' },
   { id: '3', name: 'Follow-up Template', subject: 'Great talking with you!', status: 'draft', sentCount: 0, openRate: '-', clickRate: '-', dateModified: 'Mar 25, 2026' },
@@ -21,6 +35,10 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 export default function EmailsPage() {
+  const [emails, setEmails] = useState<Email[]>(DEMO_EMAILS);
+  const [showModal, setShowModal] = useState(false);
+  const [form, setForm] = useState({ name: '', subject: '', body: '' });
+
   return (
     <div className="p-8">
       {/* Header */}
@@ -31,8 +49,12 @@ export default function EmailsPage() {
             Create and send email templates to your contacts and segments.
           </p>
         </div>
-        <button className="rounded-lg bg-gradient-to-r from-indigo-500 to-indigo-400 px-4 py-2 text-sm font-medium text-white shadow-sm transition-all hover:shadow-md">
-          + New Email
+        <button
+          onClick={() => setShowModal(true)}
+          className="flex items-center gap-2 rounded-lg bg-gradient-to-r from-indigo-500 to-indigo-400 px-4 py-2 text-sm font-medium text-white shadow-sm transition-all hover:shadow-md"
+        >
+          <Plus className="h-4 w-4" />
+          New Email
         </button>
       </div>
 
@@ -50,7 +72,7 @@ export default function EmailsPage() {
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-200 dark:divide-zinc-800/50">
-            {DEMO_EMAILS.map((email) => (
+            {emails.map((email) => (
               <tr key={email.id} className="transition-colors hover:bg-slate-100 dark:hover:bg-zinc-800/30">
                 <td className="px-6 py-4">
                   <p className="text-sm font-medium text-slate-900 dark:text-zinc-100">{email.name}</p>
@@ -68,6 +90,78 @@ export default function EmailsPage() {
           </tbody>
         </table>
       </div>
+
+      {/* New Email Modal */}
+      {showModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+          <div className="w-full max-w-2xl rounded-2xl border border-slate-200 bg-white p-6 shadow-xl dark:border-zinc-700 dark:bg-zinc-900">
+            <div className="mb-5 flex items-center justify-between">
+              <h2 className="text-lg font-bold text-slate-900 dark:text-white">New Email</h2>
+              <button onClick={() => setShowModal(false)} className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-zinc-800">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                const email: Email = {
+                  id: `new-${Date.now()}`,
+                  name: form.name,
+                  subject: form.subject,
+                  status: 'draft',
+                  sentCount: 0,
+                  openRate: '-',
+                  clickRate: '-',
+                  dateModified: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+                };
+                setEmails(prev => [email, ...prev]);
+                setForm({ name: '', subject: '', body: '' });
+                setShowModal(false);
+              }}
+              className="space-y-4"
+            >
+              <div>
+                <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-zinc-300">Email Name *</label>
+                <input
+                  required
+                  value={form.name}
+                  onChange={e => setForm(p => ({ ...p, name: e.target.value }))}
+                  placeholder="e.g. Spring Open House Invite"
+                  className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-zinc-300">Subject Line *</label>
+                <input
+                  required
+                  value={form.subject}
+                  onChange={e => setForm(p => ({ ...p, subject: e.target.value }))}
+                  placeholder="e.g. You're invited to our Spring Open House!"
+                  className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-zinc-300">Email Body</label>
+                <textarea
+                  rows={6}
+                  value={form.body}
+                  onChange={e => setForm(p => ({ ...p, body: e.target.value }))}
+                  placeholder="Write your email content..."
+                  className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
+                />
+              </div>
+              <div className="flex justify-end gap-3 pt-2">
+                <button type="button" onClick={() => setShowModal(false)} className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800">
+                  Cancel
+                </button>
+                <button type="submit" className="rounded-lg bg-gradient-to-r from-indigo-500 to-indigo-400 px-4 py-2 text-sm font-medium text-white shadow-sm hover:from-indigo-600 hover:to-indigo-500">
+                  Create Email
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
