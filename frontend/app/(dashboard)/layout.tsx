@@ -1,17 +1,26 @@
 'use client';
 
-import { ReactNode } from 'react';
+import React, { ReactNode } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import AuthGuard from '@/components/auth/AuthGuard';
 import { useAuthStore } from '@/stores/useAuthStore';
+import ErrorBoundary from '@/components/ErrorBoundary';
 
 interface DashboardLayoutProps {
   children: ReactNode;
 }
 
-const navigation = [
+interface NavItem {
+  name: string;
+  href: string;
+  icon: React.ReactNode;
+  dividerAfter?: boolean;
+  external?: boolean;
+}
+
+const navigation: NavItem[] = [
   {
     name: 'AI Command Center',
     href: '/command-center',
@@ -289,7 +298,9 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
           {/* Page Content */}
           <main className="flex-1 bg-white dark:bg-[#0a0a0d]">
-            <div className="relative z-10">{children}</div>
+            <ErrorBoundary>
+              <div className="relative z-10">{children}</div>
+            </ErrorBoundary>
           </main>
 
           {/* Status Bar */}

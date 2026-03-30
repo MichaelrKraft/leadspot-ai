@@ -14,7 +14,7 @@ interface ScheduledTask {
   agentType: string;
 }
 
-// Demo data - will be replaced with API calls
+// TODO: Wire to backend — replace demoTasks with API call to /api/scheduled-tasks
 const demoTasks: ScheduledTask[] = [
   {
     id: '1',

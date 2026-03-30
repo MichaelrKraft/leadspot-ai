@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+
 interface VoiceAgent {
   id: string;
   name: string;
@@ -16,32 +18,25 @@ interface VoiceAgent {
   greeting: string;
 }
 
-const DEMO_AGENTS: VoiceAgent[] = [
-  {
-    id: '1',
-    name: 'Sales Qualifier',
-    status: 'active',
-    callsThisWeek: 47,
-    qualifiedLeads: 23,
-    appointmentsBooked: null,
-    avgCallDuration: '3:20',
-    description: 'Qualifies inbound leads based on BANT criteria and routes to sales reps.',
-    voice: 'Rachel (Female, Professional)',
-    greeting: "Hi, this is Sarah from LeadSpot. I'm reaching out because you recently showed interest in our platform. Do you have a moment to chat?",
-  },
-  {
-    id: '2',
-    name: 'Appointment Setter',
-    status: 'active',
-    callsThisWeek: 31,
-    qualifiedLeads: null,
-    appointmentsBooked: 18,
-    avgCallDuration: '2:45',
-    description: 'Books appointments with qualified prospects on your Google Calendar.',
-    voice: 'James (Male, Friendly)',
-    greeting: "Hello! This is James calling from LeadSpot. I'd love to schedule a quick demo with you. What time works best?",
-  },
-];
+// Transform agent-service response shape to our VoiceAgent interface
+function transformAgent(a: Record<string, unknown>): VoiceAgent {
+  const stats = (a.stats as Record<string, unknown>) ?? {};
+  const avgSecs = (stats.avg_call_duration_seconds as number) ?? 0;
+  const mins = Math.floor(avgSecs / 60);
+  const secs = avgSecs % 60;
+  return {
+    id: String(a.id ?? a.agent_id ?? ''),
+    name: String(a.name ?? 'Unnamed Agent'),
+    status: (a.status as VoiceAgent['status']) ?? 'draft',
+    callsThisWeek: (stats.calls_this_week as number) ?? (a.calls_this_week as number) ?? 0,
+    qualifiedLeads: (stats.qualified_leads as number) ?? (a.qualified_leads as number) ?? null,
+    appointmentsBooked: (stats.appointments_booked as number) ?? (a.appointments_booked as number) ?? null,
+    avgCallDuration: avgSecs > 0 ? `${mins}:${String(secs).padStart(2, '0')}` : (a.avg_call_duration as string) ?? '0:00',
+    description: String(a.description ?? a.purpose ?? ''),
+    voice: String(a.voice ?? a.voice_id ?? ''),
+    greeting: String(a.greeting ?? a.greeting_script ?? ''),
+  };
+}
 
 function StatusBadge({ status }: { status: string }) {
   const colors: Record<string, string> = {
@@ -257,18 +252,30 @@ function NewAgentPanel({ onClose, onCreate }: { onClose: () => void; onCreate: (
 }
 
 export default function VoiceAgentsPage() {
-  const [agents, setAgents] = useState<VoiceAgent[]>(DEMO_AGENTS);
+  const [agents, setAgents] = useState<VoiceAgent[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const saved = localStorage.getItem('leadspot-voice-agents');
-    if (saved) {
+    const fetchAgents = async () => {
+      setIsLoading(true);
+      setError(null);
       try {
-        const custom = JSON.parse(saved) as VoiceAgent[];
-        setAgents([...custom, ...DEMO_AGENTS]);
-      } catch {
-        // Ignore invalid JSON
+        const res = await fetch(`${API_URL}/api/agent/voice-agents`, {
+          credentials: 'include',
+        });
+        if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+        const data = await res.json();
+        const list: Record<string, unknown>[] = Array.isArray(data) ? data : (data.agents ?? data.items ?? []);
+        setAgents(list.map(transformAgent));
+      } catch (err) {
+        console.error('Failed to fetch voice agents:', err);
+        setError('Could not load voice agents. Is the agent service running?');
+      } finally {
+        setIsLoading(false);
       }
-    }
+    };
+    fetchAgents();
   }, []);
 
   return (
@@ -289,7 +296,31 @@ export default function VoiceAgentsPage() {
         </Link>
       </div>
 
+      {/* Loading State */}
+      {isLoading && (
+        <div className="flex items-center justify-center py-20 text-slate-400 text-sm gap-2.5">
+          <div className="h-5 w-5 animate-spin rounded-full border-2 border-slate-600 border-t-indigo-400" />
+          <span>Loading voice agents...</span>
+        </div>
+      )}
+
+      {/* Error State */}
+      {error && !isLoading && (
+        <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-5 py-4 text-center text-sm text-red-400">
+          {error}
+        </div>
+      )}
+
+      {/* Empty State */}
+      {!isLoading && !error && agents.length === 0 && (
+        <div className="rounded-2xl border border-slate-200 dark:border-zinc-800/50 bg-white dark:bg-zinc-900 px-5 py-16 text-center">
+          <p className="text-lg font-medium text-slate-500 dark:text-zinc-400">No voice agents yet</p>
+          <p className="mt-2 text-sm text-slate-400 dark:text-zinc-500">Create your first agent to get started.</p>
+        </div>
+      )}
+
       {/* Agent Cards */}
+      {!isLoading && !error && agents.length > 0 && (
       <div className="grid gap-6 sm:grid-cols-2">
         {agents.map((agent) => (
           <div
@@ -341,6 +372,7 @@ export default function VoiceAgentsPage() {
           </div>
         ))}
       </div>
+      )}
 
     </div>
   );

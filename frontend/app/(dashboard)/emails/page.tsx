@@ -14,6 +14,7 @@ interface Email {
   dateModified: string;
 }
 
+// TODO: Wire to backend — replace DEMO_EMAILS with API call to /api/emails
 const DEMO_EMAILS: Email[] = [
   { id: '1', name: 'Welcome Email', subject: 'Welcome to LeadSpot!', status: 'published', sentCount: 3200, openRate: '45%', clickRate: '22%', dateModified: 'Mar 15, 2026' },
   { id: '2', name: 'Q1 Newsletter', subject: 'Your March Marketing Digest', status: 'published', sentCount: 2100, openRate: '34%', clickRate: '12%', dateModified: 'Mar 20, 2026' },

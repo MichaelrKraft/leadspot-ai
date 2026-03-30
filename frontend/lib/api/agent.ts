@@ -4,8 +4,14 @@
  * timeline, approval queue, and action plans.
  */
 
+import { useAuthStore } from '@/stores/useAuthStore';
+
 const API_URL = process.env.NEXT_PUBLIC_AGENT_SERVICE_URL || 'http://localhost:3008';
-const ORG_ID = 'demo-org'; // TODO: get from auth context
+
+// Returns the current org ID from auth context, falls back to 'demo-org' in dev mode
+function getOrgId(): string {
+  return useAuthStore.getState().user?.organizationId ?? 'demo-org';
+}
 
 // ---- Smart Lists ----
 
@@ -30,13 +36,17 @@ export interface SmartList {
 export interface SmartListContact {
   contactId: string;
   name: string;
+  firstName?: string;
+  lastName?: string;
   email: string;
   phone: string;
   company: string;
   priority: 'urgent' | 'high' | 'medium' | 'low';
   suggestedAction: string;
   leadScore: number;
+  score?: number;
   daysSinceLastContact: number;
+  lastContactDays?: number;
   actedUpon: boolean;
 }
 
@@ -45,11 +55,12 @@ export interface SmartListResult {
   contacts: SmartListContact[];
   total: number;
   actedCount: number;
+  completedToday?: number;
 }
 
 export async function fetchSmartLists(): Promise<SmartList[]> {
   const res = await fetch(
-    `${API_URL}/api/agent/smart-lists?organizationId=${encodeURIComponent(ORG_ID)}`
+    `${API_URL}/api/agent/smart-lists?organizationId=${encodeURIComponent(getOrgId())}`
   );
   if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
   const data = await res.json();
@@ -60,7 +71,7 @@ export async function evaluateSmartList(listId: string): Promise<SmartListResult
   const res = await fetch(`${API_URL}/api/agent/smart-lists/${listId}/evaluate`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ organizationId: ORG_ID }),
+    body: JSON.stringify({ organizationId: getOrgId() }),
   });
   if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
   const data = await res.json();
@@ -74,7 +85,7 @@ export async function markContactActedUpon(
   const res = await fetch(`${API_URL}/api/agent/smart-lists/${listId}/mark-acted`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ organizationId: ORG_ID, contactId }),
+    body: JSON.stringify({ organizationId: getOrgId(), contactId }),
   });
   if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
   return res.json();
@@ -93,7 +104,7 @@ export async function fetchPipelineBrief(): Promise<PipelineBrief> {
   const res = await fetch(`${API_URL}/api/agent/brief`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ organizationId: ORG_ID }),
+    body: JSON.stringify({ organizationId: getOrgId() }),
   });
   if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
   return res.json();
@@ -120,7 +131,7 @@ export interface TimelineSummary {
 
 export async function fetchTimeline(contactId: string): Promise<TimelineEvent[]> {
   const res = await fetch(
-    `${API_URL}/api/agent/timeline/${contactId}?organizationId=${encodeURIComponent(ORG_ID)}`
+    `${API_URL}/api/agent/timeline/${contactId}?organizationId=${encodeURIComponent(getOrgId())}`
   );
   if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
   return res.json();
@@ -128,7 +139,7 @@ export async function fetchTimeline(contactId: string): Promise<TimelineEvent[]>
 
 export async function fetchTimelineSummary(contactId: string): Promise<TimelineSummary> {
   const res = await fetch(
-    `${API_URL}/api/agent/timeline/${contactId}/summary?organizationId=${encodeURIComponent(ORG_ID)}`
+    `${API_URL}/api/agent/timeline/${contactId}/summary?organizationId=${encodeURIComponent(getOrgId())}`
   );
   if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
   return res.json();
@@ -147,7 +158,7 @@ export interface QueueItem {
 
 export async function fetchApprovalQueue(): Promise<QueueItem[]> {
   const res = await fetch(
-    `${API_URL}/api/agent/queue?organizationId=${encodeURIComponent(ORG_ID)}`
+    `${API_URL}/api/agent/queue?organizationId=${encodeURIComponent(getOrgId())}`
   );
   if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
   return res.json();
@@ -157,7 +168,7 @@ export async function approveAction(id: string): Promise<{ success: boolean }> {
   const res = await fetch(`${API_URL}/api/agent/queue/${id}/approve`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ organizationId: ORG_ID }),
+    body: JSON.stringify({ organizationId: getOrgId() }),
   });
   if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
   return res.json();
@@ -167,7 +178,7 @@ export async function dismissAction(id: string): Promise<{ success: boolean }> {
   const res = await fetch(`${API_URL}/api/agent/queue/${id}/dismiss`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ organizationId: ORG_ID }),
+    body: JSON.stringify({ organizationId: getOrgId() }),
   });
   if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
   return res.json();
@@ -186,7 +197,7 @@ export interface ActionPlan {
 
 export async function fetchActionPlans(): Promise<ActionPlan[]> {
   const res = await fetch(
-    `${API_URL}/api/agent/action-plans?organizationId=${encodeURIComponent(ORG_ID)}`
+    `${API_URL}/api/agent/action-plans?organizationId=${encodeURIComponent(getOrgId())}`
   );
   if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
   return res.json();
@@ -196,7 +207,7 @@ export async function fetchActionPlans(): Promise<ActionPlan[]> {
 
 export async function fetchRecentActivity(): Promise<TimelineEvent[]> {
   const res = await fetch(
-    `${API_URL}/api/agent/timeline/recent?organizationId=${encodeURIComponent(ORG_ID)}`
+    `${API_URL}/api/agent/timeline/recent?organizationId=${encodeURIComponent(getOrgId())}`
   );
   if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
   return res.json();

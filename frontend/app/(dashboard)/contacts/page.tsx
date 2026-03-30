@@ -1,82 +1,61 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Search, Users, Mail, Phone, Tag, MoreVertical, RefreshCw, Upload, Download, UserPlus, X } from 'lucide-react';
-
-interface Contact {
-  id: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-  company?: string;
-  phone?: string;
-  tags: string[];
-  points: number;
-  lastActive?: string;
-}
-
-// Demo data - will be replaced with Mautic API
-const demoContacts: Contact[] = [
-  {
-    id: '1',
-    firstName: 'John',
-    lastName: 'Smith',
-    email: 'john.smith@acme.com',
-    company: 'Acme Corp',
-    phone: '+1 555-0123',
-    tags: ['hot-lead', 'enterprise'],
-    points: 85,
-    lastActive: '2 hours ago',
-  },
-  {
-    id: '2',
-    firstName: 'Sarah',
-    lastName: 'Johnson',
-    email: 'sarah.j@techstart.io',
-    company: 'TechStart',
-    tags: ['demo-requested'],
-    points: 120,
-    lastActive: 'Yesterday',
-  },
-  {
-    id: '3',
-    firstName: 'Michael',
-    lastName: 'Chen',
-    email: 'mchen@globalinc.com',
-    company: 'Global Inc',
-    phone: '+1 555-0456',
-    tags: ['newsletter', 'webinar-attended'],
-    points: 45,
-    lastActive: '3 days ago',
-  },
-  {
-    id: '4',
-    firstName: 'Emily',
-    lastName: 'Davis',
-    email: 'emily@startup.co',
-    company: 'Startup Co',
-    tags: ['trial-user'],
-    points: 200,
-    lastActive: '1 hour ago',
-  },
-];
+import { listContacts, createContact, deleteContact, type Contact } from '@/lib/api/contacts';
 
 export default function ContactsPage() {
-  const [contacts, setContacts] = useState<Contact[]>(demoContacts);
+  const [contacts, setContacts] = useState<Contact[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [isConnected] = useState(true);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [newContact, setNewContact] = useState({ firstName: '', lastName: '', email: '', company: '', phone: '', tags: '' });
 
-  const filteredContacts = contacts.filter(contact =>
-    `${contact.firstName} ${contact.lastName} ${contact.email} ${contact.company || ''}`
-      .toLowerCase()
-      .includes(searchQuery.toLowerCase())
-  );
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const loadContacts = useCallback(async (search?: string) => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const data = await listContacts({ search: search || undefined });
+      setContacts(data.contacts);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load contacts');
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  // Initial load
+  useEffect(() => {
+    loadContacts();
+  }, [loadContacts]);
+
+  // Debounced search
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      loadContacts(searchQuery);
+    }, 300);
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, [searchQuery, loadContacts]);
+
+  const filteredContacts = contacts;
 
   return (
     <div className="p-8">
+      {/* Error Banner */}
+      {error && (
+        <div className="mb-6 rounded-lg border border-red-200 bg-red-50 p-4 dark:border-red-800 dark:bg-red-900/20">
+          <p className="text-sm text-red-700 dark:text-red-300">{error}</p>
+        </div>
+      )}
+
       {/* Header */}
       <div className="mb-8 flex items-center justify-between">
         <div>
@@ -143,7 +122,15 @@ export default function ContactsPage() {
         </div>
       </div>
 
+      {/* Loading State */}
+      {isLoading && (
+        <div className="py-16 text-center text-gray-500 dark:text-gray-400">
+          Loading contacts...
+        </div>
+      )}
+
       {/* Contacts Table */}
+      {!isLoading && (<>
       <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-zinc-800/50 dark:bg-zinc-900">
         <table className="w-full">
           <thead className="bg-gray-50 dark:bg-zinc-800/50">
@@ -249,6 +236,20 @@ export default function ContactsPage() {
                       >
                         View Details
                       </button>
+                      <button
+                        onClick={async () => {
+                          setOpenMenuId(null);
+                          try {
+                            await deleteContact(contact.id);
+                            await loadContacts(searchQuery || undefined);
+                          } catch (err) {
+                            setError(err instanceof Error ? err.message : 'Failed to delete contact');
+                          }
+                        }}
+                        className="w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-slate-50 dark:hover:bg-zinc-700/50"
+                      >
+                        Delete
+                      </button>
                     </div>
                   )}
                 </td>
@@ -263,15 +264,16 @@ export default function ContactsPage() {
         <div className="text-center py-16">
           <Users className="mx-auto h-12 w-12 text-gray-400" />
           <h3 className="mt-4 text-lg font-medium text-gray-900 dark:text-white">
-            No contacts found
+            {searchQuery ? 'No contacts found' : 'No contacts yet'}
           </h3>
           <p className="mt-2 text-gray-500 dark:text-gray-400">
             {searchQuery
               ? 'Try a different search term'
-              : 'Connect your CRM to sync contacts'}
+              : 'Add your first contact.'}
           </p>
         </div>
       )}
+      </>)}
 
       {/* Add Contact Modal */}
       {showAddModal && (
@@ -284,22 +286,24 @@ export default function ContactsPage() {
               </button>
             </div>
             <form
-              onSubmit={(e) => {
+              onSubmit={async (e) => {
                 e.preventDefault();
-                const contact: Contact = {
-                  id: `new-${Date.now()}`,
-                  firstName: newContact.firstName,
-                  lastName: newContact.lastName,
-                  email: newContact.email,
-                  company: newContact.company || undefined,
-                  phone: newContact.phone || undefined,
-                  tags: newContact.tags ? newContact.tags.split(',').map(t => t.trim()).filter(Boolean) : [],
-                  points: 0,
-                  lastActive: 'Just now',
-                };
-                setContacts(prev => [contact, ...prev]);
-                setNewContact({ firstName: '', lastName: '', email: '', company: '', phone: '', tags: '' });
-                setShowAddModal(false);
+                try {
+                  await createContact({
+                    firstName: newContact.firstName,
+                    lastName: newContact.lastName,
+                    email: newContact.email,
+                    company: newContact.company || undefined,
+                    phone: newContact.phone || undefined,
+                    tags: newContact.tags ? newContact.tags.split(',').map(t => t.trim()).filter(Boolean) : [],
+                  });
+                  setNewContact({ firstName: '', lastName: '', email: '', company: '', phone: '', tags: '' });
+                  setShowAddModal(false);
+                  await loadContacts(searchQuery || undefined);
+                } catch (err) {
+                  setError(err instanceof Error ? err.message : 'Failed to create contact');
+                  setShowAddModal(false);
+                }
               }}
               className="space-y-4"
             >

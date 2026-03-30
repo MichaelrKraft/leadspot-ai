@@ -1,5 +1,6 @@
 'use client';
 
+// TODO: Wire to backend — replace DEMO_SEGMENTS with API call to /api/segments
 const DEMO_SEGMENTS = [
   { id: '1', name: 'Hot Leads', description: 'Contacts with 100+ engagement points', contacts: 342, isPublic: true, dateCreated: 'Jan 5, 2026' },
   { id: '2', name: 'Enterprise', description: 'Companies with 50+ employees', contacts: 89, isPublic: true, dateCreated: 'Jan 12, 2026' },

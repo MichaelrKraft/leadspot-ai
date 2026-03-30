@@ -15,6 +15,7 @@ interface Campaign {
   dateCreated: string;
 }
 
+// TODO: Wire to backend — replace DEMO_CAMPAIGNS with API call to /api/campaigns
 const DEMO_CAMPAIGNS: Campaign[] = [
   { id: '1', name: 'Q1 Welcome Series', status: 'active', type: 'Email', contacts: 1247, sent: 3200, openRate: '34%', clickRate: '12%', dateCreated: 'Jan 15, 2026' },
   { id: '2', name: 'Holiday Sale 2026', status: 'active', type: 'Email', contacts: 892, sent: 2100, openRate: '41%', clickRate: '18%', dateCreated: 'Mar 1, 2026' },

@@ -1,5 +1,14 @@
 'use client';
 
+// TODO: Wire to backend inbox API
+// Required endpoints (not yet implemented in backend):
+//   GET  /api/conversations           — list conversations with pagination
+//   GET  /api/conversations/:id       — get single conversation with messages
+//   POST /api/conversations/:id/reply — send a reply (email or SMS)
+//   POST /api/conversations           — compose new message
+// Until these exist, mock data (DEMO_CONVERSATIONS) is used below.
+// Empty state placeholder: "No messages yet. Your email and SMS conversations will appear here."
+
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { PenSquare, X, Send } from 'lucide-react';
 import ConversationList from '@/components/inbox/ConversationList';
@@ -346,7 +355,14 @@ export default function InboxPage() {
       </div>
       <DragHandle onDrag={handleLeftDrag} />
       <div className="flex-1 min-w-[300px]">
-        <MessageThread conversation={selectedConversation} />
+        {filteredConversations.length === 0 ? (
+          <div className="flex h-full flex-col items-center justify-center gap-3 text-center px-8">
+            <p className="text-base font-medium text-gray-300">No messages yet.</p>
+            <p className="text-sm text-gray-500">Your email and SMS conversations will appear here.</p>
+          </div>
+        ) : (
+          <MessageThread conversation={selectedConversation} />
+        )}
       </div>
       <DragHandle onDrag={handleRightDrag} />
       <div style={{ width: rightWidth, minWidth: 200, maxWidth: 500 }} className="flex-shrink-0">

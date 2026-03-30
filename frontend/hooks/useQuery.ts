@@ -810,10 +810,10 @@ export function useQueryHistory() {
 }
 
 /**
- * useQueryWithDemo - Hook for demo mode with industry-specific responses
- * When demoIndustry is provided, bypasses API and returns demo data
+ * useQueryWithDemo - Hook for real API queries (demo mode removed)
+ * Calls POST /api/query on the backend and surfaces real errors.
  */
-export function useQueryWithDemo(demoIndustry?: string | null) {
+export function useQueryWithDemo(_demoIndustry?: string | null) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [response, setResponse] = useState<QueryResponse | null>(null);
@@ -822,31 +822,14 @@ export function useQueryWithDemo(demoIndustry?: string | null) {
     setIsLoading(true);
     setError(null);
 
-    // If demo mode is active, skip API and return demo data
-    if (demoIndustry) {
-      console.log(`Demo mode active for industry: ${demoIndustry}`);
-      await new Promise(resolve => setTimeout(resolve, 1500)); // Simulate processing time
-      const demoResponse = getDemoResponse(request.query, demoIndustry);
-      setResponse(demoResponse);
-      setIsLoading(false);
-      return demoResponse;
-    }
-
-    // Normal API flow
     try {
-      const res = await fetch(`${API_URL}/api/query/search`, {
+      const res = await fetch(`${API_URL}/api/query`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         credentials: 'include',
-        body: JSON.stringify({
-          query: request.query,
-          max_sources: 5,
-          use_llm: true,
-          filters: request.filters,
-          research_mode: request.research_mode
-        }),
+        body: JSON.stringify({ query: request.query }),
       });
 
       if (!res.ok) {
@@ -865,40 +848,28 @@ export function useQueryWithDemo(demoIndustry?: string | null) {
 
       const data = await res.json();
 
+      // Backend returns { answer, citations, sources }
+      const citations: Array<{ text: string; source: string; url?: string }> = data.citations || [];
       const queryResponse: QueryResponse = {
         query_id: `query-${Date.now()}`,
         answer: data.answer,
-        sources: data.sources.map((s: any) => ({
-          document_id: s.document_id,
-          title: s.title,
-          url: `/documents/${s.document_id}`,
-          excerpt: s.excerpt,
-          relevance_score: s.relevance_score,
-          source_system: s.source_system,
-          source_url: s.source_url,
-          mime_type: s.mime_type
+        sources: citations.map((c, i) => ({
+          document_id: `citation-${i}`,
+          title: c.source,
+          url: c.url || '',
+          excerpt: c.text,
+          source_system: c.source,
         })),
-        response_time_ms: data.metrics?.total_time_ms || 0,
-        confidence: data.sources.length > 0
-          ? data.sources.reduce((acc: number, s: any) => acc + s.relevance_score, 0) / data.sources.length
-          : 0,
-        metadata: {
-          model_used: data.synthesis_method,
-          tokens_used: data.metrics?.ollama_tokens || 0,
-          ollama_available: data.metrics?.ollama_available || false
-        },
-        follow_up_questions: data.follow_up_questions || []
+        response_time_ms: 0,
+        follow_up_questions: [],
       };
 
       setResponse(queryResponse);
       return queryResponse;
     } catch (err) {
-      // Return demo data when API is unavailable
-      console.log('Query API unavailable, using demo data');
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      const demoResponse = getDemoResponse(request.query, null);
-      setResponse(demoResponse);
-      return demoResponse;
+      const message = err instanceof Error ? err.message : 'Query failed. Please try again.';
+      setError(message);
+      throw err;
     } finally {
       setIsLoading(false);
     }

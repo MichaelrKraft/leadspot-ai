@@ -1,8 +1,39 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import type { Deal, DealStage, PipelineStage } from '@/types/deals';
 import DealCard from './DealCard';
+import { listDeals, updateDeal, deleteDeal, createDeal, type ApiDeal } from '@/lib/api/deals';
+
+// Map backend priority (low/medium/high) → frontend priority (cold/warm/hot)
+function apiPriorityToFrontend(p: ApiDeal['priority']): Deal['priority'] {
+  if (p === 'high') return 'hot';
+  if (p === 'medium') return 'warm';
+  return 'cold';
+}
+
+// Map frontend priority (cold/warm/hot) → backend priority (low/medium/high)
+function frontendPriorityToApi(p: Deal['priority']): ApiDeal['priority'] {
+  if (p === 'hot') return 'high';
+  if (p === 'warm') return 'medium';
+  return 'low';
+}
+
+function apiDealToFrontend(d: ApiDeal): Deal {
+  return {
+    id: d.id,
+    contactName: d.contact_name ?? '',
+    email: '',
+    company: '',
+    value: d.value,
+    stage: d.stage,
+    priority: apiPriorityToFrontend(d.priority),
+    notes: d.notes ?? '',
+    createdAt: d.created_at,
+    updatedAt: d.updated_at,
+    stageChangedAt: d.updated_at,
+  };
+}
 
 const STAGES: PipelineStage[] = [
   { id: 'lead', label: 'Lead', color: 'bg-gray-500' },
@@ -13,144 +44,6 @@ const STAGES: PipelineStage[] = [
   { id: 'lost', label: 'Lost', color: 'bg-red-500' },
 ];
 
-function daysAgo(n: number): string {
-  const d = new Date();
-  d.setDate(d.getDate() - n);
-  return d.toISOString();
-}
-
-const DEMO_DEALS: Deal[] = [
-  {
-    id: '1',
-    contactName: 'Sarah Chen',
-    email: 'sarah@techflow.io',
-    company: 'TechFlow',
-    value: 45000,
-    stage: 'lead',
-    priority: 'hot',
-    notes: 'Inbound from webinar',
-    createdAt: daysAgo(12),
-    updatedAt: daysAgo(1),
-    stageChangedAt: daysAgo(3),
-  },
-  {
-    id: '2',
-    contactName: 'Marcus Johnson',
-    email: 'marcus@greenleaf.co',
-    company: 'GreenLeaf Co',
-    value: 12000,
-    stage: 'lead',
-    priority: 'warm',
-    notes: 'Referred by existing client',
-    createdAt: daysAgo(5),
-    updatedAt: daysAgo(1),
-    stageChangedAt: daysAgo(5),
-  },
-  {
-    id: '3',
-    contactName: 'Emily Rodriguez',
-    email: 'emily@datawise.com',
-    company: 'DataWise',
-    value: 78000,
-    stage: 'qualified',
-    priority: 'hot',
-    notes: 'Enterprise plan interest',
-    createdAt: daysAgo(20),
-    updatedAt: daysAgo(2),
-    stageChangedAt: daysAgo(7),
-  },
-  {
-    id: '4',
-    contactName: 'James Park',
-    email: 'james@novasoft.dev',
-    company: 'NovaSoft',
-    value: 25000,
-    stage: 'qualified',
-    priority: 'cold',
-    notes: 'Evaluating competitors',
-    createdAt: daysAgo(15),
-    updatedAt: daysAgo(3),
-    stageChangedAt: daysAgo(10),
-  },
-  {
-    id: '5',
-    contactName: 'Lisa Wang',
-    email: 'lisa@brightpath.ai',
-    company: 'BrightPath AI',
-    value: 120000,
-    stage: 'proposal',
-    priority: 'hot',
-    notes: 'Proposal sent, awaiting review',
-    createdAt: daysAgo(30),
-    updatedAt: daysAgo(1),
-    stageChangedAt: daysAgo(4),
-  },
-  {
-    id: '6',
-    contactName: 'Tom Bradley',
-    email: 'tom@scaleup.io',
-    company: 'ScaleUp',
-    value: 35000,
-    stage: 'negotiation',
-    priority: 'warm',
-    notes: 'Negotiating on pricing tier',
-    createdAt: daysAgo(25),
-    updatedAt: daysAgo(0),
-    stageChangedAt: daysAgo(2),
-  },
-  {
-    id: '7',
-    contactName: 'Rachel Kim',
-    email: 'rachel@urbantech.co',
-    company: 'UrbanTech',
-    value: 55000,
-    stage: 'negotiation',
-    priority: 'hot',
-    notes: 'Final contract review',
-    createdAt: daysAgo(40),
-    updatedAt: daysAgo(0),
-    stageChangedAt: daysAgo(1),
-  },
-  {
-    id: '8',
-    contactName: 'David Miller',
-    email: 'david@cloudnine.dev',
-    company: 'CloudNine',
-    value: 90000,
-    stage: 'won',
-    priority: 'hot',
-    notes: 'Signed annual contract',
-    createdAt: daysAgo(60),
-    updatedAt: daysAgo(5),
-    stageChangedAt: daysAgo(5),
-  },
-  {
-    id: '9',
-    contactName: 'Anna Foster',
-    email: 'anna@blueridge.co',
-    company: 'BlueRidge',
-    value: 18000,
-    stage: 'won',
-    priority: 'warm',
-    notes: 'Onboarding started',
-    createdAt: daysAgo(45),
-    updatedAt: daysAgo(10),
-    stageChangedAt: daysAgo(10),
-  },
-  {
-    id: '10',
-    contactName: 'Chris Taylor',
-    email: 'chris@nexgen.io',
-    company: 'NexGen',
-    value: 8000,
-    stage: 'lost',
-    priority: 'cold',
-    notes: 'Went with competitor',
-    createdAt: daysAgo(35),
-    updatedAt: daysAgo(14),
-    stageChangedAt: daysAgo(14),
-  },
-];
 
 function formatCurrency(value: number): string {
   if (value >= 1000) {
@@ -165,22 +58,34 @@ interface PipelineKanbanProps {
 }
 
 export default function PipelineKanban({ pendingDeal, onDealAdded }: PipelineKanbanProps) {
-  const [deals, setDeals] = useState<Deal[]>(DEMO_DEALS);
+  const [deals, setDeals] = useState<Deal[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [dragOverStage, setDragOverStage] = useState<DealStage | null>(null);
 
-  // Process pending deal from parent
+  // Fetch deals on mount
+  useEffect(() => {
+    listDeals()
+      .then((apiDeals) => setDeals(apiDeals.map(apiDealToFrontend)))
+      .catch((err) => console.error('[PipelineKanban] failed to load deals:', err))
+      .finally(() => setIsLoading(false));
+  }, []);
+
+  // Process pending deal from parent — call API then optimistically append
   const [lastProcessedDeal, setLastProcessedDeal] = useState<typeof pendingDeal>(null);
   if (pendingDeal && pendingDeal !== lastProcessedDeal) {
-    const now = new Date().toISOString();
-    const deal: Deal = {
-      ...pendingDeal,
-      id: crypto.randomUUID(),
-      createdAt: now,
-      updatedAt: now,
-      stageChangedAt: now,
-    };
-    setDeals((prev) => [...prev, deal]);
     setLastProcessedDeal(pendingDeal);
+    createDeal({
+      title: pendingDeal.contactName || 'Untitled Deal',
+      contact_name: pendingDeal.contactName,
+      value: pendingDeal.value,
+      stage: pendingDeal.stage,
+      priority: frontendPriorityToApi(pendingDeal.priority),
+      notes: pendingDeal.notes,
+    })
+      .then((apiDeal) => {
+        setDeals((prev) => [...prev, apiDealToFrontend(apiDeal)]);
+      })
+      .catch((err) => console.error('[PipelineKanban] failed to create deal:', err));
     onDealAdded();
   }
 
@@ -211,20 +116,64 @@ export default function PipelineKanban({ pendingDeal, onDealAdded }: PipelineKan
     const dealId = e.dataTransfer.getData('dealId');
     if (!dealId) return;
 
+    const now = new Date().toISOString();
+
+    // Optimistic update
     setDeals((prev) =>
       prev.map((deal) =>
         deal.id === dealId
-          ? {
-              ...deal,
-              stage: targetStage,
-              stageChangedAt: new Date().toISOString(),
-              updatedAt: new Date().toISOString(),
-            }
+          ? { ...deal, stage: targetStage, stageChangedAt: now, updatedAt: now }
           : deal
       )
     );
+
+    // Persist to backend
+    updateDeal(dealId, { stage: targetStage }).catch((err) => {
+      console.error('[PipelineKanban] failed to update deal stage:', err);
+      // Revert on failure by re-fetching
+      listDeals()
+        .then((apiDeals) => setDeals(apiDeals.map(apiDealToFrontend)))
+        .catch(() => {});
+    });
   }
 
+  const handleDeleteDeal = useCallback((dealId: string) => {
+    // Optimistic removal
+    setDeals((prev) => prev.filter((d) => d.id !== dealId));
+    deleteDeal(dealId).catch((err) => {
+      console.error('[PipelineKanban] failed to delete deal:', err);
+      // Revert on failure
+      listDeals()
+        .then((apiDeals) => setDeals(apiDeals.map(apiDealToFrontend)))
+        .catch(() => {});
+    });
+  }, []);
+
+
+  if (isLoading) {
+    return (
+      <div className="flex gap-4 overflow-x-auto pb-4">
+        {STAGES.map((stage) => (
+          <div
+            key={stage.id}
+            className="flex min-w-[280px] flex-shrink-0 flex-col rounded-xl border border-gray-200 bg-gray-50 dark:border-zinc-800/50 dark:bg-[#0f0f12]/50"
+          >
+            <div className="border-b border-gray-200 p-3 dark:border-zinc-800/50">
+              <div className="flex items-center gap-2">
+                <div className={`h-3 w-3 rounded-full ${stage.color}`} />
+                <h3 className="text-sm font-semibold text-gray-900 dark:text-white">{stage.label}</h3>
+              </div>
+            </div>
+            <div className="flex-1 p-2" style={{ minHeight: '120px' }}>
+              <div className="flex h-20 items-center justify-center rounded-lg border-2 border-dashed border-gray-300 dark:border-zinc-700">
+                <div className="h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-primary-500" />
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
 
   return (
     <div className="flex gap-4 overflow-x-auto pb-4">
@@ -264,11 +213,11 @@ export default function PipelineKanban({ pendingDeal, onDealAdded }: PipelineKan
             {/* Cards */}
             <div className="flex-1 space-y-2 p-2" style={{ minHeight: '120px' }}>
               {stageDeals.map((deal) => (
-                <DealCard key={deal.id} deal={deal} />
+                <DealCard key={deal.id} deal={deal} onDelete={handleDeleteDeal} />
               ))}
               {stageDeals.length === 0 && (
                 <div className="flex h-20 items-center justify-center rounded-lg border-2 border-dashed border-gray-300 dark:border-zinc-700">
-                  <p className="text-xs text-gray-400">Drop deals here</p>
+                  <p className="text-xs text-gray-400">+ Add deal</p>
                 </div>
               )}
             </div>

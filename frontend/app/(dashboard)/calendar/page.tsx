@@ -1,10 +1,55 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import CalendarGrid from '@/components/calendar/CalendarGrid';
 import MiniCalendar from '@/components/calendar/MiniCalendar';
 import EventModal from '@/components/calendar/EventModal';
 import { CalendarEvent } from '@/types/calendar';
+import {
+  listEvents,
+  createEvent,
+  updateEvent,
+  deleteEvent as deleteEventAPI,
+  CalendarEventAPI,
+} from '@/lib/api/calendar';
+
+// ---------------------------------------------------------------------------
+// Adapters between API shape and local CalendarEvent shape
+// ---------------------------------------------------------------------------
+
+function apiEventToLocal(e: CalendarEventAPI): CalendarEvent {
+  const start = new Date(e.start);
+  const end = new Date(e.end);
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return {
+    id: e.id,
+    title: e.title,
+    date: `${start.getFullYear()}-${pad(start.getMonth() + 1)}-${pad(start.getDate())}`,
+    startTime: `${pad(start.getHours())}:${pad(start.getMinutes())}`,
+    endTime: `${pad(end.getHours())}:${pad(end.getMinutes())}`,
+    type: (e.type as CalendarEvent['type']) ?? 'call',
+    contactName: e.contact_name ?? undefined,
+    notes: e.notes ?? undefined,
+    status: 'scheduled',
+  };
+}
+
+function localEventToAPI(e: CalendarEvent): Partial<CalendarEventAPI> {
+  const startISO = `${e.date}T${e.startTime}:00`;
+  const endISO = `${e.date}T${e.endTime}:00`;
+  return {
+    title: e.title,
+    start: startISO,
+    end: endISO,
+    type: e.type as CalendarEventAPI['type'],
+    contact_name: e.contactName ?? null,
+    notes: e.notes ?? null,
+    contact_id: null,
+    agent_id: null,
+  };
+}
+
+// ---------------------------------------------------------------------------
 
 function formatDateKey(date: Date): string {
   const y = date.getFullYear();
@@ -19,182 +64,32 @@ function getDateOffset(offset: number): string {
   return formatDateKey(d);
 }
 
-const DEMO_EVENTS: CalendarEvent[] = [
-  {
-    id: 'evt_001',
-    title: 'Discovery Call - Acme Corp',
-    date: getDateOffset(0),
-    startTime: '09:00',
-    endTime: '09:30',
-    type: 'call',
-    contactName: 'Sarah Chen',
-    contactEmail: 'sarah@acmecorp.com',
-    notes: 'Initial discovery call to discuss their CRM needs',
-    status: 'scheduled',
-  },
-  {
-    id: 'evt_002',
-    title: 'Team Standup',
-    date: getDateOffset(0),
-    startTime: '10:00',
-    endTime: '10:15',
-    type: 'meeting',
-    notes: 'Daily sync with sales team',
-    status: 'scheduled',
-  },
-  {
-    id: 'evt_003',
-    title: 'Follow up with TechStart',
-    date: getDateOffset(1),
-    startTime: '11:00',
-    endTime: '11:30',
-    type: 'follow-up',
-    contactName: 'Mike Johnson',
-    contactEmail: 'mike@techstart.io',
-    notes: 'Send updated proposal and pricing',
-    status: 'scheduled',
-  },
-  {
-    id: 'evt_004',
-    title: 'Demo - DataFlow Inc',
-    date: getDateOffset(1),
-    startTime: '14:00',
-    endTime: '15:00',
-    type: 'meeting',
-    contactName: 'Lisa Park',
-    contactEmail: 'lisa@dataflow.com',
-    notes: 'Product demo for their marketing team',
-    status: 'scheduled',
-  },
-  {
-    id: 'evt_005',
-    title: 'Proposal Deadline - CloudNine',
-    date: getDateOffset(2),
-    startTime: '17:00',
-    endTime: '17:00',
-    type: 'deadline',
-    contactName: 'James Wright',
-    contactEmail: 'james@cloudnine.dev',
-    notes: 'Submit final proposal by EOD',
-    status: 'scheduled',
-  },
-  {
-    id: 'evt_006',
-    title: 'Check-in Call - BrightEdge',
-    date: getDateOffset(3),
-    startTime: '10:00',
-    endTime: '10:30',
-    type: 'call',
-    contactName: 'Emma Davis',
-    contactEmail: 'emma@brightedge.co',
-    status: 'scheduled',
-  },
-  {
-    id: 'evt_007',
-    title: 'Strategy Meeting',
-    date: getDateOffset(3),
-    startTime: '13:00',
-    endTime: '14:00',
-    type: 'meeting',
-    notes: 'Q2 planning with leadership',
-    status: 'scheduled',
-  },
-  {
-    id: 'evt_008',
-    title: 'Follow up - NexGen Labs',
-    date: getDateOffset(5),
-    startTime: '09:30',
-    endTime: '10:00',
-    type: 'follow-up',
-    contactName: 'Alex Rivera',
-    contactEmail: 'alex@nexgenlabs.com',
-    notes: 'Review contract terms',
-    status: 'scheduled',
-  },
-  {
-    id: 'evt_009',
-    title: 'Onboarding Call - FreshStart',
-    date: getDateOffset(6),
-    startTime: '11:00',
-    endTime: '12:00',
-    type: 'call',
-    contactName: 'Taylor Kim',
-    contactEmail: 'taylor@freshstart.io',
-    notes: 'New client onboarding and setup',
-    status: 'scheduled',
-  },
-  {
-    id: 'evt_010',
-    title: 'Contract Review Deadline',
-    date: getDateOffset(7),
-    startTime: '12:00',
-    endTime: '12:00',
-    type: 'deadline',
-    contactName: 'Jordan Lee',
-    contactEmail: 'jordan@synapse.ai',
-    notes: 'Legal review must be completed',
-    status: 'scheduled',
-  },
-  {
-    id: 'evt_011',
-    title: 'Product Demo - Zenith Co',
-    date: getDateOffset(-1),
-    startTime: '15:00',
-    endTime: '16:00',
-    type: 'meeting',
-    contactName: 'Priya Sharma',
-    contactEmail: 'priya@zenithco.com',
-    status: 'completed',
-  },
-  {
-    id: 'evt_012',
-    title: 'Sales Pipeline Review',
-    date: getDateOffset(4),
-    startTime: '16:00',
-    endTime: '16:30',
-    type: 'meeting',
-    notes: 'Weekly pipeline review with sales manager',
-    status: 'scheduled',
-  },
-  {
-    id: 'evt_013',
-    title: 'Cold Call Block',
-    date: getDateOffset(2),
-    startTime: '09:00',
-    endTime: '10:30',
-    type: 'call',
-    notes: 'Outbound prospecting session',
-    status: 'scheduled',
-  },
-  {
-    id: 'evt_014',
-    title: 'Follow up - Summit Group',
-    date: getDateOffset(8),
-    startTime: '14:00',
-    endTime: '14:30',
-    type: 'follow-up',
-    contactName: 'Chris Nguyen',
-    contactEmail: 'chris@summitgroup.com',
-    notes: 'Check on decision timeline',
-    status: 'scheduled',
-  },
-  {
-    id: 'evt_015',
-    title: 'Quarterly Report Due',
-    date: getDateOffset(10),
-    startTime: '09:00',
-    endTime: '09:00',
-    type: 'deadline',
-    notes: 'Submit Q1 sales report',
-    status: 'scheduled',
-  },
-];
 
 export default function CalendarPage() {
-  const [events, setEvents] = useState<CalendarEvent[]>(DEMO_EVENTS);
+  const [events, setEvents] = useState<CalendarEvent[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
   const [modalOpen, setModalOpen] = useState(false);
   const [editingEvent, setEditingEvent] = useState<CalendarEvent | null>(null);
+
+  // Fetch events for the visible month window
+  const fetchEvents = useCallback(async (referenceDate: Date) => {
+    setIsLoading(true);
+    try {
+      const start = new Date(referenceDate.getFullYear(), referenceDate.getMonth(), 1);
+      const end = new Date(referenceDate.getFullYear(), referenceDate.getMonth() + 1, 0, 23, 59, 59);
+      const apiEvents = await listEvents(start.toISOString(), end.toISOString());
+      setEvents(apiEvents.map(apiEventToLocal));
+    } catch (err) {
+      console.error('Failed to load calendar events:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchEvents(selectedDate ?? new Date());
+  }, [fetchEvents, selectedDate?.getMonth(), selectedDate?.getFullYear()]);
 
   const handleDateClick = useCallback((date: Date) => {
     setSelectedDate(date);
@@ -210,20 +105,30 @@ export default function CalendarPage() {
     setModalOpen(true);
   }, []);
 
-  const handleSaveEvent = useCallback((event: CalendarEvent) => {
-    setEvents((prev) => {
-      const existing = prev.findIndex((e) => e.id === event.id);
-      if (existing >= 0) {
-        const updated = [...prev];
-        updated[existing] = event;
-        return updated;
+  const handleSaveEvent = useCallback(async (event: CalendarEvent) => {
+    try {
+      const payload = localEventToAPI(event);
+      if (event.id && events.some((e) => e.id === event.id)) {
+        const updated = await updateEvent(event.id, payload);
+        setEvents((prev) =>
+          prev.map((e) => (e.id === event.id ? apiEventToLocal(updated) : e))
+        );
+      } else {
+        const created = await createEvent(payload);
+        setEvents((prev) => [...prev, apiEventToLocal(created)]);
       }
-      return [...prev, event];
-    });
-  }, []);
+    } catch (err) {
+      console.error('Failed to save event:', err);
+    }
+  }, [events]);
 
-  const handleDeleteEvent = useCallback((eventId: string) => {
-    setEvents((prev) => prev.filter((e) => e.id !== eventId));
+  const handleDeleteEvent = useCallback(async (eventId: string) => {
+    try {
+      await deleteEventAPI(eventId);
+      setEvents((prev) => prev.filter((e) => e.id !== eventId));
+    } catch (err) {
+      console.error('Failed to delete event:', err);
+    }
   }, []);
 
   const defaultDate = selectedDate ? formatDateKey(selectedDate) : undefined;
@@ -248,6 +153,11 @@ export default function CalendarPage() {
           New Event
         </button>
       </div>
+
+      {/* Loading indicator */}
+      {isLoading && (
+        <div className="mb-4 text-sm text-gray-500 dark:text-gray-400">Loading events…</div>
+      )}
 
       {/* Main Layout */}
       <div className="flex gap-6">

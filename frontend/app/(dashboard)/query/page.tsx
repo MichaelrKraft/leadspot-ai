@@ -1,59 +1,26 @@
 /**
  * Query Page
  * Main AI search interface with query input and results
- * Supports industry-specific demo modes via URL parameter: ?demo=bonds or ?demo=consulting
  */
 
 'use client';
 
 import React from 'react';
-import { useSearchParams } from 'next/navigation';
 import { useQueryWithDemo } from '@/hooks/useQuery';
 import QueryInput from '@/components/query/QueryInput';
 import QueryResult from '@/components/query/QueryResult';
 
-// Industry-specific example queries
-const EXAMPLE_QUERIES: Record<string, string[]> = {
-  bonds: [
-    'What are the best execution requirements for municipal bonds?',
-    'What are the margin requirements for corporate bonds?',
-    'What are the ESG criteria for green bonds?',
-    'How do we report trades to TRACE?',
-    'What is our current VaR limit policy?',
-  ],
-  consulting: [
-    'What are our engagement protocols for Fortune 500 clients?',
-    'What methodologies do we use for digital transformation projects?',
-    'What are our billing rate guidelines for senior consultants?',
-    'How do we handle change management in restructuring engagements?',
-    'What frameworks do we use for operational efficiency assessments?',
-  ],
-  default: [
-    'What documents discuss compliance requirements?',
-    'What are our standard operating procedures?',
-    'How do we handle customer data?',
-    'What training materials are available?',
-    'What are our quality assurance guidelines?',
-  ],
-};
-
-// Industry display names
-const INDUSTRY_NAMES: Record<string, string> = {
-  bonds: 'Bond Trading',
-  consulting: 'Business Consulting',
-};
+// Example queries shown as suggestions in the empty state
+const EXAMPLE_QUERIES = [
+  'What documents discuss compliance requirements?',
+  'What are our standard operating procedures?',
+  'How do we handle customer data?',
+  'What training materials are available?',
+  'What are our quality assurance guidelines?',
+];
 
 export default function QueryPage() {
-  const searchParams = useSearchParams();
-  const demoIndustry = searchParams.get('demo');
-  const isDemo = !!demoIndustry;
-
-  const { submitQuery, isLoading, error, response, clearResponse } = useQueryWithDemo(demoIndustry);
-
-  // Get example queries for current mode
-  const exampleQueries = demoIndustry && EXAMPLE_QUERIES[demoIndustry]
-    ? EXAMPLE_QUERIES[demoIndustry]
-    : EXAMPLE_QUERIES.default;
+  const { submitQuery, isLoading, error, response, clearResponse } = useQueryWithDemo();
 
   const handleExampleClick = (query: string) => {
     submitQuery({ query });
@@ -62,30 +29,6 @@ export default function QueryPage() {
   return (
     <div className="min-h-screen py-8">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Demo Mode Banner */}
-        {isDemo && (
-          <div className="mb-6 max-w-4xl mx-auto">
-            <div className="bg-gradient-to-r from-purple-600 to-blue-600 rounded-lg p-4 text-white">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="bg-white/20 rounded-full p-2">
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-                    </svg>
-                  </div>
-                  <div>
-                    <p className="font-semibold">Demo Mode: {INDUSTRY_NAMES[demoIndustry!] || demoIndustry}</p>
-                    <p className="text-sm text-white/80">Explore how AI Knowledge Search works for your industry</p>
-                  </div>
-                </div>
-                <span className="px-3 py-1 bg-white/20 rounded-full text-sm font-medium">
-                  Preview
-                </span>
-              </div>
-            </div>
-          </div>
-        )}
-
         {/* Page Header */}
         <div className="mb-8 text-center">
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
@@ -145,10 +88,10 @@ export default function QueryPage() {
         {!response && !isLoading && (
           <div className="mt-8 max-w-4xl mx-auto">
             <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3 text-center">
-              {isDemo ? `Try these ${INDUSTRY_NAMES[demoIndustry!] || demoIndustry} queries:` : 'Try an example query:'}
+              Try an example query:
             </p>
             <div className="flex flex-wrap justify-center gap-2">
-              {exampleQueries.map((query, index) => (
+              {EXAMPLE_QUERIES.map((query, index) => (
                 <button
                   key={index}
                   onClick={() => handleExampleClick(query)}

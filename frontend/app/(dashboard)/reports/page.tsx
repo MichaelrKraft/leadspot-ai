@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 
+// TODO: Wire to backend — replace STATS/CAMPAIGN_PERFORMANCE/TOP_SEGMENTS with API calls
 const STATS = [
   { label: 'Total Contacts', value: '3,942', change: '+12%', changeLabel: 'this month' },
   { label: 'Emails Sent', value: '12,400', change: '+8%', changeLabel: 'this month' },

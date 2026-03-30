@@ -269,10 +269,10 @@ export default function DashboardPage() {
                 </div>
               ))}
             </div>
-            {briefExpanded && brief.suggested_actions.length > 0 && (
+            {briefExpanded && (brief.suggested_actions?.length ?? 0) > 0 && (
               <div className="space-y-3 border-t border-slate-200 dark:border-zinc-800/50 pt-4">
                 <p className="text-xs font-semibold text-slate-500 dark:text-zinc-500 uppercase tracking-wider">Suggested Actions</p>
-                {brief.suggested_actions.map((action) => (
+                {(brief.suggested_actions ?? []).map((action) => (
                   <div key={action.id} className="flex items-start justify-between gap-3 p-3 bg-white dark:bg-zinc-950 rounded-xl border border-slate-200 dark:border-zinc-800/50">
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-slate-900 dark:text-zinc-50">{action.title}</p>

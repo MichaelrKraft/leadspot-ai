@@ -1,10 +1,11 @@
 'use client';
 
-import { DollarSign, User, Building2, GripVertical } from 'lucide-react';
+import { DollarSign, User, Building2, GripVertical, Trash2 } from 'lucide-react';
 import type { Deal } from '@/types/deals';
 
 interface DealCardProps {
   deal: Deal;
+  onDelete?: (id: string) => void;
 }
 
 function getDaysInStage(stageChangedAt: string): number {
@@ -34,7 +35,7 @@ function formatCurrency(value: number): string {
   }).format(value);
 }
 
-export default function DealCard({ deal }: DealCardProps) {
+export default function DealCard({ deal, onDelete }: DealCardProps) {
   const daysInStage = getDaysInStage(deal.stageChangedAt);
   const priority = getPriorityStyles(deal.priority);
 
@@ -49,7 +50,7 @@ export default function DealCard({ deal }: DealCardProps) {
       onDragStart={handleDragStart}
       className="group cursor-grab rounded-2xl border border-gray-200 bg-white p-3 shadow-sm transition-all hover:shadow-md hover:shadow-primary-500/10 active:cursor-grabbing dark:border-zinc-800/50 dark:bg-zinc-900"
     >
-      {/* Header: grip + name */}
+      {/* Header: grip + name + delete */}
       <div className="mb-2 flex items-start gap-2">
         <GripVertical className="mt-0.5 h-4 w-4 flex-shrink-0 text-gray-400 opacity-0 transition-opacity group-hover:opacity-100" />
         <div className="min-w-0 flex-1">
@@ -81,9 +82,20 @@ export default function DealCard({ deal }: DealCardProps) {
         </span>
       </div>
 
-      {/* Days in stage */}
-      <div className="mt-2 text-xs text-gray-400">
-        {daysInStage === 0 ? 'Today' : `${daysInStage}d in stage`}
+      {/* Days in stage + delete */}
+      <div className="mt-2 flex items-center justify-between">
+        <span className="text-xs text-gray-400">
+          {daysInStage === 0 ? 'Today' : `${daysInStage}d in stage`}
+        </span>
+        {onDelete && (
+          <button
+            onClick={() => onDelete(deal.id)}
+            className="opacity-0 transition-opacity group-hover:opacity-100 rounded p-0.5 text-gray-400 hover:text-red-500"
+            aria-label="Delete deal"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </button>
+        )}
       </div>
     </div>
   );

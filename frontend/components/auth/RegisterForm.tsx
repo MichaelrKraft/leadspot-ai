@@ -330,7 +330,7 @@ export default function RegisterForm({
           <div className="w-full border-t border-white/10"></div>
         </div>
         <div className="relative flex justify-center text-sm">
-          <span className="px-4 bg-[#0A0F1C] text-gray-400">Or continue with</span>
+          <span className="px-4 bg-white text-gray-400">Or continue with</span>
         </div>
       </div>
 
