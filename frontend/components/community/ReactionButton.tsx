@@ -52,7 +52,7 @@ export default function ReactionButton({
     : 'gap-1.5 px-3 py-1.5 text-sm';
 
   const inactiveClasses =
-    'border border-slate-200 bg-white text-slate-500 hover:border-slate-300 hover:text-slate-700';
+    'border border-slate-200 dark:border-zinc-800/50 bg-white dark:bg-zinc-900 text-slate-500 dark:text-zinc-400 hover:border-slate-300 dark:hover:border-zinc-700 hover:text-slate-700 dark:hover:text-zinc-300';
   const activeClasses = `border ${getActiveColor(type)}`;
 
   return (

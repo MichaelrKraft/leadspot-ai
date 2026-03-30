@@ -137,22 +137,22 @@ export default function CommunityPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f8fafc]">
+    <div className="min-h-screen bg-[#f8fafc] dark:bg-[#0a0a0d]">
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         <div className="flex gap-8">
           {/* Main content area */}
           <div className="min-w-0 flex-1">
             {/* Community header */}
-            <div className="mb-6 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+            <div className="mb-6 rounded-xl border border-slate-200 dark:border-zinc-800/50 bg-white dark:bg-zinc-900 p-6 shadow-sm">
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <h1 className="text-2xl font-bold text-slate-900">
+                  <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
                     {COMMUNITY_INFO.name}
                   </h1>
-                  <p className="mt-1 text-sm text-slate-500">
+                  <p className="mt-1 text-sm text-slate-500 dark:text-zinc-400">
                     {COMMUNITY_INFO.description}
                   </p>
-                  <div className="mt-3 flex items-center gap-4 text-sm text-slate-500">
+                  <div className="mt-3 flex items-center gap-4 text-sm text-slate-500 dark:text-zinc-400">
                     <span className="flex items-center gap-1.5">
                       <Users className="h-4 w-4" />
                       {COMMUNITY_INFO.memberCount} members
@@ -189,7 +189,7 @@ export default function CommunityPage() {
                     className={`whitespace-nowrap rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
                       filter === tab.value
                         ? 'bg-indigo-500 text-white shadow-sm'
-                        : 'border border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+                        : 'border border-slate-200 dark:border-zinc-800/50 bg-white dark:bg-zinc-900 text-slate-600 dark:text-zinc-400 hover:bg-slate-50 dark:hover:bg-zinc-800'
                     }`}
                   >
                     {tab.label}
@@ -201,7 +201,7 @@ export default function CommunityPage() {
               <select
                 value={sort}
                 onChange={(e) => setSort(e.target.value as SortType)}
-                className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 focus:border-indigo-300 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+                className="rounded-lg border border-slate-200 dark:border-zinc-800/50 bg-white dark:bg-zinc-900 px-3 py-2 text-sm text-slate-700 dark:text-zinc-300 focus:border-indigo-300 focus:outline-none focus:ring-2 focus:ring-indigo-100 dark:focus:ring-indigo-500/20"
               >
                 <option value="recent">Most Recent</option>
                 <option value="popular">Most Popular</option>
@@ -234,12 +234,12 @@ export default function CommunityPage() {
                 ))}
               </div>
             ) : (
-              <div className="rounded-xl border border-slate-200 bg-white py-16 text-center shadow-sm">
-                <FileText className="mx-auto mb-3 h-10 w-10 text-slate-300" />
-                <h3 className="mb-1 text-base font-semibold text-slate-700">
+              <div className="rounded-xl border border-slate-200 dark:border-zinc-800/50 bg-white dark:bg-zinc-900 py-16 text-center shadow-sm">
+                <FileText className="mx-auto mb-3 h-10 w-10 text-slate-300 dark:text-zinc-600" />
+                <h3 className="mb-1 text-base font-semibold text-slate-700 dark:text-zinc-300">
                   No posts found
                 </h3>
-                <p className="mb-4 text-sm text-slate-400">
+                <p className="mb-4 text-sm text-slate-400 dark:text-zinc-500">
                   Try changing the filter or create the first post.
                 </p>
                 <button
@@ -257,26 +257,26 @@ export default function CommunityPage() {
           <aside className="hidden w-72 flex-shrink-0 lg:block">
             <div className="sticky top-8 space-y-5">
               {/* Community stats card */}
-              <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-                <h3 className="mb-3 text-sm font-semibold text-slate-900">
+              <div className="rounded-xl border border-slate-200 dark:border-zinc-800/50 bg-white dark:bg-zinc-900 p-5 shadow-sm">
+                <h3 className="mb-3 text-sm font-semibold text-slate-900 dark:text-white">
                   Community Stats
                 </h3>
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <span className="flex items-center gap-2 text-sm text-slate-500">
+                    <span className="flex items-center gap-2 text-sm text-slate-500 dark:text-zinc-400">
                       <Users className="h-4 w-4" />
                       Members
                     </span>
-                    <span className="text-sm font-semibold text-slate-900">
+                    <span className="text-sm font-semibold text-slate-900 dark:text-white">
                       {COMMUNITY_INFO.memberCount}
                     </span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="flex items-center gap-2 text-sm text-slate-500">
+                    <span className="flex items-center gap-2 text-sm text-slate-500 dark:text-zinc-400">
                       <FileText className="h-4 w-4" />
                       Posts
                     </span>
-                    <span className="text-sm font-semibold text-slate-900">
+                    <span className="text-sm font-semibold text-slate-900 dark:text-white">
                       {COMMUNITY_INFO.postCount}
                     </span>
                   </div>
@@ -293,15 +293,15 @@ export default function CommunityPage() {
               </div>
 
               {/* Popular tags */}
-              <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-                <h3 className="mb-3 text-sm font-semibold text-slate-900">
+              <div className="rounded-xl border border-slate-200 dark:border-zinc-800/50 bg-white dark:bg-zinc-900 p-5 shadow-sm">
+                <h3 className="mb-3 text-sm font-semibold text-slate-900 dark:text-white">
                   Popular Tags
                 </h3>
                 <div className="flex flex-wrap gap-1.5">
                   {POPULAR_TAGS.map((tag) => (
                     <button
                       key={tag}
-                      className="rounded-md bg-slate-100 px-2.5 py-1 text-xs text-slate-500 hover:bg-indigo-50 hover:text-indigo-600 transition-colors"
+                      className="rounded-md bg-slate-100 dark:bg-zinc-800 px-2.5 py-1 text-xs text-slate-500 dark:text-zinc-400 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
                     >
                       #{tag}
                     </button>
@@ -310,8 +310,8 @@ export default function CommunityPage() {
               </div>
 
               {/* Top contributors */}
-              <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-                <h3 className="mb-3 text-sm font-semibold text-slate-900">
+              <div className="rounded-xl border border-slate-200 dark:border-zinc-800/50 bg-white dark:bg-zinc-900 p-5 shadow-sm">
+                <h3 className="mb-3 text-sm font-semibold text-slate-900 dark:text-white">
                   Top Contributors
                 </h3>
                 <div className="space-y-3">
@@ -334,10 +334,10 @@ export default function CommunityPage() {
                           {initial}
                         </div>
                         <div className="min-w-0 flex-1">
-                          <p className="text-sm font-medium text-slate-900">
+                          <p className="text-sm font-medium text-slate-900 dark:text-white">
                             {contributor.name}
                           </p>
-                          <p className="text-xs text-slate-400">
+                          <p className="text-xs text-slate-400 dark:text-zinc-500">
                             {contributor.points} points
                           </p>
                         </div>

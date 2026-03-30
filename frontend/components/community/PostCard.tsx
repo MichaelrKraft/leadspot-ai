@@ -87,7 +87,7 @@ export default function PostCard({
     isLong && !expanded ? post.content.substring(0, 300) + '...' : post.content;
 
   return (
-    <article className="rounded-xl border border-slate-200 bg-white shadow-sm transition-all duration-200 hover:shadow-md overflow-hidden">
+    <article className="rounded-xl border border-slate-200 dark:border-zinc-800/50 bg-white dark:bg-zinc-900 shadow-sm transition-all duration-200 hover:shadow-md overflow-hidden">
       {/* Pinned banner */}
       {post.isPinned && (
         <div className="flex items-center gap-2 border-b border-amber-200 bg-amber-50 px-6 py-2">
@@ -109,17 +109,17 @@ export default function PostCard({
 
           <div className="min-w-0 flex-1">
             <div className="mb-1 flex flex-wrap items-center gap-2">
-              <span className="font-medium text-slate-900">
+              <span className="font-medium text-slate-900 dark:text-white">
                 {post.authorName}
               </span>
-              <span className="text-slate-300">&#183;</span>
-              <span className="text-sm text-slate-500">
+              <span className="text-slate-300 dark:text-zinc-600">&#183;</span>
+              <span className="text-sm text-slate-500 dark:text-zinc-400">
                 {formatTimeAgo(post.createdAt)}
               </span>
               {post.authorRole && (
                 <>
-                  <span className="text-slate-300">&#183;</span>
-                  <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">
+                  <span className="text-slate-300 dark:text-zinc-600">&#183;</span>
+                  <span className="rounded-full bg-slate-100 dark:bg-zinc-800 px-2 py-0.5 text-xs font-medium text-slate-600 dark:text-zinc-400">
                     {post.authorRole}
                   </span>
                 </>
@@ -136,17 +136,17 @@ export default function PostCard({
         </div>
 
         {/* Title */}
-        <h2 className="mb-2 text-lg font-semibold text-slate-900">
+        <h2 className="mb-2 text-lg font-semibold text-slate-900 dark:text-white">
           {post.title}
         </h2>
 
         {/* Content */}
-        <div className="mb-4 text-sm leading-relaxed text-slate-600">
+        <div className="mb-4 text-sm leading-relaxed text-slate-600 dark:text-zinc-400">
           <p className="whitespace-pre-wrap">{displayContent}</p>
           {isLong && (
             <button
               onClick={() => setExpanded(!expanded)}
-              className="mt-1 text-sm font-medium text-indigo-600 hover:text-indigo-700"
+              className="mt-1 text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300"
             >
               {expanded ? 'Show less' : 'Read more'}
             </button>
@@ -159,7 +159,7 @@ export default function PostCard({
             {post.tags.map((tag) => (
               <span
                 key={tag}
-                className="rounded-md bg-slate-100 px-2 py-0.5 text-xs text-slate-500 hover:bg-indigo-50 hover:text-indigo-600 cursor-pointer transition-colors"
+                className="rounded-md bg-slate-100 dark:bg-zinc-800 px-2 py-0.5 text-xs text-slate-500 dark:text-zinc-400 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 hover:text-indigo-600 dark:hover:text-indigo-400 cursor-pointer transition-colors"
               >
                 #{tag}
               </span>
@@ -168,7 +168,7 @@ export default function PostCard({
         )}
 
         {/* Footer: reactions + comments */}
-        <div className="flex items-center justify-between border-t border-slate-100 pt-4">
+        <div className="flex items-center justify-between border-t border-slate-100 dark:border-zinc-800/50 pt-4">
           <div className="flex flex-wrap items-center gap-1.5">
             {post.reactions.map((reaction) => (
               <ReactionButton
@@ -185,8 +185,8 @@ export default function PostCard({
             onClick={() => onToggleComments(post.id)}
             className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
               isCommentsOpen
-                ? 'bg-indigo-50 text-indigo-600'
-                : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700'
+                ? 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400'
+                : 'text-slate-500 dark:text-zinc-400 hover:bg-slate-50 dark:hover:bg-zinc-800 hover:text-slate-700 dark:hover:text-zinc-300'
             }`}
           >
             <MessageSquare className="h-4 w-4" />

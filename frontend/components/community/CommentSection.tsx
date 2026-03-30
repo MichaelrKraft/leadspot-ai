@@ -91,21 +91,21 @@ function SingleComment({
         {/* Body */}
         <div className="min-w-0 flex-1">
           {/* Comment bubble */}
-          <div className="rounded-lg border border-slate-100 bg-slate-50 p-3">
+          <div className="rounded-lg border border-slate-100 dark:border-zinc-800/50 bg-slate-50 dark:bg-zinc-800/50 p-3">
             <div className="mb-1.5 flex flex-wrap items-center gap-2">
-              <span className="text-sm font-medium text-slate-900">
+              <span className="text-sm font-medium text-slate-900 dark:text-white">
                 {comment.authorName}
               </span>
               {comment.authorRole && (
-                <span className="rounded-full bg-slate-200 px-2 py-0.5 text-xs font-medium text-slate-600">
+                <span className="rounded-full bg-slate-200 dark:bg-zinc-700 px-2 py-0.5 text-xs font-medium text-slate-600 dark:text-zinc-400">
                   {comment.authorRole}
                 </span>
               )}
-              <span className="text-xs text-slate-400">
+              <span className="text-xs text-slate-400 dark:text-zinc-500">
                 {formatTimeAgo(comment.createdAt)}
               </span>
             </div>
-            <p className="whitespace-pre-wrap text-sm text-slate-600">
+            <p className="whitespace-pre-wrap text-sm text-slate-600 dark:text-zinc-400">
               {comment.content}
             </p>
           </div>
@@ -129,7 +129,7 @@ function SingleComment({
             {!isNested && (
               <button
                 onClick={() => setReplyOpen(!replyOpen)}
-                className="text-xs font-medium text-slate-400 hover:text-indigo-600 transition-colors"
+                className="text-xs font-medium text-slate-400 dark:text-zinc-500 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
               >
                 Reply
               </button>
@@ -139,7 +139,7 @@ function SingleComment({
             {hasReplies && (
               <button
                 onClick={() => setShowReplies(!showReplies)}
-                className="flex items-center gap-1 text-xs font-medium text-slate-400 hover:text-indigo-600 transition-colors"
+                className="flex items-center gap-1 text-xs font-medium text-slate-400 dark:text-zinc-500 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
               >
                 {showReplies ? (
                   <ChevronUp className="h-3 w-3" />
@@ -159,7 +159,7 @@ function SingleComment({
                 value={replyText}
                 onChange={(e) => setReplyText(e.target.value)}
                 placeholder="Write a reply..."
-                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-indigo-300 focus:outline-none focus:ring-2 focus:ring-indigo-100 resize-none"
+                className="w-full rounded-lg border border-slate-200 dark:border-zinc-800/50 bg-white dark:bg-zinc-900 px-3 py-2 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-zinc-500 focus:border-indigo-300 focus:outline-none focus:ring-2 focus:ring-indigo-100 dark:focus:ring-indigo-500/20 resize-none"
                 rows={3}
               />
               <div className="mt-2 flex items-center gap-2">
@@ -175,7 +175,7 @@ function SingleComment({
                     setReplyOpen(false);
                     setReplyText('');
                   }}
-                  className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50 transition-colors"
+                  className="rounded-lg border border-slate-200 dark:border-zinc-800/50 bg-white dark:bg-zinc-900 px-3 py-1.5 text-xs font-medium text-slate-600 dark:text-zinc-400 hover:bg-slate-50 dark:hover:bg-zinc-800 transition-colors"
                 >
                   Cancel
                 </button>
@@ -185,7 +185,7 @@ function SingleComment({
 
           {/* Nested replies */}
           {hasReplies && showReplies && (
-            <div className="mt-3 space-y-3 border-l-2 border-slate-100 pl-3">
+            <div className="mt-3 space-y-3 border-l-2 border-slate-100 dark:border-zinc-800/50 pl-3">
               {comment.replies!.map((reply) => (
                 <SingleComment
                   key={reply.id}
@@ -215,8 +215,8 @@ export default function CommentSection({
   }
 
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-      <h3 className="mb-4 text-sm font-semibold text-slate-900">
+    <div className="rounded-xl border border-slate-200 dark:border-zinc-800/50 bg-white dark:bg-zinc-900 p-5 shadow-sm">
+      <h3 className="mb-4 text-sm font-semibold text-slate-900 dark:text-white">
         Comments ({comments.length})
       </h3>
 
@@ -226,7 +226,7 @@ export default function CommentSection({
           value={newComment}
           onChange={(e) => setNewComment(e.target.value)}
           placeholder="Add a comment..."
-          className="w-full rounded-lg border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 placeholder:text-slate-400 focus:border-indigo-300 focus:outline-none focus:ring-2 focus:ring-indigo-100 resize-none"
+          className="w-full rounded-lg border border-slate-200 dark:border-zinc-800/50 bg-white dark:bg-zinc-900 px-4 py-3 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-zinc-500 focus:border-indigo-300 focus:outline-none focus:ring-2 focus:ring-indigo-100 dark:focus:ring-indigo-500/20 resize-none"
           rows={3}
         />
         <div className="mt-2 flex justify-end">
@@ -253,7 +253,7 @@ export default function CommentSection({
         </div>
       ) : (
         <div className="py-8 text-center">
-          <p className="text-sm text-slate-400">
+          <p className="text-sm text-slate-400 dark:text-zinc-500">
             No comments yet. Be the first to comment!
           </p>
         </div>

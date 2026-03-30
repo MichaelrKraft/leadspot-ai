@@ -258,7 +258,6 @@ function NewAgentPanel({ onClose, onCreate }: { onClose: () => void; onCreate: (
 
 export default function VoiceAgentsPage() {
   const [agents, setAgents] = useState<VoiceAgent[]>(DEMO_AGENTS);
-  const [configuring, setConfiguring] = useState<VoiceAgent | null>(null);
 
   useEffect(() => {
     const saved = localStorage.getItem('leadspot-voice-agents');
@@ -323,12 +322,12 @@ export default function VoiceAgentsPage() {
             </div>
 
             <div className="flex gap-3">
-              <button
-                onClick={() => setConfiguring(agent)}
-                className="flex-1 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"
+              <Link
+                href={`/voice-agents/edit/${agent.id}`}
+                className="flex flex-1 items-center justify-center rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"
               >
                 Configure
-              </button>
+              </Link>
               <button
                 className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
                   agent.status === 'active'
@@ -343,8 +342,6 @@ export default function VoiceAgentsPage() {
         ))}
       </div>
 
-      {/* Modals */}
-      {configuring && <ConfigurePanel agent={configuring} onClose={() => setConfiguring(null)} />}
     </div>
   );
 }

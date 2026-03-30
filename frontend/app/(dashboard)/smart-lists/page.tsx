@@ -52,14 +52,14 @@ function SmartListZeroBanner({ acted, total }: { acted: number; total: number })
   }
 
   return (
-    <div className="rounded-xl border border-slate-200 bg-white px-5 py-4 shadow-sm">
+    <div className="rounded-xl border border-slate-200 dark:border-zinc-800/50 bg-white dark:bg-zinc-900 px-5 py-4 shadow-sm">
       <div className="mb-2 flex items-center justify-between text-sm">
-        <span className="font-medium text-slate-800">Smart List Zero</span>
-        <span className="text-slate-500">
+        <span className="font-medium text-slate-800 dark:text-zinc-100">Smart List Zero</span>
+        <span className="text-slate-500 dark:text-zinc-400">
           {acted} of {total} completed today
         </span>
       </div>
-      <div className="h-2 overflow-hidden rounded-full bg-slate-200">
+      <div className="h-2 overflow-hidden rounded-full bg-slate-200 dark:bg-zinc-700">
         <div
           className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-indigo-400 transition-all duration-500"
           style={{ width: `${pct}%` }}
@@ -113,28 +113,28 @@ function ContactCard({
   const days = getContactDays(contact);
 
   return (
-    <div className="group rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition-all hover:border-indigo-400/40 hover:shadow-md">
+    <div className="group rounded-xl border border-slate-200 dark:border-zinc-800/50 bg-white dark:bg-zinc-900 p-4 shadow-sm transition-all hover:border-indigo-400/40 hover:shadow-md">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2.5">
-            <h3 className="truncate text-sm font-semibold text-slate-900">
+            <h3 className="truncate text-sm font-semibold text-slate-900 dark:text-white">
               {name}
             </h3>
             <PriorityBadge priority={contact.priority} />
           </div>
 
-          <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-500">
+          <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-500 dark:text-zinc-400">
             {contact.email && <span>{contact.email}</span>}
             {contact.phone && <span>{contact.phone}</span>}
           </div>
 
           {contact.suggestedAction && (
-            <p className="mt-2.5 text-sm leading-relaxed text-indigo-600">
+            <p className="mt-2.5 text-sm leading-relaxed text-indigo-600 dark:text-indigo-400">
               {contact.suggestedAction}
             </p>
           )}
 
-          <div className="mt-2 flex items-center gap-4 text-xs text-slate-500">
+          <div className="mt-2 flex items-center gap-4 text-xs text-slate-500 dark:text-zinc-400">
             <span>Score: {score}</span>
             <span>
               {days === 0
@@ -222,12 +222,12 @@ export default function SmartListsPage() {
   const doneContacts = allContacts.filter((c: Record<string, unknown>) => c.actedUpon);
 
   return (
-    <div className="min-h-screen bg-[#f8fafc]">
+    <div className="min-h-screen bg-[#f8fafc] dark:bg-[#0a0a0d]">
     <div className="mx-auto max-w-[900px] px-6 py-8">
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-slate-900">Smart Lists</h1>
-        <p className="mt-1 text-sm text-slate-500">
+        <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Smart Lists</h1>
+        <p className="mt-1 text-sm text-slate-500 dark:text-zinc-400">
           AI-prioritized contacts -- work toward Smart List Zero.
         </p>
       </div>
@@ -241,7 +241,7 @@ export default function SmartListsPage() {
 
       {/* List Tabs */}
       {lists.length > 0 && (
-        <div className="mb-6 flex gap-1.5 overflow-x-auto rounded-xl border border-slate-200 bg-slate-50 p-1.5">
+        <div className="mb-6 flex gap-1.5 overflow-x-auto rounded-xl border border-slate-200 dark:border-zinc-800/50 bg-slate-50 dark:bg-zinc-800/50 p-1.5">
           {lists.map((list) => (
             <button
               key={list.id}
@@ -249,7 +249,7 @@ export default function SmartListsPage() {
               className={`flex-shrink-0 rounded-lg px-4 py-2 text-sm font-medium transition-all ${
                 selectedListId === list.id
                   ? 'bg-indigo-500 text-white shadow-sm'
-                  : 'text-slate-600 hover:bg-white hover:text-slate-900'
+                  : 'text-slate-600 dark:text-zinc-400 hover:bg-white dark:hover:bg-zinc-800 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
               {list.name}
@@ -270,9 +270,9 @@ export default function SmartListsPage() {
 
       {/* Empty State */}
       {!loading && lists.length === 0 && !error && (
-        <div className="rounded-xl border border-slate-200 bg-white px-5 py-16 text-center shadow-sm">
-          <p className="text-lg font-medium text-slate-500">No smart lists yet</p>
-          <p className="mt-2 text-sm text-slate-400">
+        <div className="rounded-xl border border-slate-200 dark:border-zinc-800/50 bg-white dark:bg-zinc-900 px-5 py-16 text-center shadow-sm">
+          <p className="text-lg font-medium text-slate-500 dark:text-zinc-400">No smart lists yet</p>
+          <p className="mt-2 text-sm text-slate-400 dark:text-zinc-500">
             Smart lists will appear once the agent service creates them.
           </p>
         </div>
@@ -282,8 +282,8 @@ export default function SmartListsPage() {
       {!loading && !evaluating && result && selectedListId && (
         <div className="space-y-3">
           {activeContacts.length === 0 && doneContacts.length === 0 && (
-            <div className="rounded-xl border border-slate-200 bg-white px-5 py-12 text-center shadow-sm">
-              <p className="text-slate-500">No contacts match this smart list.</p>
+            <div className="rounded-xl border border-slate-200 dark:border-zinc-800/50 bg-white dark:bg-zinc-900 px-5 py-12 text-center shadow-sm">
+              <p className="text-slate-500 dark:text-zinc-400">No contacts match this smart list.</p>
             </div>
           )}
 
@@ -300,7 +300,7 @@ export default function SmartListsPage() {
             <>
               <div className="flex items-center gap-3 pt-4">
                 <div className="h-px flex-1 bg-white/10" />
-                <span className="text-xs font-medium text-slate-500">
+                <span className="text-xs font-medium text-slate-500 dark:text-zinc-400">
                   Completed ({doneContacts.length})
                 </span>
                 <div className="h-px flex-1 bg-white/10" />

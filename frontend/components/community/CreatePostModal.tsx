@@ -101,15 +101,15 @@ export default function CreatePostModal({
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-xl">
+      <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-xl border border-slate-200 dark:border-zinc-800/50 bg-white dark:bg-zinc-900 shadow-xl">
         {/* Header */}
-        <div className="sticky top-0 z-10 flex items-center justify-between border-b border-slate-200 bg-white px-6 py-4 rounded-t-xl">
-          <h2 className="text-lg font-semibold text-slate-900">
+        <div className="sticky top-0 z-10 flex items-center justify-between border-b border-slate-200 dark:border-zinc-800/50 bg-white dark:bg-zinc-900 px-6 py-4 rounded-t-xl">
+          <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
             Create New Post
           </h2>
           <button
             onClick={onClose}
-            className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors"
+            className="rounded-lg p-1 text-slate-400 dark:text-zinc-500 hover:bg-slate-100 dark:hover:bg-zinc-800 hover:text-slate-600 dark:hover:text-zinc-300 transition-colors"
             aria-label="Close modal"
           >
             <X className="h-5 w-5" />
@@ -119,14 +119,14 @@ export default function CreatePostModal({
         {/* Form */}
         <form onSubmit={handleSubmit} className="p-6">
           {error && (
-            <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3">
-              <p className="text-sm text-red-700">{error}</p>
+            <div className="mb-4 rounded-lg border border-red-200 dark:border-red-500/30 bg-red-50 dark:bg-red-500/10 px-4 py-3">
+              <p className="text-sm text-red-700 dark:text-red-400">{error}</p>
             </div>
           )}
 
           {/* Post type selector */}
           <div className="mb-5">
-            <label className="mb-2 block text-sm font-medium text-slate-700">
+            <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-zinc-300">
               Post Type
             </label>
             <div className="flex flex-wrap gap-2">
@@ -138,7 +138,7 @@ export default function CreatePostModal({
                   className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
                     type === pt.value
                       ? 'bg-indigo-500 text-white'
-                      : 'border border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+                      : 'border border-slate-200 dark:border-zinc-800/50 bg-white dark:bg-zinc-900 text-slate-600 dark:text-zinc-400 hover:bg-slate-50 dark:hover:bg-zinc-800'
                   }`}
                 >
                   {pt.label}
@@ -151,7 +151,7 @@ export default function CreatePostModal({
           <div className="mb-5">
             <label
               htmlFor="post-title"
-              className="mb-2 block text-sm font-medium text-slate-700"
+              className="mb-2 block text-sm font-medium text-slate-700 dark:text-zinc-300"
             >
               Title <span className="text-red-500">*</span>
             </label>
@@ -164,10 +164,10 @@ export default function CreatePostModal({
                 setError(null);
               }}
               placeholder="Enter a descriptive title..."
-              className="w-full rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-slate-900 placeholder:text-slate-400 focus:border-indigo-300 focus:outline-none focus:ring-2 focus:ring-indigo-100 transition-colors"
+              className="w-full rounded-lg border border-slate-200 dark:border-zinc-800/50 bg-white dark:bg-zinc-900 px-4 py-2.5 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-zinc-500 focus:border-indigo-300 focus:outline-none focus:ring-2 focus:ring-indigo-100 dark:focus:ring-indigo-500/20 transition-colors"
               maxLength={200}
             />
-            <p className="mt-1 text-xs text-slate-400">
+            <p className="mt-1 text-xs text-slate-400 dark:text-zinc-500">
               {title.length}/200 characters
             </p>
           </div>
@@ -176,7 +176,7 @@ export default function CreatePostModal({
           <div className="mb-5">
             <label
               htmlFor="post-content"
-              className="mb-2 block text-sm font-medium text-slate-700"
+              className="mb-2 block text-sm font-medium text-slate-700 dark:text-zinc-300"
             >
               Content <span className="text-red-500">*</span>
             </label>
@@ -189,7 +189,7 @@ export default function CreatePostModal({
                 setError(null);
               }}
               placeholder="Share your thoughts, ask a question, or describe your win..."
-              className="w-full rounded-lg border border-slate-200 bg-white px-4 py-3 text-slate-900 placeholder:text-slate-400 focus:border-indigo-300 focus:outline-none focus:ring-2 focus:ring-indigo-100 transition-colors resize-none"
+              className="w-full rounded-lg border border-slate-200 dark:border-zinc-800/50 bg-white dark:bg-zinc-900 px-4 py-3 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-zinc-500 focus:border-indigo-300 focus:outline-none focus:ring-2 focus:ring-indigo-100 dark:focus:ring-indigo-500/20 transition-colors resize-none"
               rows={8}
             />
           </div>
@@ -198,7 +198,7 @@ export default function CreatePostModal({
           <div className="mb-6">
             <label
               htmlFor="post-tags"
-              className="mb-2 block text-sm font-medium text-slate-700"
+              className="mb-2 block text-sm font-medium text-slate-700 dark:text-zinc-300"
             >
               Tags (up to 5)
             </label>
@@ -210,7 +210,7 @@ export default function CreatePostModal({
                 onChange={(e) => setTagInput(e.target.value)}
                 onKeyDown={handleTagKeyDown}
                 placeholder="Add a tag and press Enter..."
-                className="flex-1 rounded-lg border border-slate-200 bg-white px-4 py-2 text-slate-900 placeholder:text-slate-400 focus:border-indigo-300 focus:outline-none focus:ring-2 focus:ring-indigo-100 transition-colors"
+                className="flex-1 rounded-lg border border-slate-200 dark:border-zinc-800/50 bg-white dark:bg-zinc-900 px-4 py-2 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-zinc-500 focus:border-indigo-300 focus:outline-none focus:ring-2 focus:ring-indigo-100 dark:focus:ring-indigo-500/20 transition-colors"
                 disabled={tags.length >= 5}
               />
               <button
@@ -227,7 +227,7 @@ export default function CreatePostModal({
                 {tags.map((tag) => (
                   <span
                     key={tag}
-                    className="inline-flex items-center gap-1 rounded-full bg-indigo-50 px-3 py-1 text-sm text-indigo-600"
+                    className="inline-flex items-center gap-1 rounded-full bg-indigo-50 dark:bg-indigo-500/10 px-3 py-1 text-sm text-indigo-600 dark:text-indigo-400"
                   >
                     #{tag}
                     <button
@@ -244,11 +244,11 @@ export default function CreatePostModal({
           </div>
 
           {/* Actions */}
-          <div className="flex items-center justify-end gap-3 border-t border-slate-100 pt-5">
+          <div className="flex items-center justify-end gap-3 border-t border-slate-100 dark:border-zinc-800/50 pt-5">
             <button
               type="button"
               onClick={onClose}
-              className="rounded-lg border border-slate-200 bg-white px-5 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors"
+              className="rounded-lg border border-slate-200 dark:border-zinc-800/50 bg-white dark:bg-zinc-900 px-5 py-2 text-sm font-medium text-slate-700 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-zinc-800 transition-colors"
             >
               Cancel
             </button>
