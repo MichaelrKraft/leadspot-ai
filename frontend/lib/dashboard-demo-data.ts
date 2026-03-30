@@ -2,6 +2,8 @@
  * Shared types, demo data, and helpers for Dashboard + Timeline pages.
  * Extracted to keep page components under 400 lines.
  */
+import { type ReactNode, createElement } from 'react';
+import { Phone, Mail, MessageSquare, FileText, BrainCircuit, DollarSign, CheckCircle2, MapPin } from 'lucide-react';
 
 // ── Types ──────────────────────────────────────────────────────
 
@@ -63,11 +65,11 @@ export const DEMO_STATS: CrmStats = {
   total_segments: 8,
 };
 
-export const DEMO_INSIGHTS = `\u{1F4C8} Sarah Johnson has visited your pricing page 4 times this week. Consider reaching out with a personalized proposal.
+export const DEMO_INSIGHTS = `Sarah Johnson has visited your pricing page 4 times this week. Consider reaching out with a personalized proposal.
 
-\u{1F3AF} Your "Holiday Sale" campaign has a 34% open rate - 12% above average. Great subject line performance!
+Your "Holiday Sale" campaign has a 34% open rate - 12% above average. Great subject line performance!
 
-\u{1F4A1} 3 contacts from TechStart have engaged recently. This could be a hot company account worth prioritizing.`;
+3 contacts from TechStart have engaged recently. This could be a hot company account worth prioritizing.`;
 
 export const DEMO_BRIEF: PipelineBrief = {
   greeting: 'Here\'s your AI morning brief',
@@ -114,27 +116,31 @@ export function formatNumber(num: number): string {
   return num.toString();
 }
 
-export function getEventIcon(type: string): string {
-  const icons: Record<string, string> = {
-    call: '\u{1F4DE}',
-    email: '\u{2709}\u{FE0F}',
-    text: '\u{1F4AC}',
-    note: '\u{1F4DD}',
-    ai_action: '\u{1F916}',
-    deal: '\u{1F4B0}',
+export function getEventIcon(type: string): ReactNode {
+  const iconMap: Record<string, [typeof Phone, string]> = {
+    call: [Phone, 'text-blue-500'],
+    email: [Mail, 'text-amber-500'],
+    text: [MessageSquare, 'text-green-500'],
+    note: [FileText, 'text-purple-500'],
+    ai_action: [BrainCircuit, 'text-indigo-500'],
+    deal: [DollarSign, 'text-emerald-500'],
   };
-  return icons[type] || '\u{1F4CC}';
+  const entry = iconMap[type];
+  if (entry) return createElement(entry[0], { size: 16, className: entry[1] });
+  return createElement(MapPin, { size: 16, className: 'text-slate-400' });
 }
 
-export function getSuggestionIcon(type: string): string {
-  const icons: Record<string, string> = {
-    email: '\u{2709}\u{FE0F}',
-    call: '\u{1F4DE}',
-    task: '\u{2705}',
-    deal: '\u{1F4B0}',
-    note: '\u{1F4DD}',
+export function getSuggestionIcon(type: string): ReactNode {
+  const iconMap: Record<string, [typeof Phone, string]> = {
+    email: [Mail, 'text-amber-500'],
+    call: [Phone, 'text-blue-500'],
+    task: [CheckCircle2, 'text-green-500'],
+    deal: [DollarSign, 'text-emerald-500'],
+    note: [FileText, 'text-purple-500'],
   };
-  return icons[type] || '\u{1F4CC}';
+  const entry = iconMap[type];
+  if (entry) return createElement(entry[0], { size: 16, className: entry[1] });
+  return createElement(MapPin, { size: 16, className: 'text-slate-400' });
 }
 
 export function formatTimestamp(ts: string): string {

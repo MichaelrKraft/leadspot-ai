@@ -52,14 +52,14 @@ function SmartListZeroBanner({ acted, total }: { acted: number; total: number })
   }
 
   return (
-    <div className="rounded-xl border border-white/10 bg-[#283347] px-5 py-4">
+    <div className="rounded-xl border border-slate-200 bg-white px-5 py-4 shadow-sm">
       <div className="mb-2 flex items-center justify-between text-sm">
-        <span className="font-medium text-slate-200">Smart List Zero</span>
-        <span className="text-slate-400">
+        <span className="font-medium text-slate-800">Smart List Zero</span>
+        <span className="text-slate-500">
           {acted} of {total} completed today
         </span>
       </div>
-      <div className="h-2 overflow-hidden rounded-full bg-slate-700">
+      <div className="h-2 overflow-hidden rounded-full bg-slate-200">
         <div
           className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-indigo-400 transition-all duration-500"
           style={{ width: `${pct}%` }}
@@ -113,23 +113,23 @@ function ContactCard({
   const days = getContactDays(contact);
 
   return (
-    <div className="group rounded-xl border border-white/10 bg-[#283347] p-4 transition-all hover:border-indigo-400/30 hover:shadow-lg hover:shadow-indigo-500/5">
+    <div className="group rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition-all hover:border-indigo-400/40 hover:shadow-md">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2.5">
-            <h3 className="truncate text-sm font-semibold text-white">
+            <h3 className="truncate text-sm font-semibold text-slate-900">
               {name}
             </h3>
             <PriorityBadge priority={contact.priority} />
           </div>
 
-          <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-400">
+          <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-500">
             {contact.email && <span>{contact.email}</span>}
             {contact.phone && <span>{contact.phone}</span>}
           </div>
 
           {contact.suggestedAction && (
-            <p className="mt-2.5 text-sm leading-relaxed text-indigo-300/80">
+            <p className="mt-2.5 text-sm leading-relaxed text-indigo-600">
               {contact.suggestedAction}
             </p>
           )}
@@ -222,11 +222,12 @@ export default function SmartListsPage() {
   const doneContacts = allContacts.filter((c: Record<string, unknown>) => c.actedUpon);
 
   return (
+    <div className="min-h-screen bg-[#f8fafc]">
     <div className="mx-auto max-w-[900px] px-6 py-8">
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-white">Smart Lists</h1>
-        <p className="mt-1 text-sm text-slate-400">
+        <h1 className="text-2xl font-bold text-slate-900">Smart Lists</h1>
+        <p className="mt-1 text-sm text-slate-500">
           AI-prioritized contacts -- work toward Smart List Zero.
         </p>
       </div>
@@ -240,15 +241,15 @@ export default function SmartListsPage() {
 
       {/* List Tabs */}
       {lists.length > 0 && (
-        <div className="mb-6 flex gap-1.5 overflow-x-auto rounded-xl border border-white/10 bg-[#283347] p-1.5">
+        <div className="mb-6 flex gap-1.5 overflow-x-auto rounded-xl border border-slate-200 bg-slate-50 p-1.5">
           {lists.map((list) => (
             <button
               key={list.id}
               onClick={() => setSelectedListId(list.id)}
               className={`flex-shrink-0 rounded-lg px-4 py-2 text-sm font-medium transition-all ${
                 selectedListId === list.id
-                  ? 'bg-indigo-500/20 text-indigo-300 shadow-sm'
-                  : 'text-slate-400 hover:bg-[#283347] hover:text-slate-200'
+                  ? 'bg-indigo-500 text-white shadow-sm'
+                  : 'text-slate-600 hover:bg-white hover:text-slate-900'
               }`}
             >
               {list.name}
@@ -269,9 +270,9 @@ export default function SmartListsPage() {
 
       {/* Empty State */}
       {!loading && lists.length === 0 && !error && (
-        <div className="rounded-xl border border-white/10 bg-[#283347] px-5 py-16 text-center">
-          <p className="text-lg font-medium text-slate-400">No smart lists yet</p>
-          <p className="mt-2 text-sm text-slate-500">
+        <div className="rounded-xl border border-slate-200 bg-white px-5 py-16 text-center shadow-sm">
+          <p className="text-lg font-medium text-slate-500">No smart lists yet</p>
+          <p className="mt-2 text-sm text-slate-400">
             Smart lists will appear once the agent service creates them.
           </p>
         </div>
@@ -281,8 +282,8 @@ export default function SmartListsPage() {
       {!loading && !evaluating && result && selectedListId && (
         <div className="space-y-3">
           {activeContacts.length === 0 && doneContacts.length === 0 && (
-            <div className="rounded-xl border border-white/10 bg-[#283347] px-5 py-12 text-center">
-              <p className="text-slate-400">No contacts match this smart list.</p>
+            <div className="rounded-xl border border-slate-200 bg-white px-5 py-12 text-center shadow-sm">
+              <p className="text-slate-500">No contacts match this smart list.</p>
             </div>
           )}
 
@@ -317,6 +318,7 @@ export default function SmartListsPage() {
           )}
         </div>
       )}
+    </div>
     </div>
   );
 }

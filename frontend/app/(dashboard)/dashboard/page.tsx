@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { BarChart3, Sparkles, BrainCircuit, CheckCircle2, Activity } from 'lucide-react';
 import { fetchDailyInsights } from '@/lib/api/dashboard';
 import {
   fetchPipelineBrief,
@@ -180,7 +181,7 @@ export default function DashboardPage() {
         {/* CRM Stats Card */}
         <div className="bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800/50 rounded-2xl overflow-hidden transition-all hover:border-indigo-300/30 dark:hover:border-indigo-400/30 hover:shadow-lg hover:shadow-indigo-400/10">
           <div className="flex items-center gap-2.5 px-5 py-4 border-b border-slate-200 dark:border-zinc-800/50 bg-gradient-to-br from-indigo-400/5 to-transparent">
-            <span className="text-lg">{'\u{1F4CA}'}</span>
+            <BarChart3 size={18} className="text-indigo-500" />
             <span className="text-sm font-semibold text-slate-900 dark:text-zinc-50">CRM Stats</span>
           </div>
           <div className="px-5 py-4 min-h-[100px]">
@@ -217,7 +218,7 @@ export default function DashboardPage() {
         {/* AI Insights Card - Full Width */}
         <div className="md:col-span-2 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800/50 rounded-2xl overflow-hidden transition-all hover:border-indigo-300/30 dark:hover:border-indigo-400/30 hover:shadow-lg hover:shadow-indigo-400/10">
           <div className="flex items-center gap-2.5 px-5 py-4 border-b border-slate-200 dark:border-zinc-800/50 bg-gradient-to-br from-indigo-400/5 to-transparent">
-            <span className="text-lg">{'\u{1F4A1}'}</span>
+            <Sparkles size={18} className="text-amber-500" />
             <span className="text-sm font-semibold text-slate-900 dark:text-zinc-50">AI Insights</span>
           </div>
           <div className="px-5 py-4 min-h-[100px]">
@@ -244,7 +245,7 @@ export default function DashboardPage() {
         <div className="bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800/50 rounded-2xl overflow-hidden transition-all hover:border-indigo-300/30 dark:hover:border-indigo-400/30 hover:shadow-lg hover:shadow-indigo-400/10">
           <div className="flex items-center justify-between px-5 py-4 border-b border-slate-200 dark:border-zinc-800/50 bg-gradient-to-br from-indigo-400/5 to-transparent">
             <div className="flex items-center gap-2.5">
-              <span className="text-lg">{'\u{1F916}'}</span>
+              <BrainCircuit size={18} className="text-indigo-500" />
               <span className="text-sm font-semibold text-slate-900 dark:text-zinc-50">AI Morning Brief</span>
             </div>
             <button
@@ -307,7 +308,7 @@ export default function DashboardPage() {
         <div className="bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800/50 rounded-2xl overflow-hidden transition-all hover:border-indigo-300/30 dark:hover:border-indigo-400/30 hover:shadow-lg hover:shadow-indigo-400/10">
           <div className="flex items-center justify-between px-5 py-4 border-b border-slate-200 dark:border-zinc-800/50 bg-gradient-to-br from-indigo-400/5 to-transparent">
             <div className="flex items-center gap-2.5">
-              <span className="text-lg">{'\u{2705}'}</span>
+              <CheckCircle2 size={18} className="text-green-500" />
               <span className="text-sm font-semibold text-slate-900 dark:text-zinc-50">Approval Queue</span>
             </div>
             <Link href="/timeline" className="text-xs font-medium text-indigo-500 dark:text-indigo-400 hover:text-indigo-600 dark:hover:text-indigo-300 transition-colors">
@@ -321,7 +322,7 @@ export default function DashboardPage() {
               <div className="space-y-3">
                 {queue.slice(0, 5).map((item) => (
                   <div key={item.id} className="flex items-start gap-3">
-                    <span className="text-base mt-0.5 flex-shrink-0">{getSuggestionIcon(item.type)}</span>
+                    <span className="mt-0.5 flex-shrink-0">{getSuggestionIcon(item.type)}</span>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-slate-900 dark:text-zinc-50 truncate">{item.title}</p>
                       <p className="text-xs text-slate-400 dark:text-zinc-500 truncate">{item.description}</p>
@@ -356,7 +357,7 @@ export default function DashboardPage() {
         <div className="bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800/50 rounded-2xl overflow-hidden transition-all hover:border-indigo-300/30 dark:hover:border-indigo-400/30 hover:shadow-lg hover:shadow-indigo-400/10">
           <div className="flex items-center justify-between px-5 py-4 border-b border-slate-200 dark:border-zinc-800/50 bg-gradient-to-br from-indigo-400/5 to-transparent">
             <div className="flex items-center gap-2.5">
-              <span className="text-lg">{'\u{1F4CB}'}</span>
+              <Activity size={18} className="text-blue-500" />
               <span className="text-sm font-semibold text-slate-900 dark:text-zinc-50">Recent Activity</span>
             </div>
             <Link href="/timeline" className="text-xs font-medium text-indigo-500 dark:text-indigo-400 hover:text-indigo-600 dark:hover:text-indigo-300 transition-colors">
@@ -370,7 +371,7 @@ export default function DashboardPage() {
               <div className="space-y-3">
                 {activity.slice(0, 10).map((event) => (
                   <div key={event.id} className="flex items-start gap-3">
-                    <span className="text-base mt-0.5 flex-shrink-0">{getEventIcon(event.type)}</span>
+                    <span className="mt-0.5 flex-shrink-0">{getEventIcon(event.type)}</span>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-slate-900 dark:text-zinc-50 truncate">{event.title}</p>
                       <p className="text-xs text-slate-400 dark:text-zinc-500 truncate">{event.description}</p>

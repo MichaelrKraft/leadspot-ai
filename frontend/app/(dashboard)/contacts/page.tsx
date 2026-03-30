@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Search, Users, Mail, Phone, Tag, MoreVertical, RefreshCw, Upload, Download } from 'lucide-react';
+import { Search, Users, Mail, Phone, Tag, MoreVertical, RefreshCw, Upload, Download, UserPlus, X } from 'lucide-react';
 
 interface Contact {
   id: string;
@@ -62,10 +62,12 @@ const demoContacts: Contact[] = [
 ];
 
 export default function ContactsPage() {
-  const [contacts] = useState<Contact[]>(demoContacts);
+  const [contacts, setContacts] = useState<Contact[]>(demoContacts);
   const [searchQuery, setSearchQuery] = useState('');
-  const [isConnected] = useState(true); // Demo mode shows contacts without warning
+  const [isConnected] = useState(true);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [newContact, setNewContact] = useState({ firstName: '', lastName: '', email: '', company: '', phone: '', tags: '' });
 
   const filteredContacts = contacts.filter(contact =>
     `${contact.firstName} ${contact.lastName} ${contact.email} ${contact.company || ''}`
@@ -88,6 +90,13 @@ export default function ContactsPage() {
           </p>
         </div>
         <div className="flex items-center gap-3">
+          <button
+            onClick={() => setShowAddModal(true)}
+            className="flex items-center gap-2 rounded-lg bg-gradient-to-r from-indigo-500 to-indigo-400 px-4 py-2 text-sm font-medium text-white shadow-sm hover:from-indigo-600 hover:to-indigo-500 transition-colors"
+          >
+            <UserPlus className="h-4 w-4" />
+            Add Contact
+          </button>
           <button className="flex items-center gap-2 rounded-lg border border-slate-200 dark:border-zinc-700/50 bg-white dark:bg-zinc-800 px-4 py-2 text-sm font-medium text-slate-700 dark:text-zinc-200 hover:bg-slate-50 dark:hover:bg-zinc-700/50 transition-colors">
             <Upload className="h-4 w-4" />
             Import
@@ -261,6 +270,77 @@ export default function ContactsPage() {
               ? 'Try a different search term'
               : 'Connect Mautic to sync your contacts'}
           </p>
+        </div>
+      )}
+
+      {/* Add Contact Modal */}
+      {showAddModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+          <div className="w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-6 shadow-xl dark:border-zinc-700 dark:bg-zinc-900">
+            <div className="mb-5 flex items-center justify-between">
+              <h2 className="text-lg font-bold text-slate-900 dark:text-white">Add Contact</h2>
+              <button onClick={() => setShowAddModal(false)} className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-zinc-800">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                const contact: Contact = {
+                  id: `new-${Date.now()}`,
+                  firstName: newContact.firstName,
+                  lastName: newContact.lastName,
+                  email: newContact.email,
+                  company: newContact.company || undefined,
+                  phone: newContact.phone || undefined,
+                  tags: newContact.tags ? newContact.tags.split(',').map(t => t.trim()).filter(Boolean) : [],
+                  points: 0,
+                  lastActive: 'Just now',
+                };
+                setContacts(prev => [contact, ...prev]);
+                setNewContact({ firstName: '', lastName: '', email: '', company: '', phone: '', tags: '' });
+                setShowAddModal(false);
+              }}
+              className="space-y-4"
+            >
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-zinc-300">First Name *</label>
+                  <input required value={newContact.firstName} onChange={e => setNewContact(p => ({ ...p, firstName: e.target.value }))} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white" />
+                </div>
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-zinc-300">Last Name *</label>
+                  <input required value={newContact.lastName} onChange={e => setNewContact(p => ({ ...p, lastName: e.target.value }))} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white" />
+                </div>
+              </div>
+              <div>
+                <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-zinc-300">Email *</label>
+                <input required type="email" value={newContact.email} onChange={e => setNewContact(p => ({ ...p, email: e.target.value }))} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white" />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-zinc-300">Company</label>
+                  <input value={newContact.company} onChange={e => setNewContact(p => ({ ...p, company: e.target.value }))} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white" />
+                </div>
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-zinc-300">Phone</label>
+                  <input value={newContact.phone} onChange={e => setNewContact(p => ({ ...p, phone: e.target.value }))} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white" />
+                </div>
+              </div>
+              <div>
+                <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-zinc-300">Tags <span className="text-slate-400 font-normal">(comma separated)</span></label>
+                <input placeholder="hot-lead, enterprise" value={newContact.tags} onChange={e => setNewContact(p => ({ ...p, tags: e.target.value }))} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white" />
+              </div>
+              <div className="flex justify-end gap-3 pt-2">
+                <button type="button" onClick={() => setShowAddModal(false)} className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800">
+                  Cancel
+                </button>
+                <button type="submit" className="rounded-lg bg-gradient-to-r from-indigo-500 to-indigo-400 px-4 py-2 text-sm font-medium text-white shadow-sm hover:from-indigo-600 hover:to-indigo-500">
+                  Add Contact
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
     </div>

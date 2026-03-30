@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, type ReactNode } from 'react';
 import { sendChatMessage } from '@/lib/api/chat';
+import { BarChart3, Users, Mail, Target, Send, UserPlus, CheckCircle2, Wrench } from 'lucide-react';
 
 interface ToolResult {
   tool: string;
@@ -18,19 +19,19 @@ interface Message {
 }
 
 const SUGGESTIONS = [
-  { icon: '\u{1F4CA}', label: 'CRM Overview', prompt: 'Show me my CRM overview' },
-  { icon: '\u{1F465}', label: 'Top Contacts', prompt: 'Show me my top 10 contacts' },
-  { icon: '\u{1F4E7}', label: 'Create Email', prompt: 'Create a welcome email for new subscribers' },
-  { icon: '\u{1F3AF}', label: 'Campaigns', prompt: 'Show me active campaigns' },
+  { icon: <BarChart3 size={20} className="text-indigo-500" />, label: 'CRM Overview', prompt: 'Show me my CRM overview' },
+  { icon: <Users size={20} className="text-blue-500" />, label: 'Top Contacts', prompt: 'Show me my top 10 contacts' },
+  { icon: <Mail size={20} className="text-emerald-500" />, label: 'Create Email', prompt: 'Create a welcome email for new subscribers' },
+  { icon: <Target size={20} className="text-orange-500" />, label: 'Campaigns', prompt: 'Show me active campaigns' },
 ];
 
-const TOOL_ICONS: Record<string, string> = {
-  get_contacts: '\u{1F465}',
-  create_email: '\u{1F4E7}',
-  get_campaigns: '\u{1F3AF}',
-  get_segments: '\u{2705}',
-  send_email: '\u{1F4E8}',
-  create_contact: '\u{1F464}',
+const TOOL_ICONS: Record<string, ReactNode> = {
+  get_contacts: <Users size={16} className="text-blue-500" />,
+  create_email: <Mail size={16} className="text-emerald-500" />,
+  get_campaigns: <Target size={16} className="text-orange-500" />,
+  get_segments: <CheckCircle2 size={16} className="text-green-500" />,
+  send_email: <Send size={16} className="text-indigo-500" />,
+  create_contact: <UserPlus size={16} className="text-sky-500" />,
 };
 
 export default function CommandCenterPage() {
@@ -201,7 +202,7 @@ export default function CommandCenterPage() {
                   onClick={() => handleSuggestionClick(s.prompt)}
                   className="flex items-center gap-3 px-5 py-4 bg-white/90 dark:bg-zinc-800/80 border border-slate-200 dark:border-zinc-700/50 rounded-xl text-sm font-medium text-slate-900 dark:text-zinc-50 text-left transition-all hover:border-indigo-400 dark:hover:border-indigo-400 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-indigo-400/10"
                 >
-                  <span className="text-xl">{s.icon}</span>
+                  <span className="flex-shrink-0">{s.icon}</span>
                   <span className="flex-1">{s.label}</span>
                 </button>
               ))}
@@ -257,8 +258,8 @@ export default function CommandCenterPage() {
                           className="px-4 py-3.5 bg-white dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800/50 rounded-xl animate-in slide-in-from-left-2 duration-300"
                         >
                           <div className="flex items-center gap-2.5 mb-2">
-                            <span className="w-7 h-7 flex items-center justify-center bg-slate-100 dark:bg-zinc-800 rounded-lg text-sm">
-                              {TOOL_ICONS[tool.tool] || '\u{1F527}'}
+                            <span className="w-7 h-7 flex items-center justify-center bg-slate-100 dark:bg-zinc-800 rounded-lg">
+                              {TOOL_ICONS[tool.tool] || <Wrench size={16} className="text-slate-400" />}
                             </span>
                             <span className="flex-1 text-[13px] font-semibold text-slate-900 dark:text-zinc-50 capitalize">
                               {tool.tool.replace(/_/g, ' ')}

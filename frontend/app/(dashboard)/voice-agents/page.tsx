@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import Link from 'next/link';
 
 interface VoiceAgent {
   id: string;
@@ -144,7 +145,20 @@ function ConfigurePanel({ agent, onClose }: { agent: VoiceAgent; onClose: () => 
   );
 }
 
-function NewAgentPanel({ onClose }: { onClose: () => void }) {
+function NewAgentPanel({ onClose, onCreate }: { onClose: () => void; onCreate: (agent: VoiceAgent) => void }) {
+  const [name, setName] = useState('');
+  const [purpose, setPurpose] = useState('Lead Qualification');
+  const [voice, setVoice] = useState('Rachel (Female, Professional)');
+  const [greeting, setGreeting] = useState('');
+
+  const purposeDescriptions: Record<string, string> = {
+    'Lead Qualification': 'Qualifies inbound leads based on criteria and routes to sales reps.',
+    'Appointment Setting': 'Books appointments with qualified prospects on your calendar.',
+    'Follow-up Calls': 'Follows up with contacts who haven\'t responded to outreach.',
+    'Survey / Feedback': 'Collects feedback and satisfaction scores from customers.',
+    'Custom': 'Custom agent with your own script and workflow.',
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={onClose}>
       <div
@@ -158,11 +172,32 @@ function NewAgentPanel({ onClose }: { onClose: () => void }) {
           </button>
         </div>
 
-        <div className="space-y-4">
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (!name.trim()) return;
+            onCreate({
+              id: `new-${Date.now()}`,
+              name: name.trim(),
+              status: 'draft',
+              callsThisWeek: 0,
+              qualifiedLeads: purpose === 'Lead Qualification' || purpose === 'Survey / Feedback' ? 0 : null,
+              appointmentsBooked: purpose === 'Appointment Setting' ? 0 : null,
+              avgCallDuration: '0:00',
+              description: purposeDescriptions[purpose] || 'Custom voice agent.',
+              voice,
+              greeting: greeting.trim() || `Hi, this is your AI assistant from LeadSpot. How can I help you today?`,
+            });
+          }}
+          className="space-y-4"
+        >
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-zinc-300">Agent Name</label>
+            <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-zinc-300">Agent Name *</label>
             <input
+              required
               type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
               placeholder="e.g., Follow-up Caller"
               className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:placeholder-zinc-500"
             />
@@ -170,7 +205,7 @@ function NewAgentPanel({ onClose }: { onClose: () => void }) {
 
           <div>
             <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-zinc-300">Purpose</label>
-            <select className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100">
+            <select value={purpose} onChange={(e) => setPurpose(e.target.value)} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100">
               <option>Lead Qualification</option>
               <option>Appointment Setting</option>
               <option>Follow-up Calls</option>
@@ -181,7 +216,7 @@ function NewAgentPanel({ onClose }: { onClose: () => void }) {
 
           <div>
             <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-zinc-300">Voice</label>
-            <select className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100">
+            <select value={voice} onChange={(e) => setVoice(e.target.value)} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100">
               <option>Rachel (Female, Professional)</option>
               <option>James (Male, Friendly)</option>
               <option>Emily (Female, Warm)</option>
@@ -192,35 +227,50 @@ function NewAgentPanel({ onClose }: { onClose: () => void }) {
           <div>
             <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-zinc-300">Greeting Script</label>
             <textarea
+              value={greeting}
+              onChange={(e) => setGreeting(e.target.value)}
               placeholder="Hi, this is [name] from [company]..."
               rows={3}
               className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:placeholder-zinc-500"
             />
           </div>
-        </div>
 
-        <div className="mt-6 flex gap-3 justify-end">
-          <button
-            onClick={onClose}
-            className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={onClose}
-            className="rounded-lg bg-gradient-to-r from-indigo-500 to-indigo-400 px-4 py-2 text-sm font-medium text-white shadow-sm hover:shadow-md"
-          >
-            Create Agent
-          </button>
-        </div>
+          <div className="mt-6 flex gap-3 justify-end">
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="rounded-lg bg-gradient-to-r from-indigo-500 to-indigo-400 px-4 py-2 text-sm font-medium text-white shadow-sm hover:shadow-md"
+            >
+              Create Agent
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   );
 }
 
 export default function VoiceAgentsPage() {
+  const [agents, setAgents] = useState<VoiceAgent[]>(DEMO_AGENTS);
   const [configuring, setConfiguring] = useState<VoiceAgent | null>(null);
-  const [showNewAgent, setShowNewAgent] = useState(false);
+
+  useEffect(() => {
+    const saved = localStorage.getItem('leadspot-voice-agents');
+    if (saved) {
+      try {
+        const custom = JSON.parse(saved) as VoiceAgent[];
+        setAgents([...custom, ...DEMO_AGENTS]);
+      } catch {
+        // Ignore invalid JSON
+      }
+    }
+  }, []);
 
   return (
     <div className="p-8">
@@ -232,17 +282,17 @@ export default function VoiceAgentsPage() {
             Your AI-powered outbound calling agents.
           </p>
         </div>
-        <button
-          onClick={() => setShowNewAgent(true)}
+        <Link
+          href="/voice-agents/new"
           className="rounded-lg bg-gradient-to-r from-indigo-500 to-indigo-400 px-4 py-2 text-sm font-medium text-white shadow-sm transition-all hover:shadow-md"
         >
           + New Agent
-        </button>
+        </Link>
       </div>
 
       {/* Agent Cards */}
       <div className="grid gap-6 sm:grid-cols-2">
-        {DEMO_AGENTS.map((agent) => (
+        {agents.map((agent) => (
           <div
             key={agent.id}
             className="rounded-2xl border border-slate-200 bg-slate-50 p-6 dark:border-zinc-800/50 dark:bg-zinc-900"
@@ -295,7 +345,6 @@ export default function VoiceAgentsPage() {
 
       {/* Modals */}
       {configuring && <ConfigurePanel agent={configuring} onClose={() => setConfiguring(null)} />}
-      {showNewAgent && <NewAgentPanel onClose={() => setShowNewAgent(false)} />}
     </div>
   );
 }

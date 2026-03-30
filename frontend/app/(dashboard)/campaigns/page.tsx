@@ -1,6 +1,21 @@
 'use client';
 
-const DEMO_CAMPAIGNS = [
+import { useState } from 'react';
+import { X, Plus } from 'lucide-react';
+
+interface Campaign {
+  id: string;
+  name: string;
+  status: string;
+  type: string;
+  contacts: number;
+  sent: number;
+  openRate: string;
+  clickRate: string;
+  dateCreated: string;
+}
+
+const DEMO_CAMPAIGNS: Campaign[] = [
   { id: '1', name: 'Q1 Welcome Series', status: 'active', type: 'Email', contacts: 1247, sent: 3200, openRate: '34%', clickRate: '12%', dateCreated: 'Jan 15, 2026' },
   { id: '2', name: 'Holiday Sale 2026', status: 'active', type: 'Email', contacts: 892, sent: 2100, openRate: '41%', clickRate: '18%', dateCreated: 'Mar 1, 2026' },
   { id: '3', name: 'Webinar Follow-up', status: 'draft', type: 'Email', contacts: 0, sent: 0, openRate: '-', clickRate: '-', dateCreated: 'Mar 20, 2026' },
@@ -22,6 +37,10 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 export default function CampaignsPage() {
+  const [campaigns, setCampaigns] = useState<Campaign[]>(DEMO_CAMPAIGNS);
+  const [showModal, setShowModal] = useState(false);
+  const [form, setForm] = useState({ name: '', type: 'Email' });
+
   return (
     <div className="p-8">
       {/* Header */}
@@ -32,8 +51,12 @@ export default function CampaignsPage() {
             Manage your marketing campaigns and automation workflows.
           </p>
         </div>
-        <button className="rounded-lg bg-gradient-to-r from-indigo-500 to-indigo-400 px-4 py-2 text-sm font-medium text-white shadow-sm transition-all hover:shadow-md">
-          + New Campaign
+        <button
+          onClick={() => setShowModal(true)}
+          className="flex items-center gap-2 rounded-lg bg-gradient-to-r from-indigo-500 to-indigo-400 px-4 py-2 text-sm font-medium text-white shadow-sm transition-all hover:shadow-md"
+        >
+          <Plus className="h-4 w-4" />
+          New Campaign
         </button>
       </div>
 
@@ -52,7 +75,7 @@ export default function CampaignsPage() {
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-200 dark:divide-zinc-800/50">
-            {DEMO_CAMPAIGNS.map((campaign) => (
+            {campaigns.map((campaign) => (
               <tr key={campaign.id} className="transition-colors hover:bg-slate-100 dark:hover:bg-zinc-800/30">
                 <td className="px-6 py-4">
                   <p className="text-sm font-medium text-slate-900 dark:text-zinc-100">{campaign.name}</p>
@@ -71,6 +94,71 @@ export default function CampaignsPage() {
           </tbody>
         </table>
       </div>
+
+      {/* New Campaign Modal */}
+      {showModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+          <div className="w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-6 shadow-xl dark:border-zinc-700 dark:bg-zinc-900">
+            <div className="mb-5 flex items-center justify-between">
+              <h2 className="text-lg font-bold text-slate-900 dark:text-white">New Campaign</h2>
+              <button onClick={() => setShowModal(false)} className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-zinc-800">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                const campaign: Campaign = {
+                  id: `new-${Date.now()}`,
+                  name: form.name,
+                  status: 'draft',
+                  type: form.type,
+                  contacts: 0,
+                  sent: 0,
+                  openRate: '-',
+                  clickRate: '-',
+                  dateCreated: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+                };
+                setCampaigns(prev => [campaign, ...prev]);
+                setForm({ name: '', type: 'Email' });
+                setShowModal(false);
+              }}
+              className="space-y-4"
+            >
+              <div>
+                <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-zinc-300">Campaign Name *</label>
+                <input
+                  required
+                  value={form.name}
+                  onChange={e => setForm(p => ({ ...p, name: e.target.value }))}
+                  placeholder="e.g. Spring Open House Invite"
+                  className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-zinc-300">Type</label>
+                <select
+                  value={form.type}
+                  onChange={e => setForm(p => ({ ...p, type: e.target.value }))}
+                  className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
+                >
+                  <option value="Email">Email</option>
+                  <option value="SMS">SMS</option>
+                  <option value="SMS + Email">SMS + Email</option>
+                </select>
+              </div>
+              <div className="flex justify-end gap-3 pt-2">
+                <button type="button" onClick={() => setShowModal(false)} className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800">
+                  Cancel
+                </button>
+                <button type="submit" className="rounded-lg bg-gradient-to-r from-indigo-500 to-indigo-400 px-4 py-2 text-sm font-medium text-white shadow-sm hover:from-indigo-600 hover:to-indigo-500">
+                  Create Campaign
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

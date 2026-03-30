@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, type ReactNode } from 'react';
 import Link from 'next/link';
+import { Phone, Mail, MessageSquare, FileText, BrainCircuit, DollarSign, MapPin } from 'lucide-react';
 import { fetchRecentActivity } from '@/lib/api/agent';
 
 interface TimelineEvent {
@@ -16,12 +17,12 @@ interface TimelineEvent {
 type EventType = TimelineEvent['type'];
 
 const EVENT_TYPES: { key: EventType; label: string; icon: string; color: string }[] = [
-  { key: 'call', label: 'Calls', icon: '\u{1F4DE}', color: 'bg-blue-500/10 text-blue-500 dark:text-blue-400' },
-  { key: 'email', label: 'Emails', icon: '\u{2709}\u{FE0F}', color: 'bg-amber-500/10 text-amber-500 dark:text-amber-400' },
-  { key: 'text', label: 'Texts', icon: '\u{1F4AC}', color: 'bg-green-500/10 text-green-500 dark:text-green-400' },
-  { key: 'note', label: 'Notes', icon: '\u{1F4DD}', color: 'bg-purple-500/10 text-purple-500 dark:text-purple-400' },
-  { key: 'ai_action', label: 'AI Actions', icon: '\u{1F916}', color: 'bg-indigo-500/10 text-indigo-500 dark:text-indigo-400' },
-  { key: 'deal', label: 'Deals', icon: '\u{1F4B0}', color: 'bg-emerald-500/10 text-emerald-500 dark:text-emerald-400' },
+  { key: 'call', label: 'Calls', icon: <Phone size={14} />, color: 'bg-blue-500/10 text-blue-500 dark:text-blue-400' },
+  { key: 'email', label: 'Emails', icon: <Mail size={14} />, color: 'bg-amber-500/10 text-amber-500 dark:text-amber-400' },
+  { key: 'text', label: 'Texts', icon: <MessageSquare size={14} />, color: 'bg-green-500/10 text-green-500 dark:text-green-400' },
+  { key: 'note', label: 'Notes', icon: <FileText size={14} />, color: 'bg-purple-500/10 text-purple-500 dark:text-purple-400' },
+  { key: 'ai_action', label: 'AI Actions', icon: <BrainCircuit size={14} />, color: 'bg-indigo-500/10 text-indigo-500 dark:text-indigo-400' },
+  { key: 'deal', label: 'Deals', icon: <DollarSign size={14} />, color: 'bg-emerald-500/10 text-emerald-500 dark:text-emerald-400' },
 ];
 
 const DEMO_EVENTS: TimelineEvent[] = [
@@ -67,11 +68,11 @@ function formatTime(timestamp: string): string {
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
 }
 
-function getEventStyle(type: EventType): { icon: string; color: string } {
+function getEventStyle(type: EventType): { icon: ReactNode; color: string } {
   const found = EVENT_TYPES.find((t) => t.key === type);
   return found
     ? { icon: found.icon, color: found.color }
-    : { icon: '\u{1F4CC}', color: 'bg-gray-500/10 text-gray-500' };
+    : { icon: <MapPin size={14} />, color: 'bg-gray-500/10 text-gray-500' };
 }
 
 export default function TimelinePage() {
@@ -187,7 +188,7 @@ export default function TimelinePage() {
                       className="flex items-start gap-3 p-4 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800/50 rounded-xl transition-all hover:border-indigo-300/30 dark:hover:border-indigo-400/30 hover:shadow-sm"
                     >
                       <div className={`flex items-center justify-center w-9 h-9 rounded-lg flex-shrink-0 ${style.color}`}>
-                        <span className="text-base">{style.icon}</span>
+                        <span>{style.icon}</span>
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium text-slate-900 dark:text-zinc-50">{event.title}</p>
