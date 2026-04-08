@@ -70,18 +70,18 @@ function SmartListZeroBanner({ acted, total }: { acted: number; total: number })
 }
 
 function getContactName(contact: SmartListContact): string {
-  const first = contact.firstName || (contact as Record<string, unknown>).name || '';
+  const first = contact.firstName || contact.name || '';
   const last = contact.lastName || '';
   const full = `${first} ${last}`.trim();
   return full || contact.contactId;
 }
 
 function getContactScore(contact: SmartListContact): number {
-  return contact.score ?? (contact as Record<string, unknown>).leadScore as number ?? 0;
+  return contact.score ?? contact.leadScore ?? 0;
 }
 
 function getContactDays(contact: SmartListContact): number {
-  return contact.lastContactDays ?? (contact as Record<string, unknown>).daysSinceLastContact as number ?? 0;
+  return contact.lastContactDays ?? contact.daysSinceLastContact ?? 0;
 }
 
 function ContactCard({
@@ -94,7 +94,7 @@ function ContactCard({
   onMarked: (contactId: string) => void;
 }) {
   const [marking, setMarking] = useState(false);
-  const actedUpon = (contact as Record<string, unknown>).actedUpon as boolean | undefined;
+  const actedUpon = contact.actedUpon;
 
   const handleMarkDone = async () => {
     setMarking(true);
@@ -218,8 +218,8 @@ export default function SmartListsPage() {
   const completedToday = result?.completedToday ?? 0;
   const totalContacts = result?.total ?? 0;
   const allContacts = result?.contacts ?? [];
-  const activeContacts = allContacts.filter((c: Record<string, unknown>) => !c.actedUpon);
-  const doneContacts = allContacts.filter((c: Record<string, unknown>) => c.actedUpon);
+  const activeContacts = allContacts.filter((c: SmartListContact) => !c.actedUpon);
+  const doneContacts = allContacts.filter((c: SmartListContact) => c.actedUpon);
 
   return (
     <div className="min-h-screen bg-[#f8fafc] dark:bg-[#0a0a0d]">

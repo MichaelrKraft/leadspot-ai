@@ -38,6 +38,7 @@ export interface QueryResponse {
   metadata?: {
     model_used?: string;
     tokens_used?: number;
+    ollama_available?: boolean;
   };
   follow_up_questions?: string[];
   research_mode?: boolean;

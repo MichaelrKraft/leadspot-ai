@@ -1,6 +1,7 @@
 // Health Data Hook
 // Updated to use real knowledge-health API with httpOnly cookie auth
 
+import axios from 'axios';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type {
   HealthDashboard,

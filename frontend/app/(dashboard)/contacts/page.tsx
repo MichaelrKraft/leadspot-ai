@@ -1,8 +1,44 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Search, Users, Mail, Phone, Tag, MoreVertical, RefreshCw, Upload, Download, UserPlus, X } from 'lucide-react';
+import { Search, Users, Mail, Phone, Tag, MoreVertical, RefreshCw, Upload, Download, UserPlus, X, CheckCircle } from 'lucide-react';
 import { listContacts, createContact, deleteContact, type Contact } from '@/lib/api/contacts';
+
+function useToast() {
+  const [toast, setToast] = useState<string | null>(null);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const showToast = useCallback((message: string) => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+    setToast(message);
+    timerRef.current = setTimeout(() => setToast(null), 3000);
+  }, []);
+
+  return { toast, showToast };
+}
+
+function exportContactsToCSV(contacts: Contact[]) {
+  const headers = ['First Name', 'Last Name', 'Email', 'Phone', 'Company', 'Tags', 'Points'];
+  const rows = contacts.map(c => [
+    c.firstName,
+    c.lastName,
+    c.email,
+    c.phone || '',
+    c.company || '',
+    c.tags.join('; '),
+    String(c.points),
+  ]);
+  const csv = [headers, ...rows]
+    .map(row => row.map(cell => `"${cell.replace(/"/g, '""')}"`).join(','))
+    .join('\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `contacts-${new Date().toISOString().slice(0, 10)}.csv`;
+  link.click();
+  URL.revokeObjectURL(url);
+}
 
 export default function ContactsPage() {
   const [contacts, setContacts] = useState<Contact[]>([]);
@@ -13,6 +49,7 @@ export default function ContactsPage() {
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [newContact, setNewContact] = useState({ firstName: '', lastName: '', email: '', company: '', phone: '', tags: '' });
+  const { toast, showToast } = useToast();
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -29,17 +66,13 @@ export default function ContactsPage() {
     }
   }, []);
 
-  // Initial load
-  useEffect(() => {
-    loadContacts();
-  }, [loadContacts]);
-
-  // Debounced search
+  // Load contacts on mount and when search changes (debounced)
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
+    const delay = searchQuery ? 300 : 0;
     debounceRef.current = setTimeout(() => {
-      loadContacts(searchQuery);
-    }, 300);
+      loadContacts(searchQuery || undefined);
+    }, delay);
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
@@ -49,6 +82,14 @@ export default function ContactsPage() {
 
   return (
     <div className="p-8">
+      {/* Toast Notification */}
+      {toast && (
+        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-2 rounded-xl border border-green-200 bg-white px-4 py-3 shadow-lg dark:border-zinc-700 dark:bg-zinc-800 animate-in fade-in slide-in-from-bottom-2">
+          <CheckCircle className="h-4 w-4 text-green-500 flex-shrink-0" />
+          <span className="text-sm font-medium text-slate-700 dark:text-zinc-200">{toast}</span>
+        </div>
+      )}
+
       {/* Error Banner */}
       {error && (
         <div className="mb-6 rounded-lg border border-red-200 bg-red-50 p-4 dark:border-red-800 dark:bg-red-900/20">
@@ -76,11 +117,17 @@ export default function ContactsPage() {
             <UserPlus className="h-4 w-4" />
             Add Contact
           </button>
-          <button className="flex items-center gap-2 rounded-lg border border-slate-200 dark:border-zinc-700/50 bg-white dark:bg-zinc-800 px-4 py-2 text-sm font-medium text-slate-700 dark:text-zinc-200 hover:bg-slate-50 dark:hover:bg-zinc-700/50 transition-colors">
+          <button
+            onClick={() => showToast('Import contacts — coming soon!')}
+            className="flex items-center gap-2 rounded-lg border border-slate-200 dark:border-zinc-700/50 bg-white dark:bg-zinc-800 px-4 py-2 text-sm font-medium text-slate-700 dark:text-zinc-200 hover:bg-slate-50 dark:hover:bg-zinc-700/50 transition-colors"
+          >
             <Upload className="h-4 w-4" />
             Import
           </button>
-          <button className="flex items-center gap-2 rounded-lg border border-slate-200 dark:border-zinc-700/50 bg-white dark:bg-zinc-800 px-4 py-2 text-sm font-medium text-slate-700 dark:text-zinc-200 hover:bg-slate-50 dark:hover:bg-zinc-700/50 transition-colors">
+          <button
+            onClick={() => { exportContactsToCSV(contacts); showToast('Contacts exported to CSV!'); }}
+            className="flex items-center gap-2 rounded-lg border border-slate-200 dark:border-zinc-700/50 bg-white dark:bg-zinc-800 px-4 py-2 text-sm font-medium text-slate-700 dark:text-zinc-200 hover:bg-slate-50 dark:hover:bg-zinc-700/50 transition-colors"
+          >
             <Download className="h-4 w-4" />
             Export
           </button>
@@ -219,19 +266,26 @@ export default function ContactsPage() {
                         Chat about contact
                       </button>
                       <button
-                        onClick={() => setOpenMenuId(null)}
+                        onClick={() => {
+                          setOpenMenuId(null);
+                          if (contact.email) {
+                            window.location.href = `mailto:${contact.email}`;
+                          } else {
+                            showToast('No email address on file for this contact.');
+                          }
+                        }}
                         className="w-full text-left px-4 py-2 text-sm text-slate-700 dark:text-zinc-200 hover:bg-slate-50 dark:hover:bg-zinc-700/50"
                       >
                         Send email
                       </button>
                       <button
-                        onClick={() => setOpenMenuId(null)}
+                        onClick={() => { setOpenMenuId(null); showToast('Add to segment — coming soon!'); }}
                         className="w-full text-left px-4 py-2 text-sm text-slate-700 dark:text-zinc-200 hover:bg-slate-50 dark:hover:bg-zinc-700/50"
                       >
                         Add to segment
                       </button>
                       <button
-                        onClick={() => setOpenMenuId(null)}
+                        onClick={() => { setOpenMenuId(null); showToast('Contact detail page — coming soon!'); }}
                         className="w-full text-left px-4 py-2 text-sm text-slate-700 dark:text-zinc-200 hover:bg-slate-50 dark:hover:bg-zinc-700/50"
                       >
                         View Details

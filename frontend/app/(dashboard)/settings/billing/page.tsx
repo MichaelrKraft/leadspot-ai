@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import api from '@/lib/api';
+import SettingsNav from '@/components/settings/SettingsNav';
 
 interface Plan {
   id: string;
@@ -91,16 +92,30 @@ export default function BillingPage() {
 
   if (loading) {
     return (
-      <div className="p-8 flex items-center justify-center min-h-64">
-        <div className="w-8 h-8 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin" />
+      <div className="p-8 max-w-4xl">
+        <div className="mb-6">
+          <h1 className="text-3xl font-bold text-white mb-2">Settings</h1>
+          <p className="text-gray-400">Manage your profile, integrations, and billing</p>
+        </div>
+        <SettingsNav />
+        <div className="flex items-center justify-center min-h-64">
+          <div className="w-8 h-8 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin" />
+        </div>
       </div>
     );
   }
 
   return (
     <div className="p-8 max-w-4xl">
+      <div className="mb-6">
+        <h1 className="text-3xl font-bold text-white mb-2">Settings</h1>
+        <p className="text-gray-400">Manage your profile, integrations, and billing</p>
+      </div>
+
+      <SettingsNav />
+
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-white mb-2">Billing & Plans</h1>
+        <h2 className="text-xl font-semibold text-white mb-1">Billing & Plans</h2>
         <p className="text-gray-400">Manage your subscription and billing details</p>
       </div>
 

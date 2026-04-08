@@ -1,6 +1,6 @@
 /**
  * Integrations Settings Page
- * Connect and manage Mautic CRM integration for LeadSpot.ai
+ * Connect and manage CRM integrations for LeadSpot.ai
  */
 
 'use client';
@@ -14,6 +14,7 @@ import {
   Integration,
   Connection,
 } from '@/hooks/useIntegrations';
+import SettingsNav from '@/components/settings/SettingsNav';
 
 // Provider icons and colors
 const PROVIDER_CONFIG: Record<string, { icon: React.ReactNode; gradient: string }> = {
@@ -252,6 +253,7 @@ export default function IntegrationsSettingsPage() {
       const timer = setTimeout(() => setNotification(null), 5000);
       return () => clearTimeout(timer);
     }
+    return undefined;
   }, [notification]);
 
   const handleConnect = async (provider: string, demoMode: boolean) => {
@@ -337,10 +339,17 @@ export default function IntegrationsSettingsPage() {
       )}
 
       {/* Page Header */}
+      <div className="mb-6">
+        <h1 className="text-3xl font-bold text-white mb-2">Settings</h1>
+        <p className="text-gray-400">Manage your profile, integrations, and billing</p>
+      </div>
+
+      <SettingsNav />
+
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-white mb-2">Mautic CRM Connection</h1>
+        <h2 className="text-xl font-semibold text-white mb-1">CRM Integrations</h2>
         <p className="text-gray-400">
-          Connect your Mautic CRM instance to power LeadSpot.ai's AI agents with your contacts and campaigns.
+          Connect your CRM to power LeadSpot.ai's AI agents with your contacts and campaigns.
         </p>
       </div>
 
@@ -353,7 +362,7 @@ export default function IntegrationsSettingsPage() {
           <div>
             <h3 className="text-blue-400 font-medium mb-1">Demo Mode Available</h3>
             <p className="text-sm text-gray-400">
-              Don't have Mautic set up yet? Try demo mode with sample contacts and campaigns to explore LeadSpot.ai features.
+              Don't have a CRM set up yet? Try demo mode with sample contacts and campaigns to explore LeadSpot.ai features.
             </p>
           </div>
         </div>

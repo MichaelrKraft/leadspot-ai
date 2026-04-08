@@ -67,10 +67,9 @@ const createAPIClient = (): AxiosInstance => {
           // Retry original request
           return instance(originalRequest);
         } catch (refreshError) {
-          // Refresh failed - redirect to login
-          if (typeof window !== "undefined") {
-            window.location.href = "/login";
-          }
+          // Refresh failed - just throw the error.
+          // AuthGuard handles route protection; we don't redirect here
+          // to avoid blowing away pages that gracefully handle 401s.
           throw refreshError;
         }
       }

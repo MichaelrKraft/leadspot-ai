@@ -16,7 +16,7 @@ interface TimelineEvent {
 
 type EventType = TimelineEvent['type'];
 
-const EVENT_TYPES: { key: EventType; label: string; icon: string; color: string }[] = [
+const EVENT_TYPES: { key: EventType; label: string; icon: ReactNode; color: string }[] = [
   { key: 'call', label: 'Calls', icon: <Phone size={14} />, color: 'bg-blue-500/10 text-blue-500 dark:text-blue-400' },
   { key: 'email', label: 'Emails', icon: <Mail size={14} />, color: 'bg-amber-500/10 text-amber-500 dark:text-amber-400' },
   { key: 'text', label: 'Texts', icon: <MessageSquare size={14} />, color: 'bg-green-500/10 text-green-500 dark:text-green-400' },

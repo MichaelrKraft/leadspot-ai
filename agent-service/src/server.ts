@@ -347,8 +347,7 @@ async function main(): Promise<void> {
   const config = loadConfig();
 
   if (!config.anthropicApiKey) {
-    console.error('[AgentService] ANTHROPIC_API_KEY is required. Set it as an environment variable.');
-    process.exit(1);
+    console.warn('[AgentService] ANTHROPIC_API_KEY not set — AI features disabled');
   }
 
   // Initialize the orchestrator singleton

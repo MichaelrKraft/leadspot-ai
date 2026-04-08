@@ -33,8 +33,8 @@ class MauticConnector(BaseConnector):
 
     config = IntegrationConfig(
         provider="mautic",
-        name="Mautic CRM",
-        description="Connect your Mautic CRM to sync contacts and manage campaigns",
+        name="CRM",
+        description="Connect your CRM to sync contacts and manage campaigns",
         icon="mautic",
         color="#4e5e9e",  # Mautic purple
         scopes=["full_access"],  # Mautic uses simple OAuth2

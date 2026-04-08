@@ -462,7 +462,7 @@ async def plugin_mautic_setup(
         import uuid
         org = Organization(
             organization_id=str(uuid.uuid4()),
-            name=f"Mautic - {mautic_url.split('//')[1]}",
+            name=f"LeadSpot - {mautic_url.split('//')[1]}",
             domain=mautic_url.split('//')[1],
             subscription_tier="pilot",
             mautic_url=mautic_url,

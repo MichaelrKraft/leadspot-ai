@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 
-export default function ThemeToggle() {
+export default function ThemeToggle({ compact = false }: { compact?: boolean }) {
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
   const [mounted, setMounted] = useState(false);
 
@@ -40,14 +40,17 @@ export default function ThemeToggle() {
   return (
     <button
       onClick={toggleTheme}
-      className="fixed bottom-6 right-6 z-50 p-3 rounded-full shadow-lg transition-all duration-300 hover:scale-110 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 dark:bg-gray-800 dark:hover:bg-gray-700 dark:border dark:border-gray-700 bg-white hover:bg-gray-100 border border-gray-200"
+      className={compact
+        ? "p-1.5 rounded-full transition-colors focus:outline-none dark:bg-white/10 dark:hover:bg-white/20 bg-slate-100 hover:bg-slate-200 border border-slate-200 dark:border-white/10"
+        : "fixed bottom-6 right-6 z-50 p-3 rounded-full shadow-lg transition-all duration-300 hover:scale-110 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 dark:bg-gray-800 dark:hover:bg-gray-700 dark:border dark:border-gray-700 bg-white hover:bg-gray-100 border border-gray-200"
+      }
       aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
       title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
     >
       {theme === 'dark' ? (
         // Sun icon for switching to light mode
         <svg
-          className="w-6 h-6 text-yellow-400"
+          className={compact ? "w-4 h-4 text-yellow-400" : "w-6 h-6 text-yellow-400"}
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -62,7 +65,7 @@ export default function ThemeToggle() {
       ) : (
         // Moon icon for switching to dark mode
         <svg
-          className="w-6 h-6 text-gray-700"
+          className={compact ? "w-4 h-4 text-gray-700 dark:text-gray-300" : "w-6 h-6 text-gray-700"}
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"

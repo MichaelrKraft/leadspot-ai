@@ -1,14 +1,17 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Conversation } from '@/types/inbox';
 
 interface MessageThreadProps {
   conversation: Conversation | null;
+  onReply?: (conversationId: string, body: string) => Promise<void>;
 }
 
-export default function MessageThread({ conversation }: MessageThreadProps) {
+export default function MessageThread({ conversation, onReply }: MessageThreadProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [replyText, setReplyText] = useState('');
+  const [isSending, setIsSending] = useState(false);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -86,13 +89,31 @@ export default function MessageThread({ conversation }: MessageThreadProps) {
         <div className="flex items-center gap-3">
           <input
             type="text"
-            placeholder="Replies coming soon..."
-            disabled
-            className="flex-1 px-4 py-2.5 text-sm rounded-xl dark:bg-zinc-800/50 bg-slate-100 dark:border-zinc-700/50 border-slate-200 border dark:text-zinc-400 text-slate-400 placeholder-zinc-500 cursor-not-allowed"
+            placeholder="Write a reply..."
+            value={replyText}
+            onChange={(e) => setReplyText(e.target.value)}
+            onKeyDown={async (e) => {
+              if (e.key === 'Enter' && !e.shiftKey && replyText.trim() && onReply && conversation) {
+                e.preventDefault();
+                setIsSending(true);
+                await onReply(conversation.id, replyText.trim());
+                setReplyText('');
+                setIsSending(false);
+              }
+            }}
+            disabled={isSending || !onReply}
+            className="flex-1 px-4 py-2.5 text-sm rounded-xl dark:bg-zinc-800/50 bg-slate-100 dark:border-zinc-700/50 border-slate-200 border dark:text-zinc-200 text-slate-800 placeholder-zinc-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
           />
           <button
-            disabled
-            className="p-2.5 rounded-xl bg-indigo-500/20 text-indigo-400 cursor-not-allowed opacity-50"
+            disabled={isSending || !replyText.trim() || !onReply}
+            onClick={async () => {
+              if (!replyText.trim() || !onReply || !conversation) return;
+              setIsSending(true);
+              await onReply(conversation.id, replyText.trim());
+              setReplyText('');
+              setIsSending(false);
+            }}
+            className="p-2.5 rounded-xl bg-indigo-500 text-white hover:bg-indigo-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
               <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />

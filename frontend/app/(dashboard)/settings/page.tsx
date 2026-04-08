@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useAuthStore } from '@/stores/useAuthStore';
 import { useConnections } from '@/hooks/useIntegrations';
 import api from '@/lib/api';
+import SettingsNav from '@/components/settings/SettingsNav';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
@@ -497,10 +498,12 @@ function ApiKeysSection() {
 export default function SettingsPage() {
   return (
     <div className="p-8 max-w-3xl">
-      <div className="mb-8">
+      <div className="mb-6">
         <h1 className="text-3xl font-bold text-white mb-2">Settings</h1>
         <p className="text-gray-400">Manage your profile, integrations, and billing</p>
       </div>
+
+      <SettingsNav />
 
       <div className="space-y-6">
         <ProfileSection />

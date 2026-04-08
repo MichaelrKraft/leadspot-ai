@@ -5,7 +5,7 @@ import Providers from "@/components/Providers";
 export const metadata: Metadata = {
   title: "LeadSpot.ai - AI Agent Command Center for CRM",
   description: "Launch autonomous AI agents that create campaigns, build workflows, and manage your CRM",
-  keywords: ["CRM", "marketing automation", "AI agents", "Mautic", "autonomous agents"],
+  keywords: ["CRM", "marketing automation", "AI agents", "autonomous agents"],
   authors: [{ name: "LeadSpot.ai" }],
   openGraph: {
     title: "LeadSpot.ai - AI Agent Command Center for CRM",

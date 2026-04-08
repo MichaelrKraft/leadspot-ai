@@ -65,13 +65,13 @@ const DEMO_DECISIONS: Decision[] = [
       created_at: new Date(Date.now() - 45 * 24 * 60 * 60 * 1000).toISOString(),
       updated_at: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
       factors: [
-        { id: 'f1', decision_id: 'demo-1', name: 'Market opportunity', category: 'market', impact_score: 9, explanation: '$180B addressable market in mid-market muni bonds' },
-        { id: 'f2', decision_id: 'demo-1', name: 'Competitive gap', category: 'competitive', impact_score: 8, explanation: 'Large dealers focused on $1B+ accounts, leaving mid-market underserved' },
-        { id: 'f3', decision_id: 'demo-1', name: 'Margin improvement', category: 'financial', impact_score: 7, explanation: 'Mid-market trades carry 15-20bps higher spreads' },
+        { id: 'f1', decision_id: 'demo-1', name: 'Market opportunity', category: 'market', impact_score: 9, explanation: '$180B addressable market in mid-market muni bonds', created_at: '' },
+        { id: 'f2', decision_id: 'demo-1', name: 'Competitive gap', category: 'competitive', impact_score: 8, explanation: 'Large dealers focused on $1B+ accounts, leaving mid-market underserved', created_at: '' },
+        { id: 'f3', decision_id: 'demo-1', name: 'Margin improvement', category: 'financial', impact_score: 7, explanation: 'Mid-market trades carry 15-20bps higher spreads', created_at: '' },
       ],
       outcomes: [
-        { id: 'o1', decision_id: 'demo-1', description: 'Added 23 new mid-market accounts in Q3', outcome_type: 'actual', status: 'realized' },
-        { id: 'o2', decision_id: 'demo-1', description: 'Increased municipal bond revenue by 34%', outcome_type: 'actual', status: 'realized' },
+        { id: 'o1', decision_id: 'demo-1', description: 'Added 23 new mid-market accounts in Q3', outcome_type: 'actual', status: 'realized', created_at: '', updated_at: '' },
+        { id: 'o2', decision_id: 'demo-1', description: 'Increased municipal bond revenue by 34%', outcome_type: 'actual', status: 'realized', created_at: '', updated_at: '' },
       ],
     },
     {
@@ -84,12 +84,12 @@ const DEMO_DECISIONS: Decision[] = [
       created_at: new Date(Date.now() - 21 * 24 * 60 * 60 * 1000).toISOString(),
       updated_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
       factors: [
-        { id: 'f4', decision_id: 'demo-2', name: 'Pricing accuracy', category: 'operational', impact_score: 9, explanation: 'Current system has 8bps average pricing error on corporate bonds' },
-        { id: 'f5', decision_id: 'demo-2', name: 'Client demands', category: 'market', impact_score: 8, explanation: 'Three top-10 clients requested better pricing transparency' },
-        { id: 'f6', decision_id: 'demo-2', name: 'Regulatory pressure', category: 'regulatory', impact_score: 7, explanation: 'SEC focus on best execution requires demonstrable pricing methodology' },
+        { id: 'f4', decision_id: 'demo-2', name: 'Pricing accuracy', category: 'technical', impact_score: 9, explanation: 'Current system has 8bps average pricing error on corporate bonds', created_at: '' },
+        { id: 'f5', decision_id: 'demo-2', name: 'Client demands', category: 'market', impact_score: 8, explanation: 'Three top-10 clients requested better pricing transparency', created_at: '' },
+        { id: 'f6', decision_id: 'demo-2', name: 'Regulatory pressure', category: 'regulatory', impact_score: 7, explanation: 'SEC focus on best execution requires demonstrable pricing methodology', created_at: '' },
       ],
       outcomes: [
-        { id: 'o3', decision_id: 'demo-2', description: 'Reduce pricing latency from 2.5 seconds to under 200ms', outcome_type: 'predicted', likelihood: 90, status: 'predicted' },
+        { id: 'o3', decision_id: 'demo-2', description: 'Reduce pricing latency from 2.5 seconds to under 200ms', outcome_type: 'predicted', likelihood: 90, status: 'predicted', created_at: '', updated_at: '' },
       ],
     },
     {
@@ -102,9 +102,9 @@ const DEMO_DECISIONS: Decision[] = [
       created_at: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString(),
       updated_at: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
       factors: [
-        { id: 'f7', decision_id: 'demo-3', name: 'ESG mandate growth', category: 'market', impact_score: 9, explanation: 'ESG fixed income AUM grew 42% YoY to $4.1T globally' },
-        { id: 'f8', decision_id: 'demo-3', name: 'Client pipeline', category: 'financial', impact_score: 8, explanation: '7 existing clients expressed interest in ESG bond solutions' },
-        { id: 'f9', decision_id: 'demo-3', name: 'First-mover advantage', category: 'competitive', impact_score: 7, explanation: 'Few regional dealers have dedicated ESG fixed income capabilities' },
+        { id: 'f7', decision_id: 'demo-3', name: 'ESG mandate growth', category: 'market', impact_score: 9, explanation: 'ESG fixed income AUM grew 42% YoY to $4.1T globally', created_at: '' },
+        { id: 'f8', decision_id: 'demo-3', name: 'Client pipeline', category: 'financial', impact_score: 8, explanation: '7 existing clients expressed interest in ESG bond solutions', created_at: '' },
+        { id: 'f9', decision_id: 'demo-3', name: 'First-mover advantage', category: 'competitive', impact_score: 7, explanation: 'Few regional dealers have dedicated ESG fixed income capabilities', created_at: '' },
       ],
       outcomes: [],
     },
@@ -118,13 +118,13 @@ const DEMO_DECISIONS: Decision[] = [
       created_at: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
       updated_at: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
       factors: [
-        { id: 'f10', decision_id: 'demo-4', name: 'Regulatory risk', category: 'regulatory', impact_score: 10, explanation: 'Current system flagged in last FINRA examination' },
-        { id: 'f11', decision_id: 'demo-4', name: 'Operational efficiency', category: 'operational', impact_score: 7, explanation: 'Compliance team spending 60% of time on manual reviews' },
-        { id: 'f12', decision_id: 'demo-4', name: 'Audit readiness', category: 'regulatory', impact_score: 8, explanation: 'Improved documentation for SEC and FINRA audits' },
+        { id: 'f10', decision_id: 'demo-4', name: 'Regulatory risk', category: 'regulatory', impact_score: 10, explanation: 'Current system flagged in last FINRA examination', created_at: '' },
+        { id: 'f11', decision_id: 'demo-4', name: 'Operational efficiency', category: 'organizational', impact_score: 7, explanation: 'Compliance team spending 60% of time on manual reviews', created_at: '' },
+        { id: 'f12', decision_id: 'demo-4', name: 'Audit readiness', category: 'regulatory', impact_score: 8, explanation: 'Improved documentation for SEC and FINRA audits', created_at: '' },
       ],
       outcomes: [
-        { id: 'o4', decision_id: 'demo-4', description: 'Reduce compliance review time by 45%', outcome_type: 'predicted', likelihood: 85, status: 'predicted' },
-        { id: 'o5', decision_id: 'demo-4', description: 'Pass upcoming FINRA examination with no material findings', outcome_type: 'predicted', likelihood: 80, status: 'predicted' },
+        { id: 'o4', decision_id: 'demo-4', description: 'Reduce compliance review time by 45%', outcome_type: 'predicted', likelihood: 85, status: 'predicted', created_at: '', updated_at: '' },
+        { id: 'o5', decision_id: 'demo-4', description: 'Pass upcoming FINRA examination with no material findings', outcome_type: 'predicted', likelihood: 80, status: 'predicted', created_at: '', updated_at: '' },
       ],
     },
     {
@@ -137,13 +137,13 @@ const DEMO_DECISIONS: Decision[] = [
       created_at: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString(),
       updated_at: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
       factors: [
-        { id: 'f13', decision_id: 'demo-5', name: 'Q2 P&L volatility', category: 'financial', impact_score: 9, explanation: 'Single issuer loss of $3.2M exceeded monthly risk budget' },
-        { id: 'f14', decision_id: 'demo-5', name: 'Risk committee directive', category: 'regulatory', impact_score: 8, explanation: 'Board risk committee requested enhanced controls' },
-        { id: 'f15', decision_id: 'demo-5', name: 'Market conditions', category: 'market', impact_score: 7, explanation: 'Credit spreads widening, increased default risk in HY segment' },
+        { id: 'f13', decision_id: 'demo-5', name: 'Q2 P&L volatility', category: 'financial', impact_score: 9, explanation: 'Single issuer loss of $3.2M exceeded monthly risk budget', created_at: '' },
+        { id: 'f14', decision_id: 'demo-5', name: 'Risk committee directive', category: 'regulatory', impact_score: 8, explanation: 'Board risk committee requested enhanced controls', created_at: '' },
+        { id: 'f15', decision_id: 'demo-5', name: 'Market conditions', category: 'market', impact_score: 7, explanation: 'Credit spreads widening, increased default risk in HY segment', created_at: '' },
       ],
       outcomes: [
-        { id: 'o6', decision_id: 'demo-5', description: 'Reduced daily VaR by 28%', outcome_type: 'actual', status: 'realized' },
-        { id: 'o7', decision_id: 'demo-5', description: 'No single-issuer losses exceeding $500K since implementation', outcome_type: 'actual', status: 'realized' },
+        { id: 'o6', decision_id: 'demo-5', description: 'Reduced daily VaR by 28%', outcome_type: 'actual', status: 'realized', created_at: '', updated_at: '' },
+        { id: 'o7', decision_id: 'demo-5', description: 'No single-issuer losses exceeding $500K since implementation', outcome_type: 'actual', status: 'realized', created_at: '', updated_at: '' },
       ],
     },
 ];
@@ -219,6 +219,7 @@ export default function DecisionsPage() {
         decisions: 5,
         people: 12,
         projects: 8,
+        factors: 0,
         relationships: 24,
       });
     } finally {

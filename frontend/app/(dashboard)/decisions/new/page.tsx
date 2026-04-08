@@ -86,7 +86,7 @@ export default function NewDecisionPage() {
       setAiStatus('Creating decision...');
 
       // Prepare request data
-      const requestData: Record<string, unknown> = {
+      const requestData: { title: string; description: string; category?: DecisionCategory; decision_date?: string; context?: Record<string, unknown> } = {
         title: formData.title.trim(),
         description: formData.description.trim(),
       };

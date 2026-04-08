@@ -1,28 +1,13 @@
 'use client';
 
-import { useState } from 'react';
-import { X, Plus } from 'lucide-react';
-
-interface Campaign {
-  id: string;
-  name: string;
-  status: string;
-  type: string;
-  contacts: number;
-  sent: number;
-  openRate: string;
-  clickRate: string;
-  dateCreated: string;
-}
-
-// TODO: Wire to backend — replace DEMO_CAMPAIGNS with API call to /api/campaigns
-const DEMO_CAMPAIGNS: Campaign[] = [
-  { id: '1', name: 'Q1 Welcome Series', status: 'active', type: 'Email', contacts: 1247, sent: 3200, openRate: '34%', clickRate: '12%', dateCreated: 'Jan 15, 2026' },
-  { id: '2', name: 'Holiday Sale 2026', status: 'active', type: 'Email', contacts: 892, sent: 2100, openRate: '41%', clickRate: '18%', dateCreated: 'Mar 1, 2026' },
-  { id: '3', name: 'Webinar Follow-up', status: 'draft', type: 'Email', contacts: 0, sent: 0, openRate: '-', clickRate: '-', dateCreated: 'Mar 20, 2026' },
-  { id: '4', name: 'Re-engagement Flow', status: 'paused', type: 'Email', contacts: 456, sent: 1800, openRate: '22%', clickRate: '8%', dateCreated: 'Feb 10, 2026' },
-  { id: '5', name: 'Product Launch', status: 'active', type: 'SMS + Email', contacts: 2100, sent: 4500, openRate: '38%', clickRate: '15%', dateCreated: 'Mar 5, 2026' },
-];
+import { useState, useEffect } from 'react';
+import { X, Plus, Loader2 } from 'lucide-react';
+import {
+  listCampaigns,
+  createCampaign,
+  deleteCampaign,
+  type Campaign,
+} from '@/lib/api/campaigns';
 
 function StatusBadge({ status }: { status: string }) {
   const colors: Record<string, string> = {
@@ -37,10 +22,62 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
+function formatDate(dateStr: string): string {
+  try {
+    return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  } catch {
+    return dateStr;
+  }
+}
+
 export default function CampaignsPage() {
-  const [campaigns, setCampaigns] = useState<Campaign[]>(DEMO_CAMPAIGNS);
+  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [form, setForm] = useState({ name: '', type: 'Email' });
+
+  useEffect(() => {
+    loadCampaigns();
+  }, []);
+
+  async function loadCampaigns() {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const data = await listCampaigns();
+      setCampaigns(data.campaigns);
+    } catch {
+      setError('Failed to load campaigns');
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  async function handleCreate(e: React.FormEvent) {
+    e.preventDefault();
+    try {
+      setIsSubmitting(true);
+      await createCampaign({ name: form.name, type: form.type, status: 'draft' });
+      setForm({ name: '', type: 'Email' });
+      setShowModal(false);
+      await loadCampaigns();
+    } catch {
+      setError('Failed to create campaign');
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  async function handleDelete(id: string) {
+    try {
+      await deleteCampaign(id);
+      setCampaigns(prev => prev.filter(c => c.id !== id));
+    } catch {
+      setError('Failed to delete campaign');
+    }
+  }
 
   return (
     <div className="p-8">
@@ -61,40 +98,70 @@ export default function CampaignsPage() {
         </button>
       </div>
 
-      {/* Campaigns Table */}
-      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 dark:border-zinc-800/50 dark:bg-zinc-900">
-        <table className="w-full">
-          <thead>
-            <tr className="border-b border-slate-200 dark:border-zinc-800/50">
-              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-400 dark:text-zinc-500">Campaign</th>
-              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-400 dark:text-zinc-500">Status</th>
-              <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-slate-400 dark:text-zinc-500">Contacts</th>
-              <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-slate-400 dark:text-zinc-500">Sent</th>
-              <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-slate-400 dark:text-zinc-500">Open</th>
-              <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-slate-400 dark:text-zinc-500">Click</th>
-              <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-slate-400 dark:text-zinc-500">Created</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-200 dark:divide-zinc-800/50">
-            {campaigns.map((campaign) => (
-              <tr key={campaign.id} className="transition-colors hover:bg-slate-100 dark:hover:bg-zinc-800/30">
-                <td className="px-6 py-4">
-                  <p className="text-sm font-medium text-slate-900 dark:text-zinc-100">{campaign.name}</p>
-                  <p className="text-xs text-slate-400 dark:text-zinc-500">{campaign.type}</p>
-                </td>
-                <td className="px-6 py-4">
-                  <StatusBadge status={campaign.status} />
-                </td>
-                <td className="px-6 py-4 text-right text-sm text-slate-700 dark:text-zinc-300">{campaign.contacts.toLocaleString()}</td>
-                <td className="px-6 py-4 text-right text-sm text-slate-700 dark:text-zinc-300">{campaign.sent.toLocaleString()}</td>
-                <td className="px-6 py-4 text-right text-sm font-medium text-slate-900 dark:text-zinc-100">{campaign.openRate}</td>
-                <td className="px-6 py-4 text-right text-sm font-medium text-slate-900 dark:text-zinc-100">{campaign.clickRate}</td>
-                <td className="px-6 py-4 text-right text-xs text-slate-400 dark:text-zinc-500">{campaign.dateCreated}</td>
+      {/* Error banner */}
+      {error && (
+        <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-800/50 dark:bg-red-900/20 dark:text-red-400">
+          {error}
+        </div>
+      )}
+
+      {/* Loading state */}
+      {isLoading ? (
+        <div className="flex items-center justify-center py-20">
+          <Loader2 className="h-6 w-6 animate-spin text-slate-400 dark:text-zinc-500" />
+        </div>
+      ) : (
+        /* Campaigns Table */
+        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 dark:border-zinc-800/50 dark:bg-zinc-900">
+          <table className="w-full">
+            <thead>
+              <tr className="border-b border-slate-200 dark:border-zinc-800/50">
+                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-400 dark:text-zinc-500">Campaign</th>
+                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-400 dark:text-zinc-500">Status</th>
+                <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-slate-400 dark:text-zinc-500">Leads</th>
+                <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-slate-400 dark:text-zinc-500">Opened</th>
+                <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-slate-400 dark:text-zinc-500">Replied</th>
+                <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-slate-400 dark:text-zinc-500">Created</th>
+                <th className="px-6 py-3" />
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody className="divide-y divide-slate-200 dark:divide-zinc-800/50">
+              {campaigns.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="px-6 py-12 text-center text-sm text-slate-400 dark:text-zinc-500">
+                    No campaigns yet. Create your first campaign to get started.
+                  </td>
+                </tr>
+              ) : (
+                campaigns.map((campaign) => (
+                  <tr key={campaign.id} className="transition-colors hover:bg-slate-100 dark:hover:bg-zinc-800/30">
+                    <td className="px-6 py-4">
+                      <p className="text-sm font-medium text-slate-900 dark:text-zinc-100">{campaign.name}</p>
+                      <p className="text-xs text-slate-400 dark:text-zinc-500">{campaign.type}</p>
+                    </td>
+                    <td className="px-6 py-4">
+                      <StatusBadge status={campaign.status} />
+                    </td>
+                    <td className="px-6 py-4 text-right text-sm text-slate-700 dark:text-zinc-300">{campaign.leads.toLocaleString()}</td>
+                    <td className="px-6 py-4 text-right text-sm font-medium text-slate-900 dark:text-zinc-100">{campaign.opened.toLocaleString()}</td>
+                    <td className="px-6 py-4 text-right text-sm font-medium text-slate-900 dark:text-zinc-100">{campaign.replied.toLocaleString()}</td>
+                    <td className="px-6 py-4 text-right text-xs text-slate-400 dark:text-zinc-500">{formatDate(campaign.created_at)}</td>
+                    <td className="px-6 py-4 text-right">
+                      <button
+                        onClick={() => handleDelete(campaign.id)}
+                        className="rounded p-1 text-slate-400 hover:bg-slate-200 hover:text-red-500 dark:hover:bg-zinc-700 dark:hover:text-red-400"
+                        aria-label="Delete campaign"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       {/* New Campaign Modal */}
       {showModal && (
@@ -106,26 +173,7 @@ export default function CampaignsPage() {
                 <X className="h-5 w-5" />
               </button>
             </div>
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                const campaign: Campaign = {
-                  id: `new-${Date.now()}`,
-                  name: form.name,
-                  status: 'draft',
-                  type: form.type,
-                  contacts: 0,
-                  sent: 0,
-                  openRate: '-',
-                  clickRate: '-',
-                  dateCreated: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-                };
-                setCampaigns(prev => [campaign, ...prev]);
-                setForm({ name: '', type: 'Email' });
-                setShowModal(false);
-              }}
-              className="space-y-4"
-            >
+            <form onSubmit={handleCreate} className="space-y-4">
               <div>
                 <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-zinc-300">Campaign Name *</label>
                 <input
@@ -149,10 +197,19 @@ export default function CampaignsPage() {
                 </select>
               </div>
               <div className="flex justify-end gap-3 pt-2">
-                <button type="button" onClick={() => setShowModal(false)} className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800">
+                <button
+                  type="button"
+                  onClick={() => setShowModal(false)}
+                  className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                >
                   Cancel
                 </button>
-                <button type="submit" className="rounded-lg bg-gradient-to-r from-indigo-500 to-indigo-400 px-4 py-2 text-sm font-medium text-white shadow-sm hover:from-indigo-600 hover:to-indigo-500">
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="flex items-center gap-2 rounded-lg bg-gradient-to-r from-indigo-500 to-indigo-400 px-4 py-2 text-sm font-medium text-white shadow-sm hover:from-indigo-600 hover:to-indigo-500 disabled:opacity-60"
+                >
+                  {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
                   Create Campaign
                 </button>
               </div>

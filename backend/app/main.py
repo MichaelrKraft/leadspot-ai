@@ -42,12 +42,14 @@ from app.routers import (
     auth,
     billing,
     calendar,
+    campaigns,
     chat,
     contacts as contacts_router,
     conversations,
     deals,
     decisions,
     documents_local,
+    emails,
     health,
     insights,
     integrations,
@@ -55,10 +57,13 @@ from app.routers import (
     oauth,
     query,
     query_local,
+    reports,
     scoring,
+    segments,
     settings as settings_router,
     superadmin,
 )
+from app.seed import seed_demo_data
 from app.services.ingestion.pipeline import IngestionPipeline
 from app.workers.health_worker import start_health_worker, stop_health_worker
 from app.workers.sync_worker import init_sync_worker, sync_worker
@@ -71,6 +76,7 @@ async def lifespan(app: FastAPI):
     """Application lifespan events"""
     # Startup
     await init_db()
+    await seed_demo_data()
 
     # Initialize and start background workers
     try:
@@ -176,6 +182,7 @@ app.include_router(health.router, tags=["health"])
 app.include_router(auth.router, prefix="/auth", tags=["auth"])
 app.include_router(chat.router, prefix="/api", tags=["chat"])
 app.include_router(contacts_router.router, prefix="/api", tags=["contacts"])
+app.include_router(campaigns.router, prefix="/api", tags=["campaigns"])
 app.include_router(deals.router, prefix="/api", tags=["deals"])
 app.include_router(insights.router, prefix="/api", tags=["insights"])
 app.include_router(scoring.router, prefix="/api", tags=["scoring"])
@@ -186,6 +193,7 @@ app.include_router(documents_local.router, tags=["documents"])
 app.include_router(knowledge_health_local.router, tags=["knowledge-health"])
 app.include_router(query_local.router, tags=["query-local"])
 app.include_router(admin.router, tags=["admin"])
+app.include_router(reports.router, prefix="/api", tags=["reports"])
 app.include_router(superadmin.router, tags=["superadmin"])
 app.include_router(integrations.router, prefix="/api", tags=["integrations"])
 app.include_router(decisions.router, tags=["decisions"])
@@ -194,6 +202,8 @@ app.include_router(billing.router, tags=["billing"])
 app.include_router(conversations.router, tags=["conversations"])
 app.include_router(agent_proxy.router, prefix="/api/agent", tags=["agent"])
 app.include_router(calendar.router, tags=["calendar"])
+app.include_router(segments.router, prefix="/api", tags=["segments"])
+app.include_router(emails.router, prefix="/api", tags=["emails"])
 
 
 @app.get("/")

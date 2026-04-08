@@ -7,6 +7,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import AuthGuard from '@/components/auth/AuthGuard';
 import { useAuthStore } from '@/stores/useAuthStore';
 import ErrorBoundary from '@/components/ErrorBoundary';
+import ThemeToggle from '@/components/ThemeToggle';
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -132,6 +133,15 @@ const navigation: NavItem[] = [
     ),
   },
   {
+    name: 'Decisions',
+    href: '/decisions',
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M12 2a7 7 0 0 1 7 7c0 2.38-1.19 4.47-3 5.74V17a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1v-2.26C6.19 13.47 5 11.38 5 9a7 7 0 0 1 7-7M9 21v-1h6v1a1 1 0 0 1-1 1h-4a1 1 0 0 1-1-1m3-17a5 5 0 0 0-5 5c0 2.05 1.23 3.81 3 4.58V16h4v-2.42c1.77-.77 3-2.53 3-4.58a5 5 0 0 0-5-5z" />
+      </svg>
+    ),
+  },
+  {
     name: 'Voice Agents',
     href: '/voice-agents',
     icon: (
@@ -174,6 +184,7 @@ const pageTitles: Record<string, string> = {
   '/inbox': 'Inbox',
   '/reports': 'Reports',
   '/timeline': 'Timeline',
+  '/decisions': 'Decisions',
   '/voice-agents': 'Voice Agents',
   '/community': 'Community',
   '/settings': 'Settings',
@@ -200,7 +211,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
   return (
     <AuthGuard>
-      <div className="flex min-h-screen">
+      <div className="flex h-screen overflow-hidden">
         {/* Sidebar */}
         <aside className="fixed inset-y-0 left-0 z-40 flex w-[220px] flex-col border-r border-slate-200 bg-[#f8fafc] dark:border-white/10 dark:bg-[#1e2639]">
           {/* Logo */}
@@ -277,7 +288,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         </aside>
 
         {/* Main Content Area */}
-        <div className="ml-[220px] flex flex-1 flex-col">
+        <div className="ml-[220px] flex flex-1 flex-col min-h-0">
           {/* Header Bar */}
           <header className="flex items-center justify-between border-b border-slate-200 bg-[#f8fafc] px-6 py-4 dark:border-white/10 dark:bg-[#111118]">
             <h1 className="m-0 text-xl font-semibold text-slate-800 dark:text-white">
@@ -285,8 +296,9 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             </h1>
             <div className="flex items-center gap-4">
               <span className="text-sm text-slate-500 dark:text-slate-400">
-                {user?.email || ''}
+                {user?.name || user?.email || ''}
               </span>
+              <ThemeToggle compact />
               <button
                 onClick={handleLogout}
                 className="rounded-lg px-3 py-1.5 text-xs font-medium text-slate-500 transition-colors hover:bg-red-50 hover:text-red-600 dark:text-slate-400 dark:hover:bg-red-500/10 dark:hover:text-red-400"
@@ -297,7 +309,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           </header>
 
           {/* Page Content */}
-          <main className="flex-1 bg-white dark:bg-[#0a0a0d]">
+          <main className="flex-1 overflow-y-auto bg-white dark:bg-[#0a0a0d]">
             <ErrorBoundary>
               <div className="relative z-10">{children}</div>
             </ErrorBoundary>

@@ -47,7 +47,13 @@ export function registerSmartListRoutes(router: Router): void {
         throw createApiError('organizationId query parameter is required', 400);
       }
 
-      const lists = getSmartLists(organizationId);
+      let lists = getSmartLists(organizationId);
+
+      if (lists.length === 0) {
+        createDefaultSmartLists(organizationId);
+        lists = getSmartLists(organizationId);
+      }
+
       res.json({ lists, total: lists.length });
     } catch (err) {
       next(err);
