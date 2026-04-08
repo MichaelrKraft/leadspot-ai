@@ -62,6 +62,7 @@ from app.routers import (
     segments,
     settings as settings_router,
     superadmin,
+    suppressions,
 )
 from app.seed import seed_demo_data
 from app.services.ingestion.pipeline import IngestionPipeline
@@ -204,6 +205,7 @@ app.include_router(agent_proxy.router, prefix="/api/agent", tags=["agent"])
 app.include_router(calendar.router, tags=["calendar"])
 app.include_router(segments.router, prefix="/api", tags=["segments"])
 app.include_router(emails.router, prefix="/api", tags=["emails"])
+app.include_router(suppressions.router, prefix="/api", tags=["suppressions"])
 
 
 @app.get("/")

@@ -35,6 +35,10 @@ class Email(Base):
     replied = Column(Boolean, default=False, nullable=False)
     sent_at = Column(DateTime, nullable=True)
     user_id = Column(String(36), nullable=False, index=True)
+    campaign_id = Column(String(36), nullable=True, index=True)
+    contact_id = Column(String(36), nullable=True, index=True)
+    message_id = Column(String(255), nullable=True, index=True)
+    unsubscribed_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 

@@ -206,6 +206,41 @@ async def update_email(
     return EmailResponse.model_validate(email)
 
 
+class RecordSendRequest(BaseModel):
+    contact_id: str
+    campaign_id: Optional[str] = None
+    subject: str
+    to_addr: str
+    from_addr: str
+    body: Optional[str] = None
+    message_id: Optional[str] = None  # Resend message ID
+    user_id: str = "agent-service"
+
+
+@router.post("/emails/record-send", status_code=status.HTTP_201_CREATED, tags=["emails"])
+async def record_email_send(data: RecordSendRequest, db: AsyncSession = Depends(get_db)):
+    """Called by agent-service after sending an email via Resend to record it in the database."""
+    import uuid
+
+    email_record = Email(
+        id=str(uuid.uuid4()),
+        subject=data.subject,
+        status="Sent",
+        from_addr=data.from_addr,
+        to_addr=data.to_addr,
+        body=data.body,
+        email_type="Outbound",
+        campaign_id=data.campaign_id,
+        contact_id=data.contact_id,
+        message_id=data.message_id,
+        user_id=data.user_id,
+        sent_at=datetime.utcnow(),
+    )
+    db.add(email_record)
+    await db.commit()
+    return {"status": "recorded", "email_id": email_record.id}
+
+
 @router.delete("/emails/{email_id}", status_code=status.HTTP_204_NO_CONTENT, tags=["emails"])
 async def delete_email(
     email_id: str,
