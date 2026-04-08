@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { X, Plus, Loader2 } from 'lucide-react';
+import { X, Plus, Loader2, Eye, Send } from 'lucide-react';
 import {
   listCampaigns,
   createCampaign,
@@ -37,6 +37,15 @@ export default function CampaignsPage() {
   const [showModal, setShowModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [form, setForm] = useState({ name: '', type: 'Email' });
+
+  // Email preview state
+  const [previewCampaign, setPreviewCampaign] = useState<Campaign | null>(null);
+
+  // Test send state
+  const [testSendCampaign, setTestSendCampaign] = useState<Campaign | null>(null);
+  const [testEmail, setTestEmail] = useState('');
+  const [testSending, setTestSending] = useState(false);
+  const [testSendResult, setTestSendResult] = useState<{ success: boolean; message: string } | null>(null);
 
   useEffect(() => {
     loadCampaigns();
@@ -76,6 +85,31 @@ export default function CampaignsPage() {
       setCampaigns(prev => prev.filter(c => c.id !== id));
     } catch {
       setError('Failed to delete campaign');
+    }
+  }
+
+  async function handleTestSend() {
+    if (!testSendCampaign || !testEmail.trim()) return;
+    setTestSending(true);
+    setTestSendResult(null);
+    try {
+      const response = await fetch('/api/campaigns/test-send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          campaignId: testSendCampaign.id,
+          email: testEmail.trim(),
+        }),
+      });
+      const data = await response.json() as { message?: string; error?: string };
+      setTestSendResult({
+        success: response.ok,
+        message: response.ok ? (data.message ?? 'Test email sent!') : (data.error ?? 'Failed to send'),
+      });
+    } catch {
+      setTestSendResult({ success: false, message: 'Network error — check that the backend is running' });
+    } finally {
+      setTestSending(false);
     }
   }
 
@@ -147,19 +181,130 @@ export default function CampaignsPage() {
                     <td className="px-6 py-4 text-right text-sm font-medium text-slate-900 dark:text-zinc-100">{campaign.replied.toLocaleString()}</td>
                     <td className="px-6 py-4 text-right text-xs text-slate-400 dark:text-zinc-500">{formatDate(campaign.created_at)}</td>
                     <td className="px-6 py-4 text-right">
-                      <button
-                        onClick={() => handleDelete(campaign.id)}
-                        className="rounded p-1 text-slate-400 hover:bg-slate-200 hover:text-red-500 dark:hover:bg-zinc-700 dark:hover:text-red-400"
-                        aria-label="Delete campaign"
-                      >
-                        <X className="h-4 w-4" />
-                      </button>
+                      <div className="flex items-center justify-end gap-1">
+                        <button
+                          onClick={() => setPreviewCampaign(campaign)}
+                          className="rounded p-1 text-slate-400 hover:bg-slate-200 hover:text-indigo-500 dark:hover:bg-zinc-700 dark:hover:text-indigo-400"
+                          aria-label="Preview campaign"
+                          title="Preview email"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => { setTestSendCampaign(campaign); setTestSendResult(null); setTestEmail(''); }}
+                          className="rounded p-1 text-slate-400 hover:bg-slate-200 hover:text-indigo-500 dark:hover:bg-zinc-700 dark:hover:text-indigo-400"
+                          aria-label="Send test email"
+                          title="Send test email"
+                        >
+                          <Send className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(campaign.id)}
+                          className="rounded p-1 text-slate-400 hover:bg-slate-200 hover:text-red-500 dark:hover:bg-zinc-700 dark:hover:text-red-400"
+                          aria-label="Delete campaign"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))
               )}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {/* Email Preview Modal */}
+      {previewCampaign && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+          <div className="bg-white dark:bg-zinc-900 rounded-xl shadow-2xl w-full max-w-2xl mx-4 overflow-hidden border border-slate-200 dark:border-zinc-700">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-zinc-700">
+              <div>
+                <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Email Preview</h2>
+                <p className="text-sm text-slate-500 dark:text-zinc-400 mt-0.5">{previewCampaign.name}</p>
+              </div>
+              <button
+                onClick={() => setPreviewCampaign(null)}
+                className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-zinc-800 dark:hover:text-zinc-200 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="bg-slate-50 dark:bg-zinc-800 rounded-lg p-4">
+                <p className="text-xs text-slate-400 dark:text-zinc-500 uppercase tracking-wide mb-1">Campaign Type</p>
+                <p className="text-sm font-medium text-slate-900 dark:text-white">
+                  {previewCampaign.type || '(No type set)'}
+                </p>
+              </div>
+              <div className="border border-slate-200 dark:border-zinc-700 rounded-lg overflow-hidden min-h-48">
+                <div className="bg-white dark:bg-zinc-900 p-6 text-sm text-slate-700 dark:text-zinc-300 leading-relaxed">
+                  <p className="text-gray-400 italic">No email body configured for this campaign yet.</p>
+                  <hr className="my-4 border-slate-200 dark:border-zinc-700" />
+                  <p className="text-xs text-slate-400 dark:text-zinc-500 text-center">
+                    [Physical address] · <span className="underline cursor-pointer">Unsubscribe</span>
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="px-6 py-4 border-t border-slate-200 dark:border-zinc-700 flex justify-between items-center">
+              <p className="text-xs text-slate-400 dark:text-zinc-500">Preview only — actual emails will include compliance footer</p>
+              <button
+                onClick={() => setPreviewCampaign(null)}
+                className="px-4 py-2 text-sm font-medium text-white bg-indigo-500 rounded-lg hover:bg-indigo-600 transition-colors"
+              >
+                Close Preview
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Test Send Modal */}
+      {testSendCampaign && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+          <div className="bg-white dark:bg-zinc-900 rounded-xl shadow-2xl w-full max-w-md mx-4 p-6 border border-slate-200 dark:border-zinc-700">
+            <h2 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">Send Test Email</h2>
+            <p className="text-sm text-slate-500 dark:text-zinc-400 mb-4">
+              Send a single test email for <span className="font-medium text-slate-700 dark:text-zinc-200">{testSendCampaign.name}</span> to verify it is configured correctly.
+            </p>
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs font-medium text-slate-700 dark:text-zinc-300 mb-1">
+                  Send test to
+                </label>
+                <input
+                  type="email"
+                  value={testEmail}
+                  onChange={(e) => setTestEmail(e.target.value)}
+                  placeholder="your@email.com"
+                  className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+              {testSendResult && (
+                <p className={`text-sm ${testSendResult.success ? 'text-green-600 dark:text-green-400' : 'text-red-500 dark:text-red-400'}`}>
+                  {testSendResult.message}
+                </p>
+              )}
+              <div className="flex gap-3 justify-end pt-2">
+                <button
+                  onClick={() => { setTestSendCampaign(null); setTestSendResult(null); setTestEmail(''); }}
+                  className="px-4 py-2 text-sm text-slate-600 hover:text-slate-800 dark:text-zinc-400 dark:hover:text-zinc-200"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleTestSend}
+                  disabled={testSending || !testEmail.trim()}
+                  className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-indigo-500 rounded-lg hover:bg-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  {testSending && <Loader2 className="h-4 w-4 animate-spin" />}
+                  {testSending ? 'Sending...' : 'Send Test'}
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
 

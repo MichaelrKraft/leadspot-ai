@@ -13,7 +13,7 @@ if (SENTRY_DSN) {
 
     // Environment and release
     environment: process.env.NEXT_PUBLIC_APP_ENV || 'development',
-    release: `innosynth-frontend@${process.env.NEXT_PUBLIC_APP_VERSION || '0.1.0'}`,
+    release: `leadspot-frontend@${process.env.NEXT_PUBLIC_APP_VERSION || '0.1.0'}`,
 
     // Performance Monitoring
     tracesSampleRate: process.env.NEXT_PUBLIC_APP_ENV === 'production' ? 0.05 : 0.1,
