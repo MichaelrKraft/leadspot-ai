@@ -1,3 +1,4 @@
+from typing import Optional
 """
 Super Admin API Router
 
@@ -41,7 +42,7 @@ class OrganizationSummary(BaseModel):
     user_count: int
     document_count: int
     total_queries: int
-    last_activity: datetime | None
+    last_activity: Optional[datetime]
     created_at: datetime
     is_active: bool
 
@@ -159,8 +160,8 @@ async def get_platform_stats(
 async def list_all_organizations(
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=500),
-    search: str | None = None,
-    tier: str | None = None,
+    search: Optional[str] = None,
+    tier: Optional[str] = None,
     current_user: dict = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
@@ -354,8 +355,8 @@ async def _get_organizations_summary(
     db: AsyncSession,
     skip: int = 0,
     limit: int = 100,
-    search: str | None = None,
-    tier: str | None = None
+    search: Optional[str] = None,
+    tier: Optional[str] = None
 ) -> list[OrganizationSummary]:
     """Get summary of all organizations."""
     query = select(Organization)

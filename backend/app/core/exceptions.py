@@ -1,7 +1,7 @@
 """
 Custom exception classes for InnoSynth.ai application.
 """
-from typing import Any
+from typing import Optional, Any
 
 
 class BaseAPIException(Exception):
@@ -11,8 +11,8 @@ class BaseAPIException(Exception):
         self,
         message: str,
         status_code: int = 500,
-        error_code: str | None = None,
-        details: dict[str, Any] | None = None
+        error_code: Optional[str] = None,
+        details: Optional[dict[str, Any]] = None
     ):
         self.message = message
         self.status_code = status_code
@@ -40,8 +40,8 @@ class NotFoundError(BaseAPIException):
     def __init__(
         self,
         resource: str,
-        identifier: str | None = None,
-        details: dict[str, Any] | None = None
+        identifier: Optional[str] = None,
+        details: Optional[dict[str, Any]] = None
     ):
         message = f"{resource} not found"
         if identifier:
@@ -60,8 +60,8 @@ class ValidationError(BaseAPIException):
     def __init__(
         self,
         message: str = "Validation failed",
-        field_errors: dict[str, str] | None = None,
-        details: dict[str, Any] | None = None
+        field_errors: Optional[dict[str, str]] = None,
+        details: Optional[dict[str, Any]] = None
     ):
         final_details = details or {}
         if field_errors:
@@ -80,7 +80,7 @@ class AuthenticationError(BaseAPIException):
     def __init__(
         self,
         message: str = "Authentication failed",
-        details: dict[str, Any] | None = None
+        details: Optional[dict[str, Any]] = None
     ):
         super().__init__(
             message=message,
@@ -96,8 +96,8 @@ class AuthorizationError(BaseAPIException):
     def __init__(
         self,
         message: str = "Permission denied",
-        required_permission: str | None = None,
-        details: dict[str, Any] | None = None
+        required_permission: Optional[str] = None,
+        details: Optional[dict[str, Any]] = None
     ):
         final_details = details or {}
         if required_permission:
@@ -116,9 +116,9 @@ class RateLimitError(BaseAPIException):
     def __init__(
         self,
         message: str = "Rate limit exceeded",
-        retry_after: int | None = None,
-        limit: int | None = None,
-        details: dict[str, Any] | None = None
+        retry_after: Optional[int] = None,
+        limit: Optional[int] = None,
+        details: Optional[dict[str, Any]] = None
     ):
         final_details = details or {}
         if retry_after:
@@ -140,8 +140,8 @@ class ExternalServiceError(BaseAPIException):
         self,
         service: str,
         message: str = "External service error",
-        original_error: str | None = None,
-        details: dict[str, Any] | None = None
+        original_error: Optional[str] = None,
+        details: Optional[dict[str, Any]] = None
     ):
         final_details = details or {}
         final_details['service'] = service
@@ -161,8 +161,8 @@ class DatabaseError(BaseAPIException):
     def __init__(
         self,
         message: str = "Database operation failed",
-        operation: str | None = None,
-        details: dict[str, Any] | None = None
+        operation: Optional[str] = None,
+        details: Optional[dict[str, Any]] = None
     ):
         final_details = details or {}
         if operation:
@@ -181,8 +181,8 @@ class ConflictError(BaseAPIException):
     def __init__(
         self,
         message: str = "Resource conflict",
-        conflicting_field: str | None = None,
-        details: dict[str, Any] | None = None
+        conflicting_field: Optional[str] = None,
+        details: Optional[dict[str, Any]] = None
     ):
         final_details = details or {}
         if conflicting_field:
@@ -201,8 +201,8 @@ class ServiceUnavailableError(BaseAPIException):
     def __init__(
         self,
         message: str = "Service temporarily unavailable",
-        retry_after: int | None = None,
-        details: dict[str, Any] | None = None
+        retry_after: Optional[int] = None,
+        details: Optional[dict[str, Any]] = None
     ):
         final_details = details or {}
         if retry_after:
@@ -221,8 +221,8 @@ class BusinessLogicError(BaseAPIException):
     def __init__(
         self,
         message: str,
-        rule: str | None = None,
-        details: dict[str, Any] | None = None
+        rule: Optional[str] = None,
+        details: Optional[dict[str, Any]] = None
     ):
         final_details = details or {}
         if rule:

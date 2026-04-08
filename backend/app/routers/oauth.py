@@ -1,3 +1,4 @@
+from typing import Optional
 """OAuth API endpoints for managing integrations"""
 
 import uuid
@@ -192,8 +193,8 @@ async def oauth_callback(
 
 @router.get("/connections", response_model=OAuthConnectionList)
 async def list_connections(
-    provider: str | None = Query(None, description="Filter by provider"),
-    status: str | None = Query(None, description="Filter by status"),
+    provider: Optional[str] = Query(None, description="Filter by provider"),
+    status: Optional[str] = Query(None, description="Filter by status"),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):

@@ -10,7 +10,7 @@ Requires Ollama to be installed and running:
 """
 
 import logging
-from typing import Any
+from typing import Optional, Any
 
 import httpx
 
@@ -53,7 +53,7 @@ async def get_available_models() -> list:
     return []
 
 
-async def get_best_available_model() -> str | None:
+async def get_best_available_model() -> Optional[str]:
     """Get the best available model from the preferred list."""
     available = await get_available_models()
     if not available:
@@ -71,8 +71,8 @@ async def get_best_available_model() -> str | None:
 
 async def generate(
     prompt: str,
-    model: str | None = None,
-    system_prompt: str | None = None,
+    model: Optional[str] = None,
+    system_prompt: Optional[str] = None,
     temperature: float = 0.7,
     max_tokens: int = 2048
 ) -> dict[str, Any]:
@@ -167,7 +167,7 @@ async def generate(
 
 async def chat(
     messages: list,
-    model: str | None = None,
+    model: Optional[str] = None,
     temperature: float = 0.7,
     max_tokens: int = 2048
 ) -> dict[str, Any]:

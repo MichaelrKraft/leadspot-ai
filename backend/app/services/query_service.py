@@ -1,3 +1,4 @@
+from typing import Optional
 """
 Main query orchestration service - wires together the full RAG pipeline
 """
@@ -21,7 +22,7 @@ from app.services.vector_service import search_similar_documents
 class QueryService:
     """Orchestrates the complete RAG query pipeline"""
 
-    def __init__(self, cache_service: CacheService | None = None):
+    def __init__(self, cache_service: Optional[CacheService] = None):
         self.cache_service = cache_service
         self.context_builder = get_context_builder()
         self.citation_service = get_citation_service()
@@ -292,7 +293,7 @@ _query_service = None
 
 
 async def get_query_service(
-    cache_service: CacheService | None = None
+    cache_service: Optional[CacheService] = None
 ) -> QueryService:
     """
     Get singleton QueryService instance

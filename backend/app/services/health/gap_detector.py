@@ -1,3 +1,4 @@
+from typing import Optional
 """Detect knowledge gaps based on user queries and failed searches."""
 
 import logging
@@ -28,7 +29,7 @@ class GapDetector:
         query: str,
         confidence: float,
         result_count: int,
-        user_id: str | None = None
+        user_id: Optional[str] = None
     ) -> None:
         """
         Track a query for gap detection.

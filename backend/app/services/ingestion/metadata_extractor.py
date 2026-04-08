@@ -11,7 +11,7 @@ Extracts and enriches document metadata:
 import logging
 import re
 from datetime import datetime
-from typing import Any
+from typing import Optional, Any
 
 import openai
 
@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 class MetadataExtractor:
     """Service for extracting and enriching document metadata."""
 
-    def __init__(self, openai_api_key: str | None = None):
+    def __init__(self, openai_api_key: Optional[str] = None):
         """
         Initialize metadata extractor.
 
@@ -105,7 +105,7 @@ class MetadataExtractor:
 
         return metadata
 
-    def _extract_title(self, text: str) -> str | None:
+    def _extract_title(self, text: str) -> Optional[str]:
         """
         Extract title from text.
 
@@ -265,7 +265,7 @@ Summary:"""
         self,
         text: str,
         file_metadata: dict[str, Any]
-    ) -> dict[str, Any] | None:
+    ) -> Optional[dict[str, Any]]:
         """
         Extract author information.
 

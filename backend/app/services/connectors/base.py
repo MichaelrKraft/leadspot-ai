@@ -1,3 +1,4 @@
+from typing import Optional
 """Base connector class for data source integrations"""
 
 import asyncio
@@ -15,11 +16,11 @@ class Document:
     name: str
     content: str
     mime_type: str
-    source_url: str | None = None
-    modified_at: datetime | None = None
-    created_at: datetime | None = None
-    size_bytes: int | None = None
-    metadata: dict | None = None
+    source_url: Optional[str] = None
+    modified_at: Optional[datetime] = None
+    created_at: Optional[datetime] = None
+    size_bytes: Optional[int] = None
+    metadata: Optional[dict] = None
 
 
 @dataclass
@@ -29,9 +30,9 @@ class SyncStatus:
     total_files: int = 0
     processed_files: int = 0
     failed_files: int = 0
-    last_sync_at: datetime | None = None
+    last_sync_at: Optional[datetime] = None
     status: str = "idle"  # idle, syncing, completed, error
-    error_message: str | None = None
+    error_message: Optional[str] = None
 
 
 class BaseConnector(ABC):
@@ -57,9 +58,9 @@ class BaseConnector(ABC):
     @abstractmethod
     async def list_files(
         self,
-        folder_id: str | None = None,
+        folder_id: Optional[str] = None,
         recursive: bool = True,
-        max_results: int | None = None,
+        max_results: Optional[int] = None,
     ) -> list[dict]:
         """
         List files from the data source.
@@ -89,7 +90,7 @@ class BaseConnector(ABC):
 
     async def sync_all(
         self,
-        folder_id: str | None = None,
+        folder_id: Optional[str] = None,
         batch_size: int = 10,
     ) -> AsyncIterator[Document]:
         """
@@ -157,7 +158,7 @@ class BaseConnector(ABC):
         except Exception:
             return False
 
-    def _handle_rate_limit(self, retry_after: int | None = None):
+    def _handle_rate_limit(self, retry_after: Optional[int] = None):
         """
         Handle rate limiting by adjusting delay.
 

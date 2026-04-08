@@ -1,3 +1,4 @@
+from typing import Optional
 """FastAPI router for Decision endpoints."""
 
 from datetime import datetime
@@ -130,8 +131,8 @@ async def create_decision(
 async def list_decisions(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
-    category: str | None = None,
-    status_filter: str | None = Query(None, alias="status"),
+    category: Optional[str] = None,
+    status_filter: Optional[str] = Query(None, alias="status"),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):

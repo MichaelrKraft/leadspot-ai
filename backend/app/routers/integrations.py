@@ -1,3 +1,4 @@
+from typing import Optional
 """
 Integrations API Router
 
@@ -57,8 +58,8 @@ class ConnectionResponse(BaseModel):
     """Response for a connection operation"""
     success: bool
     message: str
-    connection_id: str | None = None
-    redirect_url: str | None = None
+    connection_id: Optional[str] = None
+    redirect_url: Optional[str] = None
 
 
 class SyncStatusResponse(BaseModel):
@@ -66,9 +67,9 @@ class SyncStatusResponse(BaseModel):
     connection_id: str
     provider: str
     status: str
-    connected_user: str | None
-    last_sync_at: str | None
-    last_sync_status: str | None
+    connected_user: Optional[str]
+    last_sync_at: Optional[str]
+    last_sync_status: Optional[str]
     documents_synced: int
     total_documents: int
 
@@ -309,7 +310,7 @@ async def demo_callback(
 
 @router.get("/connections")
 async def list_connections(
-    provider: str | None = Query(None, description="Filter by provider"),
+    provider: Optional[str] = Query(None, description="Filter by provider"),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):

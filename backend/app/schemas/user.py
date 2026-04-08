@@ -1,3 +1,4 @@
+from typing import Optional
 """
 User Pydantic schemas
 """
@@ -30,7 +31,7 @@ class UserResponse(BaseModel):
     organization_id: UUID
     role: str
     created_at: datetime
-    last_login: datetime | None = None
+    last_login: Optional[datetime] = None
 
     model_config = {"from_attributes": True}
 

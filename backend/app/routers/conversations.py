@@ -1,3 +1,4 @@
+from typing import Optional
 """
 Conversations router — inbox email/SMS threads.
 Backed by SQLite via SQLAlchemy async session.
@@ -66,11 +67,11 @@ class ConversationMessage(Base):
 class ConversationOut(BaseModel):
     id: str
     type: str
-    contact_id: str | None
+    contact_id: Optional[str]
     contact_name: str
-    contact_email: str | None
-    contact_phone: str | None
-    subject: str | None
+    contact_email: Optional[str]
+    contact_phone: Optional[str]
+    subject: Optional[str]
     last_message: str
     last_message_at: str
     unread_count: int
@@ -101,7 +102,7 @@ class MessageOut(BaseModel):
     direction: str
     body: str
     sent_at: str
-    sender_name: str | None
+    sender_name: Optional[str]
 
     @classmethod
     def from_orm(cls, m: ConversationMessage) -> "MessageOut":
@@ -117,12 +118,12 @@ class MessageOut(BaseModel):
 
 class CreateConversationBody(BaseModel):
     type: str = "email"
-    contact_id: str | None = None
+    contact_id: Optional[str] = None
     contact_name: str
-    contact_email: str | None = None
-    contact_phone: str | None = None
-    subject: str | None = None
-    first_message: str | None = None
+    contact_email: Optional[str] = None
+    contact_phone: Optional[str] = None
+    subject: Optional[str] = None
+    first_message: Optional[str] = None
 
 
 class ReplyBody(BaseModel):

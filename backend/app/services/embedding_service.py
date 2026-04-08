@@ -1,3 +1,4 @@
+from typing import Optional
 """
 Unified Embedding Service with Cloud/Local Fallback
 
@@ -19,11 +20,11 @@ PROVIDER_OPENAI = "openai"
 PROVIDER_LOCAL = "local"
 
 # Current provider (determined at runtime)
-_current_provider: str | None = None
+_current_provider: Optional[str] = None
 _openai_client = None
 
 
-def _get_openai_api_key() -> str | None:
+def _get_openai_api_key() -> Optional[str]:
     """Get OpenAI API key from environment."""
     try:
         from app.config import settings

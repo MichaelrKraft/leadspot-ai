@@ -14,7 +14,7 @@ import logging
 import uuid
 from collections.abc import Callable
 from datetime import datetime
-from typing import Any
+from typing import Optional, Any
 
 from app.services.graph_service import GraphService
 
@@ -36,8 +36,8 @@ class IngestionProgress:
         self.progress = 0.0
         self.message = ""
         self.started_at = datetime.utcnow()
-        self.completed_at: datetime | None = None
-        self.error: str | None = None
+        self.completed_at: Optional[datetime] = None
+        self.error: Optional[str] = None
         self.success = False
 
     def update(self, stage: str, progress: float, message: str):
@@ -47,7 +47,7 @@ class IngestionProgress:
         self.message = message
         logger.info(f"[{self.document_id}] {stage}: {message} ({progress:.1%})")
 
-    def complete(self, success: bool, error: str | None = None):
+    def complete(self, success: bool, error: Optional[str] = None):
         """Mark as complete."""
         self.completed_at = datetime.utcnow()
         self.success = success
@@ -127,14 +127,14 @@ class IngestionPipeline:
 
     async def ingest_document(
         self,
-        file_path: str | None = None,
-        file_content: bytes | None = None,
-        mime_type: str | None = None,
-        source_url: str | None = None,
+        file_path: Optional[str] = None,
+        file_content: Optional[bytes] = None,
+        mime_type: Optional[str] = None,
+        source_url: Optional[str] = None,
         organization_id: str = None,
-        document_id: str | None = None,
-        metadata_override: dict[str, Any] | None = None,
-        progress_callback: Callable | None = None
+        document_id: Optional[str] = None,
+        metadata_override: Optional[dict[str, Any]] = None,
+        progress_callback: Optional[Callable] = None
     ) -> dict[str, Any]:
         """
         Ingest a document through the complete pipeline.
@@ -362,7 +362,7 @@ class IngestionPipeline:
                 'document_id': document_id
             }
 
-    def get_progress(self, document_id: str) -> dict[str, Any] | None:
+    def get_progress(self, document_id: str) -> Optional[dict[str, Any]]:
         """Get ingestion progress for a document."""
         progress = self.active_ingestions.get(document_id)
         return progress.to_dict() if progress else None

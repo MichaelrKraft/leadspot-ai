@@ -10,7 +10,7 @@ import os
 import tempfile
 import uuid
 from datetime import datetime
-from typing import Any
+from typing import Optional, Any
 
 import httpx
 from sqlalchemy import select
@@ -258,7 +258,7 @@ class GoogleDriveSyncService:
         file_id: str,
         mime_type: str,
         access_token: str,
-    ) -> str | None:
+    ) -> Optional[str]:
         """Download file content from Google Drive."""
         async with httpx.AsyncClient() as client:
             # Check if we need to export (for Google Docs native types)

@@ -1,3 +1,4 @@
+from typing import Optional
 """
 FastAPI Dependencies
 
@@ -20,7 +21,7 @@ from app.services.ingestion.pipeline import IngestionPipeline
 security = HTTPBearer()
 
 # Singleton instances
-_pipeline: IngestionPipeline | None = None
+_pipeline: Optional[IngestionPipeline] = None
 _cache_service = None
 _query_service = None
 _context_builder = None
@@ -115,8 +116,8 @@ async def get_current_user(
 
 
 async def get_optional_user(
-    credentials: HTTPAuthorizationCredentials | None = Depends(security)
-) -> dict | None:
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security)
+) -> Optional[dict]:
     """
     Get current user if authenticated, None otherwise.
 

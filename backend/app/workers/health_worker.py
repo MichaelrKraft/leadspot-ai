@@ -1,3 +1,4 @@
+from typing import Optional
 """Background worker for automated health scanning."""
 
 import asyncio
@@ -23,7 +24,7 @@ class HealthWorker:
         # Worker configuration - uses settings or default 48h (2 days)
         self.scan_interval_hours = settings.HEALTH_SCAN_INTERVAL_HOURS
         self.is_running = False
-        self.current_task: asyncio.Task | None = None
+        self.current_task: Optional[asyncio.Task] = None
 
     async def start(self):
         """Start the background worker."""

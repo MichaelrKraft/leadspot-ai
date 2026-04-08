@@ -4,7 +4,7 @@ Query Pydantic schemas
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any
+from typing import Optional, Any
 from uuid import UUID
 
 from pydantic import BaseModel, Field
@@ -14,11 +14,11 @@ class Source(BaseModel):
     """Schema for a source document"""
     document_id: UUID
     title: str
-    url: str | None = None
+    url: Optional[str] = None
     excerpt: str
     relevance_score: float = Field(..., ge=0.0, le=1.0)
-    source_system: str | None = None  # e.g., "gmail", "google_drive", "upload"
-    source_metadata: dict[str, Any] | None = None  # Additional metadata for source-specific info
+    source_system: Optional[str] = None  # e.g., "gmail", "google_drive", "upload"
+    source_metadata: Optional[dict[str, Any]] = None  # Additional metadata for source-specific info
 
 
 class Citation(BaseModel):
@@ -26,7 +26,7 @@ class Citation(BaseModel):
     citation_text: str
     document_id: UUID
     document_title: str
-    url: str | None = None
+    url: Optional[str] = None
     excerpt: str
     relevance_score: float
     context: str
@@ -53,7 +53,7 @@ class QueryMetrics(BaseModel):
     total_time_ms: int
     cache_hit: bool
     tokens_used: int
-    context_metadata: dict[str, Any] | None = None
+    context_metadata: Optional[dict[str, Any]] = None
 
 
 class QueryFilters(BaseModel):
@@ -75,7 +75,7 @@ class QueryRequest(BaseModel):
 
 class QueryResponse(BaseModel):
     """Schema for query response"""
-    query_id: UUID | None = None
+    query_id: Optional[UUID] = None
     answer: str
     sources: list[dict[str, Any]]
     citations: list[dict[str, Any]]

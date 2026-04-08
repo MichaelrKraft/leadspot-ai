@@ -4,7 +4,7 @@ Alert manager for monitoring thresholds and sending notifications.
 import asyncio
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import Any
+from typing import Optional, Any
 
 import httpx
 
@@ -40,8 +40,8 @@ class AlertManager:
 
     def __init__(
         self,
-        slack_webhook_url: str | None = None,
-        email_config: dict[str, Any] | None = None
+        slack_webhook_url: Optional[str] = None,
+        email_config: Optional[dict[str, Any]] = None
     ):
         self.slack_webhook_url = slack_webhook_url
         self.email_config = email_config

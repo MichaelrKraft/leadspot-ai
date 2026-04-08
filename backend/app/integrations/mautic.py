@@ -9,7 +9,7 @@ import logging
 import os
 from collections.abc import AsyncIterator
 from datetime import datetime, timedelta
-from typing import Any
+from typing import Optional, Any
 
 import httpx
 
@@ -46,12 +46,12 @@ class MauticConnector(BaseConnector):
     def __init__(
         self,
         organization_id: str,
-        access_token: str | None = None,
-        refresh_token: str | None = None,
+        access_token: Optional[str] = None,
+        refresh_token: Optional[str] = None,
         demo_mode: bool = False,
-        mautic_url: str | None = None,
-        client_id: str | None = None,
-        client_secret: str | None = None,
+        mautic_url: Optional[str] = None,
+        client_id: Optional[str] = None,
+        client_secret: Optional[str] = None,
     ):
         super().__init__(organization_id, access_token, refresh_token, demo_mode)
         self.mautic_url = mautic_url.rstrip("/") if mautic_url else None
@@ -259,8 +259,8 @@ class MauticConnector(BaseConnector):
 
     async def sync_incremental(
         self,
-        since: datetime | None = None,
-        sync_token: str | None = None
+        since: Optional[datetime] = None,
+        sync_token: Optional[str] = None
     ) -> AsyncIterator[SyncedDocument]:
         """
         Perform incremental sync of changed contacts.
@@ -289,7 +289,7 @@ class MauticConnector(BaseConnector):
             self._handle_error(e, "sync_incremental")
             raise
 
-    async def get_document(self, source_id: str) -> SyncedDocument | None:
+    async def get_document(self, source_id: str) -> Optional[SyncedDocument]:
         """
         Get a single contact by its Mautic ID.
 
@@ -332,7 +332,7 @@ class MauticConnector(BaseConnector):
         self,
         limit: int = 100,
         offset: int = 0,
-        search: str | None = None
+        search: Optional[str] = None
     ) -> dict[str, Any]:
         """
         Get contacts from Mautic.
@@ -400,7 +400,7 @@ class MauticConnector(BaseConnector):
 
     async def _sync_contacts(
         self,
-        since: datetime | None = None
+        since: Optional[datetime] = None
     ) -> AsyncIterator[SyncedDocument]:
         """Sync all contacts from Mautic."""
         if not self.access_token or not self.mautic_url:
@@ -454,7 +454,7 @@ class MauticConnector(BaseConnector):
 
         logger.info(f"[mautic] Completed sync: {count} contacts")
 
-    def _contact_to_document(self, contact: dict) -> SyncedDocument | None:
+    def _contact_to_document(self, contact: dict) -> Optional[SyncedDocument]:
         """Convert Mautic contact to searchable document."""
         if not contact:
             return None

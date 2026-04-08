@@ -7,11 +7,11 @@ import re
 import sys
 from contextvars import ContextVar
 from datetime import datetime
-from typing import Any
+from typing import Optional, Any
 
 # Context variable for request ID
-request_id_ctx: ContextVar[str | None] = ContextVar('request_id', default=None)
-user_id_ctx: ContextVar[str | None] = ContextVar('user_id', default=None)
+request_id_ctx: ContextVar[Optional[str]] = ContextVar('request_id', default=None)
+user_id_ctx: ContextVar[Optional[str]] = ContextVar('user_id', default=None)
 
 # Sensitive data patterns to mask
 SENSITIVE_PATTERNS = [
@@ -113,7 +113,7 @@ def get_logger(name: str) -> logging.Logger:
     return logging.getLogger(name)
 
 
-def set_request_context(request_id: str | None = None, user_id: str | None = None) -> None:
+def set_request_context(request_id: Optional[str] = None, user_id: Optional[str] = None) -> None:
     """
     Set request context for logging.
 

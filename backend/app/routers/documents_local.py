@@ -1,3 +1,4 @@
+from typing import Optional
 """
 Local Document API Endpoints
 
@@ -25,7 +26,7 @@ router = APIRouter(prefix="/api/documents", tags=["documents"])
 async def list_documents(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
-    search: str | None = None,
+    search: Optional[str] = None,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
@@ -105,9 +106,9 @@ async def get_document(
 @router.post("/upload")
 async def upload_document(
     file: UploadFile = File(...),
-    title: str | None = Form(None),
-    author: str | None = Form(None),
-    description: str | None = Form(None),
+    title: Optional[str] = Form(None),
+    author: Optional[str] = Form(None),
+    description: Optional[str] = Form(None),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):

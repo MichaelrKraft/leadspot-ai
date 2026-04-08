@@ -1,3 +1,4 @@
+from typing import Optional
 """
 Document API Endpoints
 
@@ -36,7 +37,7 @@ router = APIRouter(prefix="/api/documents", tags=["documents"])
 async def list_documents(
     page: int = Query(1, ge=1),
     page_size: int = Query(50, ge=1, le=100),
-    organization_id: str | None = None,
+    organization_id: Optional[str] = None,
     current_user: dict = Depends(get_current_user),
     pipeline: IngestionPipeline = Depends(get_ingestion_pipeline)
 ):
@@ -222,7 +223,7 @@ async def trigger_sync(
 
 @router.get("/sync/status", response_model=SyncStatus)
 async def get_sync_status(
-    sync_id: str | None = None,
+    sync_id: Optional[str] = None,
     current_user: dict = Depends(get_current_user)
 ):
     """

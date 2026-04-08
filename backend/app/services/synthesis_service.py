@@ -11,7 +11,7 @@ better quality synthesis when cloud services are available.
 
 import logging
 import os
-from typing import Any
+from typing import Optional, Any
 
 logger = logging.getLogger(__name__)
 
@@ -20,10 +20,10 @@ PROVIDER_CLAUDE = "claude"
 PROVIDER_OLLAMA = "ollama"
 
 # Current provider (determined at runtime)
-_current_provider: str | None = None
+_current_provider: Optional[str] = None
 
 
-def _get_anthropic_api_key() -> str | None:
+def _get_anthropic_api_key() -> Optional[str]:
     """Get Anthropic API key from settings or environment."""
     try:
         from app.config import settings
@@ -92,7 +92,7 @@ async def is_available() -> bool:
 
 async def generate(
     prompt: str,
-    system_prompt: str | None = None,
+    system_prompt: Optional[str] = None,
     temperature: float = 0.7,
     max_tokens: int = 2048,
     force_local: bool = False
@@ -122,7 +122,7 @@ async def generate(
 
 async def chat(
     messages: list[dict[str, str]],
-    system_prompt: str | None = None,
+    system_prompt: Optional[str] = None,
     temperature: float = 0.7,
     max_tokens: int = 2048,
     force_local: bool = False
@@ -154,7 +154,7 @@ async def chat(
 
 async def _generate_claude(
     prompt: str,
-    system_prompt: str | None,
+    system_prompt: Optional[str],
     temperature: float,
     max_tokens: int
 ) -> dict[str, Any]:
@@ -198,7 +198,7 @@ async def _generate_claude(
 
 async def _chat_claude(
     messages: list[dict[str, str]],
-    system_prompt: str | None,
+    system_prompt: Optional[str],
     temperature: float,
     max_tokens: int
 ) -> dict[str, Any]:
@@ -257,7 +257,7 @@ async def _chat_claude(
 
 async def _generate_ollama(
     prompt: str,
-    system_prompt: str | None,
+    system_prompt: Optional[str],
     temperature: float,
     max_tokens: int
 ) -> dict[str, Any]:
@@ -300,7 +300,7 @@ async def _chat_ollama(
 async def synthesize_knowledge(
     query: str,
     context_chunks: list[str],
-    source_documents: list[dict] | None = None,
+    source_documents: Optional[list[dict]] = None,
     force_local: bool = False
 ) -> dict[str, Any]:
     """

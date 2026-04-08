@@ -12,7 +12,7 @@ import asyncio
 import logging
 from collections import deque
 from datetime import datetime, timedelta
-from typing import Any
+from typing import Optional, Any
 
 from app.services.ingestion.pipeline import IngestionPipeline
 
@@ -35,9 +35,9 @@ class SyncTask:
         self.params = params
         self.status = "pending"
         self.created_at = datetime.utcnow()
-        self.started_at: datetime | None = None
-        self.completed_at: datetime | None = None
-        self.error: str | None = None
+        self.started_at: Optional[datetime] = None
+        self.completed_at: Optional[datetime] = None
+        self.error: Optional[str] = None
         self.documents_synced = 0
         self.documents_failed = 0
 
@@ -74,7 +74,7 @@ class SyncWorker:
         self.active_tasks: dict[str, SyncTask] = {}
         self.completed_tasks: dict[str, SyncTask] = {}
         self.running = False
-        self.worker_task: asyncio.Task | None = None
+        self.worker_task: Optional[asyncio.Task] = None
 
     async def start(self):
         """Start the background worker."""
@@ -129,7 +129,7 @@ class SyncWorker:
         logger.info(f"Queued sync task {task_id} from {source}")
         return task
 
-    def get_task_status(self, task_id: str) -> dict[str, Any] | None:
+    def get_task_status(self, task_id: str) -> Optional[dict[str, Any]]:
         """Get status of a sync task."""
         task = self.active_tasks.get(task_id) or self.completed_tasks.get(task_id)
         return task.to_dict() if task else None
@@ -339,7 +339,7 @@ class SyncWorker:
 
 
 # Singleton instance (to be initialized in main app)
-sync_worker: SyncWorker | None = None
+sync_worker: Optional[SyncWorker] = None
 
 
 def get_sync_worker() -> SyncWorker:

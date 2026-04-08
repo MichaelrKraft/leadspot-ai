@@ -9,7 +9,7 @@ and updates sync status tracking.
 import logging
 import uuid
 from datetime import datetime
-from typing import Any
+from typing import Optional, Any
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -381,7 +381,7 @@ class DemoSyncManager:
             for doc in docs
         ]
 
-    def get_demo_connection(self, connection_id: str) -> dict | None:
+    def get_demo_connection(self, connection_id: str) -> Optional[dict]:
         """Get a demo connection by ID"""
         return self._connections.get(connection_id)
 
@@ -394,7 +394,7 @@ class DemoSyncManager:
 
 
 # Global demo manager instance for easy testing
-_demo_manager: DemoSyncManager | None = None
+_demo_manager: Optional[DemoSyncManager] = None
 
 
 def get_demo_sync_manager() -> DemoSyncManager:

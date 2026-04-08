@@ -10,7 +10,7 @@ import json
 import logging
 import uuid
 from datetime import datetime
-from typing import Any
+from typing import Optional, Any
 
 import httpx
 from sqlalchemy import select
@@ -153,7 +153,7 @@ class SalesforceSyncService:
 
         return results
 
-    async def _get_user_info(self, access_token: str) -> dict | None:
+    async def _get_user_info(self, access_token: str) -> Optional[dict]:
         """Get user info to retrieve instance URL."""
         async with httpx.AsyncClient() as client:
             response = await client.get(

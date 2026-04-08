@@ -1,3 +1,4 @@
+from typing import Optional
 """Pydantic schemas for OAuth endpoints"""
 
 from datetime import datetime
@@ -28,16 +29,16 @@ class OAuthConnection(BaseModel):
     user_id: str = Field(..., description="User ID who created the connection")
     provider: str = Field(..., description="OAuth provider (google, microsoft, slack)")
     scopes: list[str] = Field(..., description="List of granted OAuth scopes")
-    connected_user_email: str | None = Field(
+    connected_user_email: Optional[str] = Field(
         None, description="Email of the connected account"
     )
-    connected_user_name: str | None = Field(
+    connected_user_name: Optional[str] = Field(
         None, description="Name of the connected account"
     )
     status: str = Field(..., description="Connection status (active, expired, revoked, error)")
-    expires_at: datetime | None = Field(None, description="When the access token expires")
-    last_sync_at: datetime | None = Field(None, description="Last successful sync time")
-    last_sync_status: str | None = Field(None, description="Status of last sync")
+    expires_at: Optional[datetime] = Field(None, description="When the access token expires")
+    last_sync_at: Optional[datetime] = Field(None, description="Last successful sync time")
+    last_sync_status: Optional[str] = Field(None, description="Status of last sync")
     documents_synced: int = Field(0, description="Number of documents synced")
     created_at: datetime = Field(..., description="When connection was created")
     updated_at: datetime = Field(..., description="When connection was last updated")
@@ -70,5 +71,5 @@ class TokenRefreshResponse(BaseModel):
     """Response schema for token refresh operation"""
 
     success: bool = Field(..., description="Whether refresh was successful")
-    expires_at: datetime | None = Field(None, description="New token expiration time")
+    expires_at: Optional[datetime] = Field(None, description="New token expiration time")
     message: str = Field(..., description="Success or error message")

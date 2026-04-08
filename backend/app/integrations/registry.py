@@ -42,7 +42,7 @@ class IntegrationRegistry:
         self._connectors[provider] = connector_class
         logger.info(f"Registered integration: {provider}")
 
-    def get_connector_class(self, provider: str) -> type[BaseConnector] | None:
+    def get_connector_class(self, provider: str) -> Optional[type[BaseConnector]]:
         """Get a connector class by provider name"""
         return self._connectors.get(provider)
 
@@ -50,10 +50,10 @@ class IntegrationRegistry:
         self,
         provider: str,
         organization_id: str,
-        access_token: str | None = None,
-        refresh_token: str | None = None,
+        access_token: Optional[str] = None,
+        refresh_token: Optional[str] = None,
         force_demo: bool = False
-    ) -> BaseConnector | None:
+    ) -> Optional[BaseConnector]:
         """
         Get an instantiated connector for a provider.
 

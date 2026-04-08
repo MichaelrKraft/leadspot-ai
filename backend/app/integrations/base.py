@@ -11,7 +11,7 @@ from collections.abc import AsyncIterator
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import Any
+from typing import Optional, Any
 
 logger = logging.getLogger(__name__)
 
@@ -48,10 +48,10 @@ class SyncedDocument:
     content: str                # Extracted text content
     mime_type: str
     file_size: int
-    source_url: str | None   # Link to view in source system
-    author: str | None
-    created_at: datetime | None
-    modified_at: datetime | None
+    source_url: Optional[str]   # Link to view in source system
+    author: Optional[str]
+    created_at: Optional[datetime]
+    modified_at: Optional[datetime]
     metadata: dict[str, Any] = field(default_factory=dict)
 
 
@@ -64,8 +64,8 @@ class SyncResult:
     documents_deleted: int
     errors: list[str] = field(default_factory=list)
     started_at: datetime = field(default_factory=datetime.utcnow)
-    completed_at: datetime | None = None
-    next_sync_token: str | None = None  # For incremental sync
+    completed_at: Optional[datetime] = None
+    next_sync_token: Optional[str] = None  # For incremental sync
 
 
 class BaseConnector(ABC):
@@ -82,8 +82,8 @@ class BaseConnector(ABC):
     def __init__(
         self,
         organization_id: str,
-        access_token: str | None = None,
-        refresh_token: str | None = None,
+        access_token: Optional[str] = None,
+        refresh_token: Optional[str] = None,
         demo_mode: bool = False
     ):
         self.organization_id = organization_id
@@ -175,8 +175,8 @@ class BaseConnector(ABC):
     @abstractmethod
     async def sync_incremental(
         self,
-        since: datetime | None = None,
-        sync_token: str | None = None
+        since: Optional[datetime] = None,
+        sync_token: Optional[str] = None
     ) -> AsyncIterator[SyncedDocument]:
         """
         Perform incremental sync of changed documents.
@@ -191,7 +191,7 @@ class BaseConnector(ABC):
         pass
 
     @abstractmethod
-    async def get_document(self, source_id: str) -> SyncedDocument | None:
+    async def get_document(self, source_id: str) -> Optional[SyncedDocument]:
         """
         Get a single document by its source ID.
 
@@ -241,7 +241,7 @@ class BaseConnector(ABC):
     # Utility Methods
     # =========================================================================
 
-    def _log_sync_progress(self, count: int, total: int | None = None):
+    def _log_sync_progress(self, count: int, total: Optional[int] = None):
         """Log sync progress"""
         if total:
             logger.info(f"[{self.config.provider}] Synced {count}/{total} documents")

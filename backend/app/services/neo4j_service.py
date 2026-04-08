@@ -4,7 +4,7 @@ SECURITY: All queries MUST include organization_id filtering to ensure
 proper multi-tenant isolation. Never query without org context.
 """
 
-from typing import Any
+from typing import Optional, Any
 
 from neo4j import AsyncDriver, AsyncGraphDatabase
 
@@ -19,7 +19,7 @@ class Neo4jService:
     """
 
     def __init__(self):
-        self.driver: AsyncDriver | None = None
+        self.driver: Optional[AsyncDriver] = None
         self.uri = settings.NEO4J_URI
         self.user = settings.NEO4J_USER
         self.password = settings.NEO4J_PASSWORD

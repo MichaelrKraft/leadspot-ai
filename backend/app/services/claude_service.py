@@ -9,7 +9,7 @@ Requires: ANTHROPIC_API_KEY environment variable
 
 import logging
 import os
-from typing import Any
+from typing import Optional, Any
 
 logger = logging.getLogger(__name__)
 
@@ -19,7 +19,7 @@ PREMIUM_MODEL = "claude-3-sonnet-20240229"  # Better quality (Claude 3 Sonnet)
 MAX_TOKENS = 4096
 
 
-def _get_api_key() -> str | None:
+def _get_api_key() -> Optional[str]:
     """Get Anthropic API key from settings or environment."""
     try:
         from app.config import settings
@@ -40,10 +40,10 @@ def is_available() -> bool:
 
 async def generate(
     prompt: str,
-    system_prompt: str | None = None,
+    system_prompt: Optional[str] = None,
     temperature: float = 0.7,
     max_tokens: int = MAX_TOKENS,
-    model: str | None = None
+    model: Optional[str] = None
 ) -> dict[str, Any]:
     """
     Generate text using Claude API.
@@ -133,10 +133,10 @@ async def generate(
 
 async def chat(
     messages: list[dict[str, str]],
-    system_prompt: str | None = None,
+    system_prompt: Optional[str] = None,
     temperature: float = 0.7,
     max_tokens: int = MAX_TOKENS,
-    model: str | None = None
+    model: Optional[str] = None
 ) -> dict[str, Any]:
     """
     Chat completion using Claude API.
@@ -216,7 +216,7 @@ async def chat(
 async def synthesize_knowledge(
     query: str,
     context_chunks: list[str],
-    source_documents: list[dict] | None = None
+    source_documents: Optional[list[dict]] = None
 ) -> dict[str, Any]:
     """
     Synthesize an answer from context chunks using Claude.

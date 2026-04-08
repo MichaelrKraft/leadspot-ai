@@ -1,3 +1,4 @@
+from typing import Optional
 """
 Admin Panel API Router
 
@@ -49,8 +50,8 @@ router = APIRouter(prefix="/api/admin", tags=["admin"])
 async def list_users(
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=500),
-    role: str | None = Query(None, pattern="^(admin|user|viewer)$"),
-    search: str | None = None,
+    role: Optional[str] = Query(None, pattern="^(admin|user|viewer)$"),
+    search: Optional[str] = None,
     current_user: dict = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
@@ -459,13 +460,13 @@ async def get_subscription_limits(
 async def get_audit_logs(
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=500),
-    user_id: UUID | None = None,
-    action: str | None = None,
-    resource_type: str | None = None,
-    status: str | None = Query(None, pattern="^(success|failure|error)$"),
-    start_date: datetime | None = None,
-    end_date: datetime | None = None,
-    search: str | None = None,
+    user_id: Optional[UUID] = None,
+    action: Optional[str] = None,
+    resource_type: Optional[str] = None,
+    status: Optional[str] = Query(None, pattern="^(success|failure|error)$"),
+    start_date: Optional[datetime] = None,
+    end_date: Optional[datetime] = None,
+    search: Optional[str] = None,
     current_user: dict = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
@@ -531,8 +532,8 @@ async def get_audit_statistics(
 @router.get("/audit/export")
 async def export_audit_logs(
     format: str = Query("json", pattern="^(json|csv)$"),
-    start_date: datetime | None = None,
-    end_date: datetime | None = None,
+    start_date: Optional[datetime] = None,
+    end_date: Optional[datetime] = None,
     current_user: dict = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):

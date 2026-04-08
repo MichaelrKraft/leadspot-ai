@@ -1,3 +1,4 @@
+from typing import Optional
 """
 Local Document Service
 
@@ -139,9 +140,9 @@ async def upload_document(
     mime_type: str,
     organization_id: str,
     user_id: str,
-    title: str | None = None,
-    author: str | None = None,
-    description: str | None = None
+    title: Optional[str] = None,
+    author: Optional[str] = None,
+    description: Optional[str] = None
 ) -> Document:
     """
     Upload and process a document.
@@ -190,7 +191,7 @@ async def get_documents(
     organization_id: str,
     page: int = 1,
     page_size: int = 20,
-    search: str | None = None
+    search: Optional[str] = None
 ) -> tuple[list[Document], int]:
     """
     Get paginated list of documents for an organization.
@@ -230,7 +231,7 @@ async def get_document(
     db: AsyncSession,
     document_id: str,
     organization_id: str
-) -> Document | None:
+) -> Optional[Document]:
     """
     Get a single document by ID.
     """

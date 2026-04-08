@@ -11,7 +11,7 @@ Manages knowledge graph operations:
 
 import logging
 from datetime import datetime
-from typing import Any
+from typing import Optional, Any
 
 from neo4j import AsyncDriver, AsyncGraphDatabase
 from neo4j.exceptions import Neo4jError
@@ -107,7 +107,7 @@ class GraphService:
         self,
         document_id: str,
         author_name: str,
-        author_metadata: dict[str, Any] | None = None
+        author_metadata: Optional[dict[str, Any]] = None
     ) -> dict[str, Any]:
         """
         Create or link author to document.
@@ -151,7 +151,7 @@ class GraphService:
         self,
         source_doc_id: str,
         cited_doc_id: str,
-        context: str | None = None
+        context: Optional[str] = None
     ) -> dict[str, Any]:
         """
         Create a citation relationship between documents.

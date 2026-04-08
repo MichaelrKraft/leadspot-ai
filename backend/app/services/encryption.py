@@ -1,3 +1,4 @@
+from typing import Optional
 """
 Encryption service for sensitive data using Fernet symmetric encryption.
 
@@ -29,17 +30,17 @@ class EncryptionService:
     Gracefully handles missing encryption key by logging warnings.
     """
 
-    def __init__(self, encryption_key: str | None = None):
+    def __init__(self, encryption_key: Optional[str] = None):
         """
         Initialize encryption service with a key.
 
         Args:
             encryption_key: Base64-encoded Fernet key. If None, uses settings.ENCRYPTION_KEY
         """
-        self._fernet: Fernet | None = None
+        self._fernet: Optional[Fernet] = None
         self._initialize(encryption_key)
 
-    def _initialize(self, encryption_key: str | None) -> None:
+    def _initialize(self, encryption_key: Optional[str]) -> None:
         """Initialize Fernet cipher with provided or configured key."""
         key = encryption_key or settings.ENCRYPTION_KEY
 
@@ -159,7 +160,7 @@ class EncryptionService:
 
 
 # Singleton instance
-_encryption_service: EncryptionService | None = None
+_encryption_service: Optional[EncryptionService] = None
 
 
 def get_encryption_service() -> EncryptionService:

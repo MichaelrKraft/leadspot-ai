@@ -1,3 +1,4 @@
+from typing import Optional
 """
 Application configuration using Pydantic settings
 

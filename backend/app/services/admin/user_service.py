@@ -1,3 +1,4 @@
+from typing import Optional
 """
 User Administration Service
 
@@ -35,8 +36,8 @@ class UserAdminService:
         organization_id: uuid.UUID,
         skip: int = 0,
         limit: int = 100,
-        role_filter: str | None = None,
-        search: str | None = None
+        role_filter: Optional[str] = None,
+        search: Optional[str] = None
     ) -> tuple[list[User], int]:
         """
         List all users in an organization with filtering and pagination.
@@ -78,7 +79,7 @@ class UserAdminService:
 
         return list(users), total
 
-    async def get_user(self, user_id: uuid.UUID, organization_id: uuid.UUID) -> User | None:
+    async def get_user(self, user_id: uuid.UUID, organization_id: uuid.UUID) -> Optional[User]:
         """
         Get a specific user by ID within an organization.
 
@@ -153,7 +154,7 @@ class UserAdminService:
         user_id: uuid.UUID,
         organization_id: uuid.UUID,
         user_data: UserUpdate
-    ) -> User | None:
+    ) -> Optional[User]:
         """
         Update user details.
 
@@ -253,7 +254,7 @@ class UserAdminService:
         user_id: uuid.UUID,
         organization_id: uuid.UUID,
         new_password: str
-    ) -> User | None:
+    ) -> Optional[User]:
         """
         Reset a user's password.
 

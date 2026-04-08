@@ -1,3 +1,4 @@
+from typing import Optional
 """
 Text Processing Utilities
 
@@ -91,7 +92,7 @@ class TextProcessor:
 
         return text.strip()
 
-    def detect_language(self, text: str) -> str | None:
+    def detect_language(self, text: str) -> Optional[str]:
         """
         Detect the language of the text.
 

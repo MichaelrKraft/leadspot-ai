@@ -11,7 +11,7 @@ Handles vector indexing in Pinecone:
 import asyncio
 import logging
 from datetime import datetime
-from typing import Any, Callable
+from typing import Optional, Any, Callable
 
 from pinecone import Pinecone, ServerlessSpec
 
@@ -212,7 +212,7 @@ class PineconeIndexer:
         query_embedding: list[float],
         namespace: str,
         top_k: int = 10,
-        filter: dict[str, Any] | None = None,
+        filter: Optional[dict[str, Any]] = None,
         include_metadata: bool = True
     ) -> list[dict[str, Any]]:
         """
@@ -256,7 +256,7 @@ class PineconeIndexer:
             logger.error(f"Error querying index: {e!s}", exc_info=True)
             return []
 
-    async def get_stats(self, namespace: str | None = None) -> dict[str, Any]:
+    async def get_stats(self, namespace: Optional[str] = None) -> dict[str, Any]:
         """
         Get index statistics.
 

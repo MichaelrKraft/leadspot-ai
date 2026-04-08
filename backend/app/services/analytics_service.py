@@ -1,3 +1,4 @@
+from typing import Optional
 """
 Query analytics and logging service
 """
@@ -25,7 +26,7 @@ class AnalyticsService:
         response_time_ms: int,
         sources_cited: int,
         total_sources_found: int,
-        tokens_used: int | None = None,
+        tokens_used: Optional[int] = None,
         cache_hit: bool = False
     ) -> QueryModel:
         """

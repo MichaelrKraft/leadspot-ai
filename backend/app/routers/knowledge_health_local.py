@@ -1,3 +1,4 @@
+from typing import Optional
 """
 Knowledge Health API - Local implementation with real data integration.
 Provides health scoring, alerts, and recommendations based on actual document data.
@@ -169,9 +170,9 @@ async def get_health_score(
 
 @router.get("/alerts")
 async def get_alerts(
-    status: str | None = Query(None, description="Filter by status"),
-    severity: str | None = Query(None, description="Filter by severity"),
-    alert_type: str | None = Query(None, description="Filter by type"),
+    status: Optional[str] = Query(None, description="Filter by status"),
+    severity: Optional[str] = Query(None, description="Filter by severity"),
+    alert_type: Optional[str] = Query(None, description="Filter by type"),
     current_user: User = Depends(get_current_user)
 ):
     """Get alerts for organization with optional filtering."""
@@ -223,8 +224,8 @@ async def create_alert(
 @router.patch("/alerts/{alert_id}")
 async def update_alert(
     alert_id: str,
-    status: str | None = Query(None, description="New status"),
-    resolution: str | None = Query(None, description="Resolution description"),
+    status: Optional[str] = Query(None, description="New status"),
+    resolution: Optional[str] = Query(None, description="Resolution description"),
     current_user: User = Depends(get_current_user)
 ):
     """Update an alert status or resolution."""
@@ -272,7 +273,7 @@ async def resolve_alert(
 @router.post("/alerts/{alert_id}/dismiss")
 async def dismiss_alert(
     alert_id: str,
-    reason: str | None = Query(None, description="Dismissal reason"),
+    reason: Optional[str] = Query(None, description="Dismissal reason"),
     current_user: User = Depends(get_current_user)
 ):
     """Dismiss an alert."""

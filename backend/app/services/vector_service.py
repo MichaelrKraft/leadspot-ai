@@ -8,7 +8,7 @@ NOTE: Heavy imports (numpy, openai) are lazy-loaded to reduce memory usage at st
 
 import os
 import pickle
-from typing import Any
+from typing import Optional, Any
 
 # Lazy-loaded modules
 _np = None
@@ -170,7 +170,7 @@ async def index_document(
     organization_id: str,
     title: str,
     content: str,
-    metadata: dict[str, Any] | None = None
+    metadata: Optional[dict[str, Any]] = None
 ) -> int:
     """
     Index a document into the vector database.
@@ -374,7 +374,7 @@ async def search_similar(
     return results[:limit]
 
 
-async def get_index_stats(organization_id: str | None = None) -> dict:
+async def get_index_stats(organization_id: Optional[str] = None) -> dict:
     """
     Get statistics about the vector index.
 

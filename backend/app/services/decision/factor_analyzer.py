@@ -1,3 +1,4 @@
+from typing import Optional
 """Decision factor analysis using Claude AI."""
 
 import json

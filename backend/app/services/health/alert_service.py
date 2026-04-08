@@ -1,3 +1,4 @@
+from typing import Optional
 """Manage health alerts and notifications."""
 
 import logging
@@ -21,7 +22,7 @@ class AlertService:
         alert_type: str,
         severity: str,
         description: str,
-        metadata: dict | None = None
+        metadata: Optional[dict] = None
     ) -> dict:
         """
         Create a new health alert.
@@ -59,9 +60,9 @@ class AlertService:
     async def get_alerts(
         self,
         org_id: str,
-        status: str | None = None,
-        severity: str | None = None,
-        alert_type: str | None = None
+        status: Optional[str] = None,
+        severity: Optional[str] = None,
+        alert_type: Optional[str] = None
     ) -> list[dict]:
         """
         Get alerts for an organization with optional filtering.
@@ -100,7 +101,7 @@ class AlertService:
 
         return org_alerts
 
-    async def get_alert(self, alert_id: str) -> dict | None:
+    async def get_alert(self, alert_id: str) -> Optional[dict]:
         """
         Get a specific alert by ID.
 
@@ -115,9 +116,9 @@ class AlertService:
     async def update_alert(
         self,
         alert_id: str,
-        status: str | None = None,
-        resolution: str | None = None
-    ) -> dict | None:
+        status: Optional[str] = None,
+        resolution: Optional[str] = None
+    ) -> Optional[dict]:
         """
         Update an alert.
 
@@ -159,7 +160,7 @@ class AlertService:
         logger.info(f"Updated alert {alert_id}: status={status}")
         return alert
 
-    async def dismiss_alert(self, alert_id: str, reason: str | None = None) -> dict | None:
+    async def dismiss_alert(self, alert_id: str, reason: Optional[str] = None) -> Optional[dict]:
         """
         Dismiss an alert.
 
@@ -176,7 +177,7 @@ class AlertService:
             resolution=reason or "Dismissed by user"
         )
 
-    async def resolve_alert(self, alert_id: str, resolution: str) -> dict | None:
+    async def resolve_alert(self, alert_id: str, resolution: str) -> Optional[dict]:
         """
         Resolve an alert.
 

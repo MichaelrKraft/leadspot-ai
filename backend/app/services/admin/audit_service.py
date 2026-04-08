@@ -11,7 +11,7 @@ Provides comprehensive audit logging for security, compliance, and troubleshooti
 import json
 import uuid
 from datetime import datetime, timedelta
-from typing import Any
+from typing import Optional, Any
 
 from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -30,13 +30,13 @@ class AuditService:
         organization_id: uuid.UUID,
         action: str,
         resource_type: str,
-        user_id: uuid.UUID | None = None,
-        resource_id: str | None = None,
-        details: dict[str, Any] | None = None,
-        ip_address: str | None = None,
-        user_agent: str | None = None,
+        user_id: Optional[uuid.UUID] = None,
+        resource_id: Optional[str] = None,
+        details: Optional[dict[str, Any]] = None,
+        ip_address: Optional[str] = None,
+        user_agent: Optional[str] = None,
         status: str = "success",
-        error_message: str | None = None
+        error_message: Optional[str] = None
     ) -> AuditLog:
         """
         Log an audit event.
@@ -81,13 +81,13 @@ class AuditService:
         organization_id: uuid.UUID,
         skip: int = 0,
         limit: int = 100,
-        user_id: uuid.UUID | None = None,
-        action_filter: str | None = None,
-        resource_type_filter: str | None = None,
-        status_filter: str | None = None,
-        start_date: datetime | None = None,
-        end_date: datetime | None = None,
-        search: str | None = None
+        user_id: Optional[uuid.UUID] = None,
+        action_filter: Optional[str] = None,
+        resource_type_filter: Optional[str] = None,
+        status_filter: Optional[str] = None,
+        start_date: Optional[datetime] = None,
+        end_date: Optional[datetime] = None,
+        search: Optional[str] = None
     ) -> tuple[list[AuditLog], int]:
         """
         Query audit logs with filtering and pagination.
@@ -164,7 +164,7 @@ class AuditService:
         self,
         log_id: uuid.UUID,
         organization_id: uuid.UUID
-    ) -> AuditLog | None:
+    ) -> Optional[AuditLog]:
         """
         Get a specific audit log entry.
 
@@ -309,8 +309,8 @@ class AuditService:
     async def export_audit_logs(
         self,
         organization_id: uuid.UUID,
-        start_date: datetime | None = None,
-        end_date: datetime | None = None,
+        start_date: Optional[datetime] = None,
+        end_date: Optional[datetime] = None,
         format: str = "json"
     ) -> str:
         """

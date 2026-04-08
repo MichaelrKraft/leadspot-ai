@@ -1,3 +1,4 @@
+from typing import Optional
 """Salesforce OAuth service for CRM integration"""
 
 from datetime import datetime, timedelta
@@ -43,7 +44,7 @@ class SalesforceOAuthProvider(BaseOAuthProvider):
 
     async def exchange_code_for_tokens(
         self, code: str
-    ) -> tuple[str, str | None, datetime | None]:
+    ) -> tuple[str, Optional[str], Optional[datetime]]:
         """
         Exchange authorization code for access and refresh tokens.
 
@@ -91,7 +92,7 @@ class SalesforceOAuthProvider(BaseOAuthProvider):
 
     async def refresh_access_token(
         self, refresh_token: str
-    ) -> tuple[str, datetime | None]:
+    ) -> tuple[str, Optional[datetime]]:
         """
         Refresh an expired access token.
 
