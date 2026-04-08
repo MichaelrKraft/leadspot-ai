@@ -446,6 +446,48 @@ function createApp(): express.Application {
   });
 
   // --------------------------------------------------------------------------
+  // Test Send — send a single email to verify Resend is configured
+  // --------------------------------------------------------------------------
+
+  app.post('/api/email/test-send', async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const body = req.body as {
+        to?: string;
+        subject?: string;
+        body?: string;
+        contactId?: string;
+        organizationId?: string;
+      };
+
+      if (!body.to || !body.subject) {
+        throw createApiError('to and subject are required', 400);
+      }
+
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(body.to)) {
+        throw createApiError('Invalid email address', 400);
+      }
+
+      const { sendEmail } = await import('./services/email');
+      const result = await sendEmail({
+        to: body.to,
+        subject: body.subject,
+        body: body.body ?? `<p>This is a test email from LeadSpot. If you received this, email delivery is working correctly.</p>`,
+        contactId: body.contactId ?? 'test-send',
+        organizationId: body.organizationId ?? 'test',
+      });
+
+      if (!result.success) {
+        throw createApiError(result.error ?? 'Failed to send test email', 500);
+      }
+
+      res.json({ message: `Test email sent to ${body.to}`, messageId: result.messageId });
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  // --------------------------------------------------------------------------
   // Error Handling Middleware (must be registered last)
   // --------------------------------------------------------------------------
 
