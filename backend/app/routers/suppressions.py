@@ -2,6 +2,7 @@
 import logging
 from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException
+from typing import Optional
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -15,7 +16,7 @@ router = APIRouter()
 class SuppressionCreate(BaseModel):
     email: str
     reason: str  # 'hard_bounce', 'spam_complaint', 'unsubscribed', 'manual'
-    source: str | None = None
+    source: Optional[str] = None
 
 
 @router.get("/suppressions/{email}")
