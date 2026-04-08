@@ -1,5 +1,61 @@
 # LeadSpot.ai - AI Agent Command Center for CRM
 
+## ⚠️ CRITICAL: Agent Orientation (Read First)
+
+**This is LeadSpot CRM** — GitHub: `MichaelrKraft/leadspot-ai.git`
+**Local path**: `/Users/michaelkraft/leadspot/`
+
+### Directory Confusion Warning
+`/Users/michaelkraft/leadspot-ai/` has been renamed to `coder1-ide-clone-stale/`.
+That directory is the **Coder1 IDE**, NOT LeadSpot. Do not confuse them.
+The only correct LeadSpot directory is `/Users/michaelkraft/leadspot/`.
+
+### Architecture: 3 Independent Services
+| Service | Directory | Port | Database |
+|---------|-----------|------|----------|
+| Backend | `backend/` | 8000 | SQLite (dev) → PostgreSQL (prod) |
+| Frontend | `frontend/` | 3006 | — |
+| Agent-service | `agent-service/` | 3008 | Per-org SQLite at `data/orgs/{orgId}/agent.db` |
+
+### The One Critical Code Gap
+Email sending is stubbed at: `agent-service/src/action-plans/index.ts` ~line 366
+```typescript
+// TODO: Send email via email service (Mailgun, SendGrid, etc.)
+```
+This is the primary blocker for beta launch. All other email infrastructure exists.
+
+### Production Database Requirements
+Local dev uses SQLite. Production MUST use PostgreSQL. Before any migration work:
+```bash
+# Change in backend/.env:
+DATABASE_URL=postgresql+asyncpg://user:pass@host/leadspot
+# Then run:
+cd backend && alembic upgrade head
+```
+
+### Internal API Bridge (Agent-service → Backend)
+Agent-service (TypeScript) and backend (Python) have separate databases.
+After sending an email, agent-service must POST to backend to record it:
+`POST http://localhost:8000/api/emails/record-send`
+
+### Suppression List
+Table: `email_suppressions` in PostgreSQL
+Check before every send: `GET /api/suppressions/{email}`
+
+### Alembic Migration Safety
+Every migration MUST have a `downgrade()` function. To rollback:
+```bash
+cd backend && alembic downgrade -1
+```
+
+### SQLite Backup
+Per-org agent.db files at `agent-service/data/orgs/{orgId}/agent.db` must be backed up nightly.
+
+### Sending Domain
+[Fill in after DNS setup — SPF/DKIM/DMARC required before any bulk send]
+
+---
+
 ## Project Overview
 
 LeadSpot is an AI-first CRM that combines Mautic's marketing automation with autonomous AI agents. Unlike traditional CRMs that require manual input, LeadSpot's AI agents proactively manage leads, make calls, send follow-ups, and book appointments.

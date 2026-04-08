@@ -80,3 +80,8 @@ Thumbs.db
 
 # Sentry
 .sentryclirc
+
+# SQLite WAL and SHM files (temporary, should not be committed)
+*.db-shm
+*.db-wal
+agent-service/data/
