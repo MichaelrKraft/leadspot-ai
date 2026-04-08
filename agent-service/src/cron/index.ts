@@ -13,6 +13,7 @@
 
 import { randomUUID } from 'crypto';
 import { Cron } from 'croner';
+import * as Sentry from '@sentry/node';
 
 import type {
   CronJob,
@@ -600,6 +601,7 @@ export class CRMCronService {
     if (lastError) {
       status = 'failed';
       error = lastError.message;
+      Sentry.captureException(lastError, { extra: { jobId: job.id, jobName: job.name, organizationId: job.organizationId } });
     }
 
     const durationMs = Date.now() - startTime;

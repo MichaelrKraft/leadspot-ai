@@ -7,6 +7,21 @@
  */
 import { randomUUID } from 'crypto';
 import { getDb } from '../db';
+import { sendEmail } from '../services/email';
+
+// --- Contact Email Lookup ---
+
+async function lookupContactEmail(contactId: string, organizationId: string): Promise<string | null> {
+  const backendUrl = process.env.LEADSPOT_API_URL || 'http://localhost:8000';
+  try {
+    const response = await fetch(`${backendUrl}/api/contacts/${contactId}?organization_id=${organizationId}`);
+    if (!response.ok) return null;
+    const contact = await response.json() as { email?: string };
+    return contact.email ?? null;
+  } catch {
+    return null;
+  }
+}
 
 // --- Types ---
 
@@ -363,9 +378,31 @@ async function executeStep(step: ActionStep, enrollment: ActionPlanEnrollment): 
         // TODO: Call orchestrator to generate AI draft email using contact context
         return { ...base, result: 'AI draft queued for approval' };
       }
-      // TODO: Send email via email service (Mailgun, SendGrid, etc.)
-      console.log(`[ActionPlan] Would send email to contact ${enrollment.contactId}: "${step.config.subject ?? ''}"`);
-      return { ...base, result: `Email sent: ${step.config.subject || '(template)'}` };
+
+      // Look up contact email — first try enrollment metadata, then query backend
+      const contactEmail = await lookupContactEmail(enrollment.contactId, enrollment.organizationId);
+
+      if (!contactEmail) {
+        console.warn(`[ActionPlan] No email found for contact ${enrollment.contactId}, skipping email step`);
+        return { ...base, status: 'skipped', result: 'Contact email not found' };
+      }
+
+      const emailResult = await sendEmail({
+        to: contactEmail,
+        subject: step.config.subject ?? '(No subject)',
+        body: step.config.body ?? step.config.subject ?? '(No body)',
+        contactId: enrollment.contactId,
+        campaignId: enrollment.planId,
+        organizationId: enrollment.organizationId,
+      });
+
+      if (emailResult.suppressed) {
+        return { ...base, status: 'skipped', result: 'Contact email is suppressed' };
+      }
+      if (!emailResult.success) {
+        return { ...base, status: 'failed', result: `Email failed: ${emailResult.error}` };
+      }
+      return { ...base, result: `Email sent (id: ${emailResult.messageId})` };
     }
     case 'sms': {
       if (step.config.useAiDraft) {

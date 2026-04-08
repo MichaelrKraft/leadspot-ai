@@ -12,10 +12,13 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.39.0",
+    "@sentry/node": "^8.0.0",
     "better-sqlite3": "^11.7.0",
     "croner": "^9.0.0",
     "express": "^5.2.1",
     "cors": "^2.8.6",
+    "resend": "^4.0.0",
+    "svix": "^1.0.0",
     "uuid": "^11.1.0"
   },
   "devDependencies": {

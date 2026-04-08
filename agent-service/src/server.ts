@@ -8,6 +8,18 @@
  * Entry point: initializes the orchestrator on startup.
  */
 
+import * as Sentry from '@sentry/node';
+
+// Initialize Sentry error tracking
+if (process.env.SENTRY_DSN) {
+  Sentry.init({
+    dsn: process.env.SENTRY_DSN,
+    environment: process.env.NODE_ENV || 'development',
+    release: `leadspot-agent-service@${process.env.npm_package_version || '0.1.0'}`,
+    tracesSampleRate: 0.1,
+  });
+}
+
 import express, { Router, type Request, type Response, type NextFunction } from 'express';
 import cors from 'cors';
 import { createOrchestrator, getOrchestrator } from './orchestrator';
@@ -329,6 +341,109 @@ function createApp(): express.Application {
   registerVoiceRoutes(agentRouter);
   registerReportingRoutes(agentRouter);
   app.use('/api/agent', agentRouter);
+
+  // --------------------------------------------------------------------------
+  // Health Check (public)
+  // --------------------------------------------------------------------------
+
+  app.get('/health', (_req: Request, res: Response) => {
+    res.json({
+      status: 'ok',
+      service: 'leadspot-agent-service',
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+    });
+  });
+
+  // --------------------------------------------------------------------------
+  // Resend Webhook — bounce/complaint suppression (raw body for sig validation)
+  // --------------------------------------------------------------------------
+
+  app.post('/api/webhooks/resend', express.raw({ type: 'application/json' }), async (req: Request, res: Response) => {
+    const webhookSecret = process.env.RESEND_WEBHOOK_SECRET;
+    if (!webhookSecret) {
+      console.error('[Webhook] RESEND_WEBHOOK_SECRET not set');
+      res.status(500).json({ error: 'Webhook secret not configured' });
+      return;
+    }
+
+    try {
+      const { Webhook } = await import('svix');
+      const wh = new Webhook(webhookSecret);
+      const payload = wh.verify(req.body as Buffer, {
+        'svix-id': req.headers['svix-id'] as string,
+        'svix-timestamp': req.headers['svix-timestamp'] as string,
+        'svix-signature': req.headers['svix-signature'] as string,
+      }) as { type: string; data: { email_id?: string; email_address?: string; bounce?: { type?: string } } };
+
+      const backendUrl = process.env.LEADSPOT_API_URL || 'http://localhost:8000';
+
+      if (payload.type === 'email.bounced') {
+        const bounceType = payload.data.bounce?.type ?? 'hard';
+        const emailAddress = payload.data.email_address ?? '';
+        if (bounceType === 'hard' && emailAddress) {
+          await fetch(`${backendUrl}/api/suppressions`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: emailAddress, reason: 'hard_bounce', source: 'resend_webhook' }),
+          });
+          console.log(`[Webhook] Hard bounce suppressed: ${emailAddress}`);
+        }
+      } else if (payload.type === 'email.complained') {
+        const emailAddress = payload.data.email_address ?? '';
+        if (emailAddress) {
+          await fetch(`${backendUrl}/api/suppressions`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: emailAddress, reason: 'spam_complaint', source: 'resend_webhook' }),
+          });
+          console.log(`[Webhook] Spam complaint suppressed: ${emailAddress}`);
+        }
+      }
+
+      res.json({ received: true });
+    } catch (error) {
+      console.error('[Webhook] Invalid signature:', error);
+      res.status(400).json({ error: 'Invalid webhook signature' });
+    }
+  });
+
+  // --------------------------------------------------------------------------
+  // Unsubscribe — one-click link from email footer
+  // --------------------------------------------------------------------------
+
+  app.get('/api/unsubscribe', async (req: Request, res: Response) => {
+    const token = req.query.token as string | undefined;
+    if (!token) {
+      res.status(400).send('<h1>Invalid unsubscribe link</h1>');
+      return;
+    }
+
+    const { verifyUnsubscribeToken } = await import('./services/email');
+    const result = verifyUnsubscribeToken(token);
+
+    if (!result) {
+      res.status(400).send('<h1>Invalid or expired unsubscribe link</h1>');
+      return;
+    }
+
+    const backendUrl = process.env.LEADSPOT_API_URL || 'http://localhost:8000';
+    try {
+      await fetch(`${backendUrl}/api/suppressions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: result.email, reason: 'unsubscribed', source: 'user_click' }),
+      });
+      res.send(`
+        <html><body style="font-family: sans-serif; max-width: 500px; margin: 100px auto; text-align: center;">
+          <h1>You've been unsubscribed</h1>
+          <p>You will no longer receive emails from us. This takes effect immediately.</p>
+        </body></html>
+      `);
+    } catch {
+      res.status(500).send('<h1>Unsubscribe failed. Please try again.</h1>');
+    }
+  });
 
   // --------------------------------------------------------------------------
   // Error Handling Middleware (must be registered last)
