@@ -91,7 +91,7 @@ async def list_emails(
     db: AsyncSession = Depends(get_db),
 ):
     """List all emails for the authenticated user."""
-    query = select(Email).where(Email.user_id == str(current_user.id))
+    query = select(Email).where(Email.user_id == str(current_user.user_id))
     if status:
         query = query.where(Email.status == status)
 
@@ -99,7 +99,7 @@ async def list_emails(
     emails = result.scalars().all()
 
     count_result = await db.execute(
-        select(Email).where(Email.user_id == str(current_user.id))
+        select(Email).where(Email.user_id == str(current_user.user_id))
     )
     total = len(count_result.scalars().all())
 
@@ -139,7 +139,7 @@ async def create_email(
         opened=data.opened,
         replied=data.replied,
         sent_at=data.sent_at,
-        user_id=str(current_user.id),
+        user_id=str(current_user.user_id),
     )
     db.add(email)
     await db.commit()
@@ -157,7 +157,7 @@ async def get_email(
     result = await db.execute(
         select(Email).where(
             Email.id == email_id,
-            Email.user_id == str(current_user.id),
+            Email.user_id == str(current_user.user_id),
         )
     )
     email = result.scalar_one_or_none()
@@ -177,7 +177,7 @@ async def update_email(
     result = await db.execute(
         select(Email).where(
             Email.id == email_id,
-            Email.user_id == str(current_user.id),
+            Email.user_id == str(current_user.user_id),
         )
     )
     email = result.scalar_one_or_none()
@@ -251,7 +251,7 @@ async def delete_email(
     result = await db.execute(
         select(Email).where(
             Email.id == email_id,
-            Email.user_id == str(current_user.id),
+            Email.user_id == str(current_user.user_id),
         )
     )
     email = result.scalar_one_or_none()

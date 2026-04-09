@@ -11,8 +11,12 @@ const nextConfig = {
   async rewrites() {
     return [
       {
+        source: '/api/agent/:path*',
+        destination: 'http://localhost:3008/api/agent/:path*',
+      },
+      {
         source: '/api/:path*',
-        destination: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/:path*',
+        destination: 'http://localhost:8000/api/:path*',
       },
     ];
   },

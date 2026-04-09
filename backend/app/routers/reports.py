@@ -58,7 +58,7 @@ async def get_reports_summary(
     db: AsyncSession = Depends(get_db),
 ) -> ReportsSummary:
     """Return aggregated summary stats for the Reports page."""
-    user_id = str(current_user.id)
+    user_id = str(current_user.user_id)
     org_id = str(current_user.organization_id)
 
     # --- total_contacts: count contacts via raw SQL (Mautic-backed, table may not exist) ---

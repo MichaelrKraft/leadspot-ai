@@ -1,7 +1,9 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosError } from "axios";
+import { useAuthStore } from "@/stores/useAuthStore";
 
 // API configuration
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+// Use relative URL so Next.js rewrites proxy to backend — eliminates CORS
+const API_BASE_URL = "";
 const API_TIMEOUT = 30000; // 30 seconds
 
 // Custom error types
@@ -37,10 +39,15 @@ const createAPIClient = (): AxiosInstance => {
     withCredentials: true, // Required for httpOnly cookies
   });
 
-  // Request interceptor - add CSRF token for state-changing requests
+  // Request interceptor - add Bearer token and CSRF token
   instance.interceptors.request.use(
     (config) => {
-      // Add CSRF token for non-GET requests (required for cookie-based auth)
+      // Add Bearer token from auth store
+      const token = useAuthStore.getState().token;
+      if (token) {
+        config.headers["Authorization"] = `Bearer ${token}`;
+      }
+      // Add CSRF token for non-GET requests
       if (config.method && ["post", "put", "patch", "delete"].includes(config.method.toLowerCase())) {
         const csrfToken = getCSRFToken();
         if (csrfToken) {

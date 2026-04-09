@@ -6,7 +6,8 @@
 
 import { useAuthStore } from '@/stores/useAuthStore';
 
-const API_URL = process.env.NEXT_PUBLIC_AGENT_SERVICE_URL || 'http://localhost:3008';
+// Use relative URL so Next.js rewrites proxy to agent service — eliminates CORS
+const API_URL = '';
 
 // Returns the current org ID from auth context, falls back to 'demo-org' in dev mode
 function getOrgId(): string {

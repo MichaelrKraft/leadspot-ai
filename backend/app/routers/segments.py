@@ -77,7 +77,7 @@ async def list_segments(
 ):
     """List all segments for the authenticated user."""
     result = await db.execute(
-        select(Segment).where(Segment.user_id == str(current_user.id))
+        select(Segment).where(Segment.user_id == str(current_user.user_id))
     )
     segments = result.scalars().all()
     return SegmentsListResponse(
@@ -106,7 +106,7 @@ async def create_segment(
         contact_count=data.contact_count,
         filter_type=data.filter_type,
         filter_criteria=data.filter_criteria,
-        user_id=str(current_user.id),
+        user_id=str(current_user.user_id),
     )
     db.add(segment)
     await db.commit()
@@ -124,7 +124,7 @@ async def get_segment(
     result = await db.execute(
         select(Segment).where(
             Segment.id == segment_id,
-            Segment.user_id == str(current_user.id),
+            Segment.user_id == str(current_user.user_id),
         )
     )
     segment = result.scalar_one_or_none()
@@ -144,7 +144,7 @@ async def update_segment(
     result = await db.execute(
         select(Segment).where(
             Segment.id == segment_id,
-            Segment.user_id == str(current_user.id),
+            Segment.user_id == str(current_user.user_id),
         )
     )
     segment = result.scalar_one_or_none()
@@ -178,7 +178,7 @@ async def delete_segment(
     result = await db.execute(
         select(Segment).where(
             Segment.id == segment_id,
-            Segment.user_id == str(current_user.id),
+            Segment.user_id == str(current_user.user_id),
         )
     )
     segment = result.scalar_one_or_none()

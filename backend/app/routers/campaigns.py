@@ -83,14 +83,14 @@ async def list_campaigns(
     """List all campaigns for the authenticated user."""
     result = await db.execute(
         select(Campaign)
-        .where(Campaign.user_id == str(current_user.id))
+        .where(Campaign.user_id == str(current_user.user_id))
         .offset((page - 1) * limit)
         .limit(limit)
     )
     campaigns = result.scalars().all()
 
     count_result = await db.execute(
-        select(Campaign).where(Campaign.user_id == str(current_user.id))
+        select(Campaign).where(Campaign.user_id == str(current_user.user_id))
     )
     total = len(count_result.scalars().all())
 
@@ -127,7 +127,7 @@ async def create_campaign(
         leads=data.leads,
         opened=data.opened,
         replied=data.replied,
-        user_id=str(current_user.id),
+        user_id=str(current_user.user_id),
     )
     db.add(campaign)
     await db.commit()
@@ -145,7 +145,7 @@ async def get_campaign(
     result = await db.execute(
         select(Campaign).where(
             Campaign.id == campaign_id,
-            Campaign.user_id == str(current_user.id),
+            Campaign.user_id == str(current_user.user_id),
         )
     )
     campaign = result.scalar_one_or_none()
@@ -165,7 +165,7 @@ async def update_campaign(
     result = await db.execute(
         select(Campaign).where(
             Campaign.id == campaign_id,
-            Campaign.user_id == str(current_user.id),
+            Campaign.user_id == str(current_user.user_id),
         )
     )
     campaign = result.scalar_one_or_none()
@@ -204,7 +204,7 @@ async def delete_campaign(
     result = await db.execute(
         select(Campaign).where(
             Campaign.id == campaign_id,
-            Campaign.user_id == str(current_user.id),
+            Campaign.user_id == str(current_user.user_id),
         )
     )
     campaign = result.scalar_one_or_none()
