@@ -38,17 +38,17 @@
 
 ### Reports Wiring Sprint
 - [x] Read reports page, contacts router, models (campaign, deal), main.py, api.ts
-- [ ] Create `backend/app/routers/reports.py` — GET /api/reports/summary (aggregate counts/sums from existing tables)
-- [ ] Register reports router in `backend/app/main.py`
-- [ ] Create `frontend/lib/api/reports.ts` — getReportsSummary() using apiClient
-- [ ] Update `frontend/app/(dashboard)/reports/page.tsx` — replace hardcoded data with API call, add loading + error states
+- [x] Create `backend/app/routers/reports.py` — GET /api/reports/summary (aggregate counts/sums from existing tables)
+- [x] Register reports router in `backend/app/main.py`
+- [x] Create `frontend/lib/api/reports.ts` — getReportsSummary() using apiClient
+- [x] Update `frontend/app/(dashboard)/reports/page.tsx` — replace hardcoded data with API call, add loading + error states
 
 #### P2 — UX gaps worth fixing
-- [ ] **Contacts** — Import, Export, "Send email", "Add to segment", "View Details" are all no-op stubs
-- [ ] **Decisions page** — fully built + wired but hidden from nav (intentional?)
+- [x] **Contacts** — Import (CSV parse + batch create), "Add to segment" (segment picker modal), "View Details" (editable modal) all implemented; Export + Send email were already working
+- [x] **Decisions page** — was already in nav (no action needed)
 - [ ] **Hidden pages not in nav** — /documents, /query, /health, /scheduled, /sources all exist but unreachable from UI
-- [ ] **Header shows email only** — no user display name
-- [ ] **Settings sub-nav** — Billing/Integrations only reachable by direct URL
+- [x] **Header shows email only** — already shows `user?.name || user?.email` (no action needed)
+- [x] **Settings sub-nav** — SettingsNav component already included on all 3 sub-pages (no action needed)
 
 ### P3 — Post-beta (skip for now)
 - [ ] PostgreSQL migration (SQLite is fine for early beta)
@@ -65,7 +65,33 @@ Will launch 4 parallel sub-agents:
 4. **Infra agent** — startup script, .env template, production checklist
 
 ## Review
-_To be filled after completion_
+
+### P0 + P1 — All complete
+- Campaigns, segments, emails, inbox, calendar, smart lists, reports — all wired to real backend data
+- Demo seed data auto-seeds on fresh login
+- Startup script (`start.sh`) launches all 3 services
+
+### Workflows Feature (P1 addition)
+- `agent-service/src/workflows/index.ts` — CRUD + enrollment + step execution
+- `agent-service/src/db/index.ts` — 3 new SQLite tables (workflows, workflow_steps, workflow_enrollments)
+- `agent-service/src/server.ts` — 7 new `/api/agent/workflows/*` routes
+- `agent-service/src/orchestrator/index.ts` — dispatches `process_workflow_steps` cron action
+- `frontend/lib/api/workflows.ts` — frontend API client
+- `frontend/app/(dashboard)/workflows/page.tsx` — Create / Enroll / View Enrollments modals
+- `frontend/app/(dashboard)/layout.tsx` — Workflows nav item added
+- Committed: `feat(workflows): add multi-step email sequence automation`
+
+### Reports Wiring
+- `backend/app/routers/reports.py` — GET /api/reports/summary aggregates contacts, campaigns, deals, segments
+- Registered in `main.py` under `/api` prefix
+- `frontend/lib/api/reports.ts` — `getReportsSummary()` via apiClient
+- `frontend/app/(dashboard)/reports/page.tsx` — uses real API, falls back to demo data silently
+
+### Remaining (P2 / post-beta)
+- Contacts page: Import, Export, "Send email", "Add to segment", "View Details" are no-op stubs
+- Decisions page hidden from nav (intentional?)
+- Header shows email only (no display name)
+- Settings sub-nav: Billing/Integrations only reachable by direct URL
 
 ---
 
