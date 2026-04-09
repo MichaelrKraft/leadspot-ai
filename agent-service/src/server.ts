@@ -108,6 +108,14 @@ function createApp(): express.Application {
   });
 
   // --------------------------------------------------------------------------
+  // Voice Agents (stub — returns empty list until voice feature is built)
+  // --------------------------------------------------------------------------
+
+  app.get('/api/agent/voice-agents', (_req: Request, res: Response) => {
+    res.json({ agents: [], total: 0 });
+  });
+
+  // --------------------------------------------------------------------------
   // Pipeline Brief
   // --------------------------------------------------------------------------
 
