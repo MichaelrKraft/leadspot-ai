@@ -26,6 +26,7 @@ import { processExpiredClaims } from '../lead-routing';
 import { evaluateAutoPondRules } from '../lead-ponds';
 import { processAutoResumes } from '../action-plans/auto-pause';
 import { getDueEnrollments, processNextStep } from '../action-plans';
+import { processWorkflowSteps } from '../workflows';
 
 // ============================================================================
 // Internal types for LeadSpot API responses (Phase 1 stubs)
@@ -284,6 +285,11 @@ export class CRMOrchestrator {
             console.error(`[CRMOrchestrator] Failed to process enrollment ${enrollment.id}:`, err);
           }
         }
+        break;
+      }
+
+      case 'process_workflow_steps': {
+        await processWorkflowSteps(organizationId);
         break;
       }
 

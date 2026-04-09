@@ -47,6 +47,7 @@ export type CRMAction =
   | 'auto_pond_check'
   | 'auto_resume_check'
   | 'process_action_plans'
+  | 'process_workflow_steps'
   | 'custom';
 
 export interface AgentSuggestion {

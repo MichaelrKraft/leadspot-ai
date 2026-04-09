@@ -139,6 +139,32 @@ function createTables(db: Database.Database): void {
       duration_ms       INTEGER NOT NULL,
       error             TEXT
     );
+
+    CREATE TABLE IF NOT EXISTS workflows (
+      id                TEXT PRIMARY KEY,
+      name              TEXT NOT NULL,
+      created_at        TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS workflow_steps (
+      id                TEXT PRIMARY KEY,
+      workflow_id       TEXT NOT NULL,
+      step_order        INTEGER NOT NULL,
+      delay_days        INTEGER NOT NULL DEFAULT 0,
+      subject           TEXT NOT NULL,
+      body              TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS workflow_enrollments (
+      id                TEXT PRIMARY KEY,
+      workflow_id       TEXT NOT NULL,
+      contact_id        TEXT NOT NULL,
+      contact_email     TEXT NOT NULL,
+      current_step      INTEGER DEFAULT 0,
+      status            TEXT DEFAULT 'active',
+      enrolled_at       TEXT NOT NULL DEFAULT (datetime('now')),
+      next_send_at      TEXT
+    );
   `);
 
   // Indexes for common query patterns

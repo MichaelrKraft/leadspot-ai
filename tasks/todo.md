@@ -66,3 +66,24 @@ Will launch 4 parallel sub-agents:
 
 ## Review
 _To be filled after completion_
+
+---
+
+## Workflow Automation Feature
+
+### What was built
+- NEW `agent-service/src/workflows/index.ts` — CRUD + enrollment + step execution
+- `agent-service/src/db/index.ts` — added workflows, workflow_steps, workflow_enrollments tables
+- `agent-service/src/types.ts` — added `process_workflow_steps` to CRMAction
+- `agent-service/src/orchestrator/index.ts` — added `process_workflow_steps` case to handleCronAction
+- `agent-service/src/server.ts` — 7 new `/api/agent/workflows/*` routes
+- NEW `frontend/lib/api/workflows.ts` — frontend API client
+- NEW `frontend/app/(dashboard)/workflows/page.tsx` — Workflows UI page
+- `frontend/app/(dashboard)/layout.tsx` — added Workflows nav item (between Campaigns and Calendar)
+
+### How it works
+1. Create a workflow with named steps (delay in days, subject, body)
+2. Enroll contacts (individually or by segment) → enrollments stored in SQLite
+3. A recurring CronService job `process_workflow_steps` (every 5 min) fires for the org
+4. Finds enrollments where `next_send_at <= now`, sends email via Resend, advances step
+5. Marks enrollment `completed` when all steps are sent

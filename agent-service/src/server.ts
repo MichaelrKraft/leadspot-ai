@@ -32,6 +32,14 @@ import type {
 } from './types';
 import { registerSmartListRoutes } from './routes/smart-lists';
 import { registerActionPlanRoutes } from './routes/action-plans';
+import {
+  listWorkflows,
+  createWorkflow,
+  getWorkflow,
+  deleteWorkflow,
+  listEnrollments,
+  enrollContacts,
+} from './workflows';
 import { registerLeadRoutingRoutes } from './routes/lead-routing';
 import { registerLeadPondRoutes } from './routes/lead-ponds';
 import { registerTimelineRoutes } from './routes/timeline';
@@ -337,6 +345,132 @@ function createApp(): express.Application {
   });
 
   // --------------------------------------------------------------------------
+  // Workflows — multi-step email sequences
+  // --------------------------------------------------------------------------
+
+  app.get('/api/agent/workflows', async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const organizationId = req.query.organizationId as string | undefined;
+      if (!organizationId) throw createApiError('organizationId query parameter is required', 400);
+      const { getDb } = await import('./db');
+      const db = getDb(organizationId);
+      res.json({ workflows: listWorkflows(db) });
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  app.post('/api/agent/workflows', async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { organizationId, name, steps } = req.body as {
+        organizationId?: string;
+        name?: string;
+        steps?: Array<{ delayDays: number; subject: string; body: string }>;
+      };
+      if (!organizationId) throw createApiError('organizationId is required', 400);
+      if (!name) throw createApiError('name is required', 400);
+      if (!steps || !Array.isArray(steps) || steps.length === 0) throw createApiError('steps array is required', 400);
+      const { getDb } = await import('./db');
+      const workflow = createWorkflow(getDb(organizationId), name, steps);
+      res.status(201).json({ workflow });
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  app.get('/api/agent/workflows/:id', async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const id = String(req.params.id);
+      const organizationId = req.query.organizationId as string | undefined;
+      if (!organizationId) throw createApiError('organizationId query parameter is required', 400);
+      const { getDb } = await import('./db');
+      const workflow = getWorkflow(getDb(organizationId), id);
+      if (!workflow) throw createApiError('Workflow not found', 404);
+      res.json({ workflow });
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  app.delete('/api/agent/workflows/:id', async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const id = String(req.params.id);
+      const { organizationId } = req.body as { organizationId?: string };
+      if (!organizationId) throw createApiError('organizationId is required', 400);
+      const { getDb } = await import('./db');
+      deleteWorkflow(getDb(organizationId), id);
+      res.json({ success: true });
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  app.post('/api/agent/workflows/:id/enroll', async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const id = String(req.params.id);
+      const { organizationId, contacts } = req.body as {
+        organizationId?: string;
+        contacts?: Array<{ id: string; email: string }>;
+      };
+      if (!organizationId) throw createApiError('organizationId is required', 400);
+      if (!contacts || !Array.isArray(contacts) || contacts.length === 0) throw createApiError('contacts array is required', 400);
+      const { getDb } = await import('./db');
+      await enrollContacts(getDb(organizationId), id, organizationId, contacts);
+      res.json({ success: true, enrolled: contacts.length });
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  app.post('/api/agent/workflows/:id/enroll-segment', async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const id = String(req.params.id);
+      const { organizationId, segmentId } = req.body as {
+        organizationId?: string;
+        segmentId?: string;
+      };
+      if (!organizationId) throw createApiError('organizationId is required', 400);
+      if (!segmentId) throw createApiError('segmentId is required', 400);
+
+      const backendUrl = process.env.LEADSPOT_API_URL || 'http://localhost:8000';
+      const resp = await fetch(`${backendUrl}/api/contacts?segment_id=${segmentId}`, {
+        headers: { Authorization: req.headers.authorization ?? '' },
+      });
+      if (!resp.ok) throw createApiError('Failed to fetch segment contacts', 502);
+
+      const data = await resp.json() as { contacts?: Array<{ id: string; email: string }> };
+      const contacts = (data.contacts ?? []).map((c: { id: string; email: string }) => ({
+        id: c.id,
+        email: c.email,
+      }));
+
+      if (contacts.length === 0) {
+        res.json({ success: true, enrolled: 0, message: 'Segment has no contacts' });
+        return;
+      }
+
+      const { getDb } = await import('./db');
+      await enrollContacts(getDb(organizationId), id, organizationId, contacts);
+      res.json({ success: true, enrolled: contacts.length });
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  app.get('/api/agent/workflows/:id/enrollments', async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const id = String(req.params.id);
+      const organizationId = req.query.organizationId as string | undefined;
+      if (!organizationId) throw createApiError('organizationId query parameter is required', 400);
+      const { getDb } = await import('./db');
+      const enrollments = listEnrollments(getDb(organizationId), id);
+      res.json({ enrollments });
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  // --------------------------------------------------------------------------
   // Modular Route Modules
   // --------------------------------------------------------------------------
 
@@ -454,6 +588,41 @@ function createApp(): express.Application {
   });
 
   // --------------------------------------------------------------------------
+  // Campaign Test Send — send a test email for a specific campaign
+  // --------------------------------------------------------------------------
+
+  app.post('/api/agent/campaigns/test-send', async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const body = req.body as { campaignId?: string; email?: string; campaignName?: string };
+
+      if (!body.email) {
+        throw createApiError('email is required', 400);
+      }
+
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(body.email)) {
+        throw createApiError('Invalid email address', 400);
+      }
+
+      const { sendEmail } = await import('./services/email');
+      const result = await sendEmail({
+        to: body.email,
+        subject: `[Test] ${body.campaignName ?? 'Campaign'} — LeadSpot`,
+        body: `<p>This is a test send for your LeadSpot campaign. If you received this, email delivery is working correctly.</p><p style="color:#666;font-size:12px">Campaign ID: ${body.campaignId ?? 'N/A'}</p>`,
+        contactId: body.campaignId ?? 'campaign-test',
+        organizationId: 'test',
+      });
+
+      if (!result.success) {
+        throw createApiError(result.error ?? 'Failed to send test email', 500);
+      }
+
+      res.json({ message: `Test email sent to ${body.email}`, messageId: result.messageId });
+    } catch (err) {
+      next(err);
+    }
+  });
+
   // Test Send — send a single email to verify Resend is configured
   // --------------------------------------------------------------------------
 
