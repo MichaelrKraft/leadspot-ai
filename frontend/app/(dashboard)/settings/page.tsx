@@ -7,7 +7,7 @@ import { useConnections } from '@/hooks/useIntegrations';
 import api from '@/lib/api';
 import SettingsNav from '@/components/settings/SettingsNav';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+
 
 // ─── Profile Section ──────────────────────────────────────────────────────────
 
@@ -27,7 +27,7 @@ function ProfileSection() {
     setSaving(true);
     setMessage(null);
     try {
-      const response = await fetch(`${API_BASE}/auth/me`, {
+      const response = await fetch('/auth/me', {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',

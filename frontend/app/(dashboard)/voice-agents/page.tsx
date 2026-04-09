@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+import { useAuthStore } from '@/stores/useAuthStore';
 
 interface VoiceAgent {
   id: string;
@@ -261,8 +261,10 @@ export default function VoiceAgentsPage() {
       setIsLoading(true);
       setError(null);
       try {
-        const res = await fetch(`${API_URL}/api/agent/voice-agents`, {
+        const token = useAuthStore.getState().token;
+        const res = await fetch('/api/agent/voice-agents', {
           credentials: 'include',
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
         });
         if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
         const data = await res.json();
