@@ -2,7 +2,7 @@
 Rate limiting middleware using SlowAPI.
 
 Provides protection against brute force attacks and API abuse.
-Uses in-memory storage by default (works without Redis).
+Uses Redis-backed storage when configured, in-memory storage as fallback.
 """
 
 from fastapi import Request
@@ -10,6 +10,8 @@ from fastapi.responses import JSONResponse
 from slowapi import Limiter
 from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
+
+from app.config import settings
 
 
 def get_client_ip(request: Request) -> str:
@@ -32,10 +34,22 @@ def get_client_ip(request: Request) -> str:
     return get_remote_address(request)
 
 
-# Create limiter instance with in-memory storage
-# For production with multiple workers, consider using Redis:
-# limiter = Limiter(key_func=get_client_ip, storage_uri="redis://localhost:6379")
-limiter = Limiter(key_func=get_client_ip)
+def get_user_id_or_ip(request: Request) -> str:
+    """Use user_id for authenticated requests, IP for anonymous."""
+    if hasattr(request.state, "user") and request.state.user:
+        user_id = getattr(request.state.user, "user_id", None)
+        if user_id:
+            return f"user:{user_id}"
+    return get_client_ip(request)
+
+
+# Use Redis-backed storage when a non-default Redis URL is configured.
+# This ensures rate limits are shared across multiple workers in production.
+_limiter_kwargs: dict = {"key_func": get_client_ip}
+if settings.REDIS_URL and settings.REDIS_URL != "redis://localhost:6379/0":
+    _limiter_kwargs["storage_uri"] = settings.REDIS_URL
+
+limiter = Limiter(**_limiter_kwargs)
 
 
 def rate_limit_exceeded_handler(request: Request, exc: RateLimitExceeded) -> JSONResponse:

@@ -110,6 +110,27 @@ async def liveness_check():
     }
 
 
+@router.get("/health/full")
+async def full_health():
+    """Aggregated health: backend + Space Agent."""
+    from app.config import settings
+    import httpx
+
+    space_agent_status = "not_configured"
+    if settings.SPACE_AGENT_URL:
+        try:
+            async with httpx.AsyncClient(timeout=2.0) as client:
+                r = await client.get(f"{settings.SPACE_AGENT_URL}/health")
+                space_agent_status = "ok" if r.status_code == 200 else "unavailable"
+        except Exception:
+            space_agent_status = "unavailable"
+
+    return {
+        "backend": "ok",
+        "space_agent": space_agent_status,
+    }
+
+
 @router.get("/health/detailed", status_code=status.HTTP_200_OK)
 async def detailed_health_check():
     """
