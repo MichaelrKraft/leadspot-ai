@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import { Search, Users, Mail, Phone, Tag, MoreVertical, RefreshCw, Upload, Download, UserPlus, X, CheckCircle } from 'lucide-react';
 import { listContacts, createContact, updateContact, deleteContact, type Contact, type ContactCreateData } from '@/lib/api/contacts';
 import { listSegments, updateSegment, type Segment } from '@/lib/api/segments';
@@ -67,6 +68,7 @@ function parseCSVContacts(text: string): ContactCreateData[] {
 }
 
 export default function ContactsPage() {
+  const router = useRouter();
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(true);
@@ -346,6 +348,34 @@ export default function ContactsPage() {
                       </button>
                       {openMenuId === contact.id && (
                         <div className="absolute right-6 top-12 z-50 w-48 rounded-xl border border-slate-200 dark:border-zinc-700/50 bg-white dark:bg-zinc-800 shadow-lg py-1">
+                          {process.env.NEXT_PUBLIC_SPACE_AGENT_ENABLED === 'true' && (
+                            <button
+                              onClick={() => {
+                                try {
+                                  const bc = new BroadcastChannel('leadspot-workspace');
+                                  bc.postMessage({
+                                    type: 'NAVIGATE',
+                                    payload: {
+                                      contactId: contact.id,
+                                      contactName: `${contact.firstName} ${contact.lastName}`,
+                                      email: contact.email,
+                                    }
+                                  });
+                                  bc.close();
+                                } catch {
+                                  // BroadcastChannel not supported in all environments
+                                }
+                                router.push('/workspace');
+                                setOpenMenuId(null);
+                              }}
+                              className="w-full text-left px-4 py-2.5 text-sm text-indigo-400 hover:bg-indigo-500/10 flex items-center gap-2"
+                            >
+                              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M3 3h8v8H3V3zm0 10h8v8H3v-8zm10-10h8v8h-8V3zm0 10h8v8h-8v-8z" />
+                              </svg>
+                              Open in Workspace
+                            </button>
+                          )}
                           <button
                             onClick={() => { setOpenMenuId(null); window.location.href = `/command-center`; }}
                             className="w-full text-left px-4 py-2 text-sm text-slate-700 dark:text-zinc-200 hover:bg-slate-50 dark:hover:bg-zinc-700/50"

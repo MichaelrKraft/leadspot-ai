@@ -100,6 +100,30 @@ function WorkspaceContent() {
     if (isFirstRun) setShowFirstRun(true);
   }, [isFirstRun]);
 
+  // BroadcastChannel: relay cross-tab NAVIGATE messages into the iframe
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    let bc: BroadcastChannel;
+    try {
+      bc = new BroadcastChannel('leadspot-workspace');
+      bc.onmessage = (e) => {
+        if (e.data?.type === 'NAVIGATE' && iframeRef.current?.contentWindow) {
+          iframeRef.current.contentWindow.postMessage(
+            { type: 'NAVIGATE', payload: e.data.payload },
+            window.location.origin
+          );
+        }
+      };
+    } catch {
+      // BroadcastChannel not supported
+    }
+
+    return () => {
+      try { bc?.close(); } catch { /* ignore */ }
+    };
+  }, [iframeRef]);
+
   // Handle token refresh request from Space Agent
   const handleTokenRefreshRequest = useCallback(async () => {
     const tokenData = await fetchToken();
@@ -143,6 +167,15 @@ function WorkspaceContent() {
 
   return (
     <div className="relative flex h-full flex-col bg-[#0a0a0d]">
+      {/* Mobile fallback — iframe is unusable on small screens */}
+      <div className="md:hidden flex flex-col items-center justify-center h-full p-6 text-center">
+        <h2 className="text-lg font-semibold text-zinc-200">Workspace Lite</h2>
+        <p className="text-sm text-zinc-400 mt-2">Your full workspace is available on desktop. Mobile preview coming soon.</p>
+        <a href="/workspace" target="_blank" className="mt-4 rounded-lg bg-indigo-500 px-4 py-2 text-xs font-medium text-white hover:bg-indigo-400">Open Full Workspace</a>
+      </div>
+
+      {/* Desktop workspace — only renders >=768px */}
+      <div className="hidden md:flex flex-1 flex-col min-h-0">
       {/* Zone A: Toolbar */}
       <div className="flex h-10 flex-shrink-0 items-center justify-between border-b border-zinc-800/50 bg-[#111118] px-4">
         <div className="flex items-center gap-2">
@@ -275,6 +308,7 @@ function WorkspaceContent() {
             title="AI Workspace"
           />
         )}
+      </div>
       </div>
 
       {/* First run modal */}

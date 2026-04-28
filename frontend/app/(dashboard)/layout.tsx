@@ -9,6 +9,7 @@ import { useAuthStore } from '@/stores/useAuthStore';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import ThemeToggle from '@/components/ThemeToggle';
 import CommandPalette from '@/components/conv-ai/CommandPalette';
+import MobileNav from '@/components/layout/MobileNav';
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -264,7 +265,9 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
           {/* Navigation */}
           <nav className="flex-1 overflow-y-auto py-3">
-            {navigation.map((item, index) => {
+            {navigation.filter(item =>
+              item.href !== '/workspace' || process.env.NEXT_PUBLIC_SPACE_AGENT_ENABLED === 'true'
+            ).map((item, index) => {
               const isActive =
                 !item.external &&
                 (pathname === item.href || pathname?.startsWith(item.href + '/'));
@@ -333,7 +336,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           </header>
 
           {/* Page Content */}
-          <main className="flex-1 overflow-y-auto overflow-x-hidden bg-white dark:bg-[#0a0a0d]">
+          <main className="flex-1 overflow-y-auto overflow-x-hidden bg-white pb-16 dark:bg-[#0a0a0d] md:pb-0">
             <ErrorBoundary>
               <div className="relative z-10">{children}</div>
             </ErrorBoundary>
@@ -353,6 +356,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           </footer>
         </div>
       </div>
+      <MobileNav />
     </AuthGuard>
   );
 }

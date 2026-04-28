@@ -72,7 +72,7 @@ export default function OnboardingPage() {
 
   const finish = () => {
     // Use replace so back-button doesn't return to onboarding.
-    router.replace('/dashboard?onboarded=1');
+    router.replace('/workspace?first_run=1');
   };
 
   const handleFile = useCallback((f: File | null) => {
