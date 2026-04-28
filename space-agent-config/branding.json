@@ -1,0 +1,17 @@
+{
+  "branding": {
+    "productName": "My Workspace",
+    "primaryColor": "#818cf8",
+    "darkMode": true,
+    "hideSpaceAgentBranding": true,
+    "customCSS": "branding.css"
+  },
+  "iframe": {
+    "frameAncestors": ["http://localhost:3006", "http://localhost:3000", "https://leadspot.ai", "https://app.leadspot.ai"],
+    "xFrameOptions": "SAMEORIGIN"
+  },
+  "skill": {
+    "templatePath": "../backend/SKILL.md",
+    "version": "2026-04-28-v1"
+  }
+}

@@ -1,0 +1,36 @@
+/*
+ * LeadSpot Workspace branding overrides
+ * Injected into Space Agent iframe via L0 firmware config.
+ * Matches LeadSpot's design tokens (--ls-primary = #818cf8 indigo).
+ */
+:root {
+  --sa-bg-primary: #0a0a0d;
+  --sa-bg-secondary: #111118;
+  --sa-bg-tertiary: #1e2639;
+  --sa-accent: #818cf8;
+  --sa-accent-hover: #a5b4fc;
+  --sa-border: rgba(63, 63, 70, 0.5);
+  --sa-text-primary: #fafafa;
+  --sa-text-secondary: #a1a1aa;
+  --sa-font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --sa-radius: 12px;
+  --sa-glow: 0 0 20px rgba(99, 102, 241, 0.4);
+}
+
+/* Hide Space Agent branding in user-facing UI */
+[data-space-agent-branding],
+.space-agent-watermark,
+.sa-branding-footer { display: none !important; }
+
+/* Workspace title override */
+.sa-product-name::before {
+  content: 'My Workspace';
+  display: inline;
+}
+.sa-product-name > * { display: none; }
+
+body {
+  background: var(--sa-bg-primary);
+  color: var(--sa-text-primary);
+  font-family: var(--sa-font-sans);
+}
