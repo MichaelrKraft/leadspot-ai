@@ -34,7 +34,17 @@ router = APIRouter(prefix="/api/billing", tags=["billing"])
 TIER_PLAN_MAP = {
     settings.STRIPE_PRICE_ID_PRO: "pro",
     settings.STRIPE_PRICE_ID_BUSINESS: "business",
+    settings.LEADSPOT_PRICE_ID: "ghostlog",
 }
+
+# Ghostlog wedge plan — log a warning at import time if the Price ID is
+# missing so ops sees it on every redeploy instead of discovering it at
+# checkout time. BLOCKED on Mike's Stripe account; do not crash here.
+if not settings.LEADSPOT_PRICE_ID:
+    logger.warning(
+        "LEADSPOT_PRICE_ID is not configured — Ghostlog ($39/mo) checkout "
+        "will be disabled until the env var is set."
+    )
 
 PLAN_DISPLAY = {
     "free": {
@@ -152,15 +162,25 @@ async def create_checkout_session(
             detail="Stripe is not configured. Contact support.",
         )
 
-    if body.plan not in ("pro", "business"):
-        raise HTTPException(status_code=400, detail="Invalid plan. Choose 'pro' or 'business'.")
+    if body.plan not in ("pro", "business", "ghostlog"):
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid plan. Choose 'pro', 'business', or 'ghostlog'.",
+        )
 
-    price_id = (
-        settings.STRIPE_PRICE_ID_PRO
-        if body.plan == "pro"
-        else settings.STRIPE_PRICE_ID_BUSINESS
-    )
+    if body.plan == "pro":
+        price_id = settings.STRIPE_PRICE_ID_PRO
+    elif body.plan == "business":
+        price_id = settings.STRIPE_PRICE_ID_BUSINESS
+    else:  # ghostlog ($39/mo single-player wedge)
+        price_id = settings.LEADSPOT_PRICE_ID
+
     if not price_id:
+        # Ghostlog price specifically is BLOCKED on Mike's Stripe provisioning.
+        logger.warning(
+            "Checkout requested for plan=%s but no Stripe price configured.",
+            body.plan,
+        )
         raise HTTPException(
             status_code=503,
             detail="Stripe price not configured for this plan. Contact support.",

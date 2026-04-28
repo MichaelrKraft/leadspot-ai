@@ -101,36 +101,236 @@ function getAnthropicClient(): Anthropic {
 }
 
 // ============================================================================
+// Backend Request Helper
+// ============================================================================
+
+async function backendRequest(
+  method: string,
+  path: string,
+  body?: unknown,
+  token?: string,
+): Promise<unknown> {
+  const url = `${process.env.LEADSPOT_API_URL ?? 'http://localhost:8000'}${path}`;
+  const res = await fetch(url, {
+    method,
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    throw new Error(`Backend ${method} ${path} returned ${res.status}: ${text}`);
+  }
+  return res.json();
+}
+
+// ============================================================================
+// Phone Normalization Helper
+// ============================================================================
+
+function tryNormalizePhone(raw: string): string | null {
+  const digits = raw.replace(/\D/g, '');
+  if (digits.length === 10) return `+1${digits}`;
+  if (digits.length === 11 && digits[0] === '1') return `+${digits}`;
+  return null;
+}
+
+// ============================================================================
+// Contact Resolution
+// ============================================================================
+
+type ContactResolution =
+  | { found: true; contactId: string; contactName: string }
+  | { ambiguous: true; matches: { id: string; name: string }[]; confirmationMessage: string }
+  | { notFound: true };
+
+async function resolveContact(
+  nameOrPhone: string,
+  token?: string,
+): Promise<ContactResolution> {
+  if (!nameOrPhone.trim()) return { notFound: true };
+
+  // Phone-first lookup
+  const normalized = tryNormalizePhone(nameOrPhone);
+  if (normalized) {
+    const data = await backendRequest(
+      'GET',
+      `/api/contacts?phone=${encodeURIComponent(normalized)}&limit=1`,
+      undefined,
+      token,
+    ) as { contacts?: { id: string; name: string }[] };
+    if (data.contacts?.length === 1) {
+      return {
+        found: true,
+        contactId: data.contacts[0].id,
+        contactName: data.contacts[0].name,
+      };
+    }
+  }
+
+  // Name search fallback
+  const data = await backendRequest(
+    'GET',
+    `/api/contacts?q=${encodeURIComponent(nameOrPhone)}&limit=3`,
+    undefined,
+    token,
+  ) as { contacts?: { id: string; name: string }[] };
+  const contacts = data.contacts ?? [];
+
+  if (contacts.length === 0) return { notFound: true };
+  if (contacts.length === 1) {
+    return { found: true, contactId: contacts[0].id, contactName: contacts[0].name };
+  }
+
+  const names = contacts.map((c) => c.name).join(', ');
+  return {
+    ambiguous: true,
+    matches: contacts,
+    confirmationMessage: `I found ${contacts.length} contacts matching "${nameOrPhone}": ${names}. Which one did you mean?`,
+  };
+}
+
+// ============================================================================
+// Pipeline Stages Helper
+// ============================================================================
+
+const DEFAULT_PIPELINE_STAGES = [
+  'new-lead', 'contacted', 'qualified', 'estimate-sent',
+  'job-scheduled', 'in-progress', 'completed',
+  'showing-scheduled', 'offer-submitted', 'under-contract',
+  'closed', 'lost', 'not-interested',
+];
+
+async function getOrgPipelineStages(organizationId: string): Promise<string[]> {
+  try {
+    const db = getDb(organizationId);
+    const rows = db
+      .prepare('SELECT stage_name FROM pipeline_stages ORDER BY sort_order')
+      .all() as { stage_name: string }[];
+    if (rows.length > 0) return rows.map((r) => r.stage_name);
+  } catch {
+    // Table may not exist yet — fall through to defaults
+  }
+  return DEFAULT_PIPELINE_STAGES;
+}
+
+// ============================================================================
+// Relative Date Parser
+// ============================================================================
+
+function parseRelativeDate(text: string): Date {
+  const lower = text.toLowerCase().trim();
+  const now = new Date();
+
+  // "tomorrow"
+  if (lower === 'tomorrow') {
+    const d = new Date(now);
+    d.setDate(d.getDate() + 1);
+    d.setHours(9, 0, 0, 0);
+    return d;
+  }
+
+  // "next week"
+  if (lower === 'next week') {
+    const d = new Date(now);
+    d.setDate(d.getDate() + 7);
+    d.setHours(9, 0, 0, 0);
+    return d;
+  }
+
+  // "in N days"
+  const inDaysMatch = lower.match(/^in (\d+) days?$/);
+  if (inDaysMatch) {
+    const d = new Date(now);
+    d.setDate(d.getDate() + parseInt(inDaysMatch[1], 10));
+    d.setHours(9, 0, 0, 0);
+    return d;
+  }
+
+  // Day of week: "monday", "tuesday", etc. with optional "at HH:MM" or "at Npm"
+  const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+  const dayMatch = lower.match(/^(sunday|monday|tuesday|wednesday|thursday|friday|saturday)(?:\s+at\s+(.+))?$/);
+  if (dayMatch) {
+    const targetDay = days.indexOf(dayMatch[1]);
+    const d = new Date(now);
+    const currentDay = d.getDay();
+    const daysUntil = (targetDay - currentDay + 7) % 7 || 7;
+    d.setDate(d.getDate() + daysUntil);
+
+    if (dayMatch[2]) {
+      const timeStr = dayMatch[2].trim();
+      const timeMatch = timeStr.match(/^(\d{1,2})(?::(\d{2}))?\s*(am|pm)?$/i);
+      if (timeMatch) {
+        let hours = parseInt(timeMatch[1], 10);
+        const minutes = timeMatch[2] ? parseInt(timeMatch[2], 10) : 0;
+        const meridiem = timeMatch[3]?.toLowerCase();
+        if (meridiem === 'pm' && hours < 12) hours += 12;
+        if (meridiem === 'am' && hours === 12) hours = 0;
+        d.setHours(hours, minutes, 0, 0);
+      } else {
+        d.setHours(9, 0, 0, 0);
+      }
+    } else {
+      d.setHours(9, 0, 0, 0);
+    }
+    return d;
+  }
+
+  // Try native Date parsing as a last resort
+  const parsed = new Date(text);
+  if (!isNaN(parsed.getTime())) return parsed;
+
+  // Default: tomorrow at 9am
+  const fallback = new Date(now);
+  fallback.setDate(fallback.getDate() + 1);
+  fallback.setHours(9, 0, 0, 0);
+  return fallback;
+}
+
+// ============================================================================
 // Parsing Prompt
 // ============================================================================
 
-const VOICE_PARSE_SYSTEM_PROMPT = `You are a voice command parser for a real estate CRM. You receive transcribed voice input from real estate agents and extract structured commands.
+function buildSystemPrompt(stages: string[]): string {
+  return `You are a voice command parser for a sales CRM used by service companies and real estate agents.
 
-Return a JSON object with these fields:
-- type: one of "update_stage", "add_tag", "remove_tag", "add_note", "schedule_followup", "log_activity", "create_contact", "get_summary", "unknown"
-- confidence: number 0-1 indicating how confident you are in the classification
-- contactName: the contact name mentioned (null if none)
-- parameters: object with relevant extracted parameters
-- suggestedConfirmation: a short human-readable confirmation question
+Pipeline stages for this organization: ${stages.join(', ')}.
+
+Parse the following voice input into a structured command. Return JSON only.
+
+Command types:
+- update_stage: move a contact/deal to a pipeline stage
+- add_tag: tag a contact (e.g., "hot lead", "qualified", "interested")
+- remove_tag: remove a tag from a contact
+- add_note: add a call note to a contact record
+- schedule_followup: schedule a follow-up task
+- log_activity: log an activity (call, meeting, showing, estimate)
+- create_contact: create a new contact
+- get_summary: get a summary of contact history
+- unknown: cannot parse
+
+For each command, extract:
+- contactName or contactPhone (who the command is about)
+- relevant parameters (tag name, stage name, note content, date/time, activity type, etc.)
+- confidence: 0.0-1.0
 
 Parameter keys by type:
-- update_stage: { stage: "new-lead" | "contacted" | "qualified" | "showing" | "offer" | "under-contract" | "closed" | "lost" }
+- update_stage: { stage: "stage-name-from-list-above" }
 - add_tag / remove_tag: { tag: "slug-form-tag" }
 - add_note: { note: "the note content" }
-- schedule_followup: { date: "YYYY-MM-DD or relative", time: "HH:MM or empty" }
-- log_activity: { activity: "showing" | "call" | "meeting" | "open-house", location?: "address" }
-- create_contact: { firstName, lastName, phone?, email?, source? }
-- get_summary: {} (no extra params needed)
+- schedule_followup: { date: "YYYY-MM-DD or relative text", time: "HH:MM or empty", notes: "optional context" }
+- log_activity: { activityType: "call" | "meeting" | "showing" | "estimate" | "open-house", notes?: "optional" }
+- create_contact: { name: "full name", firstName: "first", lastName: "last", phone?: "raw phone", email?: "email", source?: "source" }
+- get_summary: {}
+- suggestedConfirmation: a short human-readable confirmation question
 
-Real estate terminology to recognize:
-- "hot lead", "warm lead", "cold lead" -> tags
-- "under contract", "pending", "closing" -> stages
-- "showing", "open house", "walkthrough" -> activities
-- "buyer", "seller", "investor", "renter" -> tags
-- "pre-approved", "pre-qual" -> tags
-- "listing appointment", "CMA" -> activities
+Service company vocabulary: estimate, job, appointment, quote, follow-up
+Real estate vocabulary: showing, open house, buyer, seller, investor, under contract, closing, listing
 
 IMPORTANT: Always return valid JSON only, no markdown fencing, no extra text.`;
+}
 
 // ============================================================================
 // Public Functions
@@ -142,7 +342,7 @@ IMPORTANT: Always return valid JSON only, no markdown fencing, no extra text.`;
  */
 export async function parseVoiceCommand(
   text: string,
-  organizationId: string
+  organizationId: string,
 ): Promise<ParsedVoiceCommand> {
   ensureTables(organizationId);
 
@@ -152,15 +352,19 @@ export async function parseVoiceCommand(
   }
 
   try {
-    const client = getAnthropicClient();
+    const [client, stages] = await Promise.all([
+      Promise.resolve(getAnthropicClient()),
+      getOrgPipelineStages(organizationId),
+    ]);
+
     const response = await client.messages.create({
       model: 'claude-haiku-4-5-20251001',
       max_tokens: 512,
-      system: VOICE_PARSE_SYSTEM_PROMPT,
+      system: buildSystemPrompt(stages),
       messages: [
         {
           role: 'user',
-          content: `Parse this voice command from a real estate agent:\n\n"${trimmed}"`,
+          content: `Parse this voice command:\n\n"${trimmed}"`,
         },
       ],
     });
@@ -185,11 +389,12 @@ export async function parseVoiceCommand(
 
 /**
  * Execute a parsed voice command against the CRM.
- * Each command type has its own handler; actual API calls are stubbed.
+ * Token is the caller's bearer token forwarded to the backend API.
  */
 export async function executeVoiceCommand(
   command: ParsedVoiceCommand,
-  organizationId: string
+  organizationId: string,
+  token?: string,
 ): Promise<VoiceCommandResult> {
   ensureTables(organizationId);
 
@@ -213,7 +418,7 @@ export async function executeVoiceCommand(
     };
   }
 
-  return handler(command, organizationId);
+  return handler(command, organizationId, token);
 }
 
 /**
@@ -221,7 +426,7 @@ export async function executeVoiceCommand(
  */
 export function getCommandHistory(
   organizationId: string,
-  limit: number = 20
+  limit: number = 20,
 ): ParsedVoiceCommand[] {
   ensureTables(organizationId);
   const db = getDb(organizationId);
@@ -231,7 +436,7 @@ export function getCommandHistory(
       `SELECT * FROM voice_commands
        WHERE organization_id = ?
        ORDER BY created_at DESC
-       LIMIT ?`
+       LIMIT ?`,
     )
     .all(organizationId, limit) as VoiceCommandRow[];
 
@@ -244,7 +449,8 @@ export function getCommandHistory(
 
 type CommandHandler = (
   command: ParsedVoiceCommand,
-  organizationId: string
+  organizationId: string,
+  token?: string,
 ) => Promise<VoiceCommandResult>;
 
 const COMMAND_HANDLERS: Record<VoiceCommandType, CommandHandler> = {
@@ -261,111 +467,388 @@ const COMMAND_HANDLERS: Record<VoiceCommandType, CommandHandler> = {
 
 async function handleAddTag(
   command: ParsedVoiceCommand,
-  _organizationId: string
+  _organizationId: string,
+  token?: string,
 ): Promise<VoiceCommandResult> {
-  const tag = command.parameters.tag;
-  if (!tag || !command.contactName) {
-    return confirm(command, 'Missing tag or contact name. Please try again.');
+  const nameOrPhone = command.contactName ?? command.parameters.contactPhone ?? '';
+  if (!nameOrPhone) {
+    return confirm(command, 'Missing contact name. Please try again.');
   }
-  // TODO: Call FUB/CRM API to add tag to contact
-  return success(command, `Tagged ${command.contactName} as "${tag}".`);
+  const tagToAdd = command.parameters.tag ?? command.parameters.tagName ?? '';
+  if (!tagToAdd) {
+    return confirm(command, 'Missing tag name. Please try again.');
+  }
+
+  try {
+    const resolution = await resolveContact(nameOrPhone, token);
+    if ('notFound' in resolution) {
+      return fail(command, `Contact "${nameOrPhone}" not found.`);
+    }
+    if ('ambiguous' in resolution) {
+      return confirmMsg(command, resolution.confirmationMessage);
+    }
+
+    const contact = await backendRequest(
+      'GET',
+      `/api/contacts/${resolution.contactId}`,
+      undefined,
+      token,
+    ) as { tags?: string[] };
+
+    const currentTags = contact.tags ?? [];
+    if (currentTags.includes(tagToAdd)) {
+      return success(command, `${resolution.contactName} already has the tag "${tagToAdd}".`);
+    }
+
+    await backendRequest(
+      'PATCH',
+      `/api/contacts/${resolution.contactId}`,
+      { tags: [...currentTags, tagToAdd] },
+      token,
+    );
+
+    return success(command, `Tagged ${resolution.contactName} as "${tagToAdd}".`);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Unknown error';
+    console.error('[VoiceCommands] handleAddTag error:', message);
+    return fail(command, `Error adding tag: ${message}`);
+  }
 }
 
 async function handleRemoveTag(
   command: ParsedVoiceCommand,
-  _organizationId: string
+  _organizationId: string,
+  token?: string,
 ): Promise<VoiceCommandResult> {
-  const tag = command.parameters.tag;
-  if (!tag || !command.contactName) {
-    return confirm(command, 'Missing tag or contact name. Please try again.');
+  const nameOrPhone = command.contactName ?? command.parameters.contactPhone ?? '';
+  if (!nameOrPhone) {
+    return confirm(command, 'Missing contact name. Please try again.');
   }
-  // TODO: Call FUB/CRM API to remove tag from contact
-  return success(command, `Removed tag "${tag}" from ${command.contactName}.`);
+  const tagToRemove = command.parameters.tag ?? command.parameters.tagName ?? '';
+  if (!tagToRemove) {
+    return confirm(command, 'Missing tag name. Please try again.');
+  }
+
+  try {
+    const resolution = await resolveContact(nameOrPhone, token);
+    if ('notFound' in resolution) {
+      return fail(command, `Contact "${nameOrPhone}" not found.`);
+    }
+    if ('ambiguous' in resolution) {
+      return confirmMsg(command, resolution.confirmationMessage);
+    }
+
+    const contact = await backendRequest(
+      'GET',
+      `/api/contacts/${resolution.contactId}`,
+      undefined,
+      token,
+    ) as { tags?: string[] };
+
+    const currentTags = contact.tags ?? [];
+    if (!currentTags.includes(tagToRemove)) {
+      return success(command, `${resolution.contactName} does not have the tag "${tagToRemove}".`);
+    }
+
+    const updatedTags = currentTags.filter((t) => t !== tagToRemove);
+    await backendRequest(
+      'PATCH',
+      `/api/contacts/${resolution.contactId}`,
+      { tags: updatedTags },
+      token,
+    );
+
+    return success(command, `Removed tag "${tagToRemove}" from ${resolution.contactName}.`);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Unknown error';
+    console.error('[VoiceCommands] handleRemoveTag error:', message);
+    return fail(command, `Error removing tag: ${message}`);
+  }
 }
 
 async function handleAddNote(
   command: ParsedVoiceCommand,
-  _organizationId: string
+  _organizationId: string,
+  token?: string,
 ): Promise<VoiceCommandResult> {
-  const note = command.parameters.note;
-  if (!note || !command.contactName) {
-    return confirm(command, 'Missing note content or contact name.');
+  const nameOrPhone = command.contactName ?? command.parameters.contactPhone ?? '';
+  if (!nameOrPhone) {
+    return confirm(command, 'Missing contact name. Please try again.');
   }
-  // TODO: Call FUB/CRM API to add note to contact
-  return success(command, `Note added to ${command.contactName}.`);
+  const noteContent = command.parameters.note ?? command.parameters.content ?? '';
+  if (!noteContent) {
+    return confirm(command, 'Missing note content. Please try again.');
+  }
+
+  try {
+    const resolution = await resolveContact(nameOrPhone, token);
+    if ('notFound' in resolution) {
+      return fail(command, `Contact "${nameOrPhone}" not found.`);
+    }
+    if ('ambiguous' in resolution) {
+      return confirmMsg(command, resolution.confirmationMessage);
+    }
+
+    await backendRequest(
+      'POST',
+      '/api/conversations',
+      {
+        type: 'call',
+        contact_id: resolution.contactId,
+        content: noteContent,
+        occurred_at: new Date().toISOString(),
+      },
+      token,
+    );
+
+    return success(command, `Note added to ${resolution.contactName}'s record.`);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Unknown error';
+    console.error('[VoiceCommands] handleAddNote error:', message);
+    return fail(command, `Error adding note: ${message}`);
+  }
 }
 
 async function handleUpdateStage(
   command: ParsedVoiceCommand,
-  _organizationId: string
+  _organizationId: string,
+  token?: string,
 ): Promise<VoiceCommandResult> {
-  const stage = command.parameters.stage;
-  if (!stage || !command.contactName) {
-    return confirm(command, 'Missing stage or contact name.');
+  const nameOrPhone = command.contactName ?? command.parameters.contactPhone ?? '';
+  if (!nameOrPhone) {
+    return confirm(command, 'Missing contact name. Please try again.');
   }
-  // TODO: Call FUB/CRM API to update deal stage
-  return success(command, `Moved ${command.contactName} to "${stage}".`);
+  const stage = command.parameters.stage ?? '';
+  if (!stage) {
+    return confirm(command, 'Missing stage name. Please try again.');
+  }
+
+  try {
+    const resolution = await resolveContact(nameOrPhone, token);
+    if ('notFound' in resolution) {
+      return fail(command, `Contact "${nameOrPhone}" not found.`);
+    }
+    if ('ambiguous' in resolution) {
+      return confirmMsg(command, resolution.confirmationMessage);
+    }
+
+    const deals = await backendRequest(
+      'GET',
+      `/api/contacts/${resolution.contactId}/deals`,
+      undefined,
+      token,
+    ) as { deals?: { id: string; stage: string }[] };
+
+    const deal = deals.deals?.[0];
+    if (!deal) {
+      return fail(command, `No deal found for ${resolution.contactName}.`);
+    }
+
+    await backendRequest(
+      'PATCH',
+      `/api/deals/${deal.id}`,
+      { stage },
+      token,
+    );
+
+    return success(command, `Moved ${resolution.contactName} to "${stage}" stage.`);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Unknown error';
+    console.error('[VoiceCommands] handleUpdateStage error:', message);
+    return fail(command, `Error updating stage: ${message}`);
+  }
 }
 
 async function handleScheduleFollowup(
   command: ParsedVoiceCommand,
-  _organizationId: string
+  _organizationId: string,
+  token?: string,
 ): Promise<VoiceCommandResult> {
-  const date = command.parameters.date;
-  if (!date || !command.contactName) {
-    return confirm(command, 'Missing date or contact name for follow-up.');
+  const nameOrPhone = command.contactName ?? command.parameters.contactPhone ?? '';
+  if (!nameOrPhone) {
+    return confirm(command, 'Missing contact name. Please try again.');
   }
-  const time = command.parameters.time ? ` at ${command.parameters.time}` : '';
-  // TODO: Call FUB/CRM API to create follow-up task
-  return success(command, `Follow-up with ${command.contactName} scheduled for ${date}${time}.`);
+
+  try {
+    const resolution = await resolveContact(nameOrPhone, token);
+    if ('notFound' in resolution) {
+      return fail(command, `Contact "${nameOrPhone}" not found.`);
+    }
+    if ('ambiguous' in resolution) {
+      return confirmMsg(command, resolution.confirmationMessage);
+    }
+
+    const dateText = command.parameters.date ?? command.parameters.time ?? 'tomorrow';
+    const dueAt = parseRelativeDate(dateText);
+
+    await backendRequest(
+      'POST',
+      '/api/tasks',
+      {
+        contact_id: resolution.contactId,
+        type: 'followup',
+        notes: command.parameters.notes ?? `Follow up with ${resolution.contactName}`,
+        due_at: dueAt.toISOString(),
+      },
+      token,
+    );
+
+    return success(command, `Follow-up scheduled for ${dueAt.toLocaleDateString()}.`);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Unknown error';
+    console.error('[VoiceCommands] handleScheduleFollowup error:', message);
+    return fail(command, `Error scheduling follow-up: ${message}`);
+  }
 }
 
 async function handleLogActivity(
   command: ParsedVoiceCommand,
-  _organizationId: string
+  _organizationId: string,
+  token?: string,
 ): Promise<VoiceCommandResult> {
-  const activity = command.parameters.activity;
-  if (!activity) {
-    return confirm(command, 'Missing activity type. Please try again.');
+  const activityType = command.parameters.activityType ?? command.parameters.activity ?? 'call';
+  const nameOrPhone = command.contactName ?? command.parameters.contactPhone ?? '';
+
+  try {
+    let contactId: string | undefined;
+    let contactLabel = '';
+
+    if (nameOrPhone) {
+      const resolution = await resolveContact(nameOrPhone, token);
+      if ('found' in resolution) {
+        contactId = resolution.contactId;
+        contactLabel = ` with ${resolution.contactName}`;
+      } else if ('ambiguous' in resolution) {
+        return confirmMsg(command, resolution.confirmationMessage);
+      }
+    }
+
+    await backendRequest(
+      'POST',
+      '/api/activities',
+      {
+        contact_id: contactId ?? null,
+        type: activityType,
+        notes: command.parameters.notes ?? '',
+        occurred_at: new Date().toISOString(),
+      },
+      token,
+    );
+
+    return success(command, `Logged ${activityType}${contactLabel}.`);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Unknown error';
+    console.error('[VoiceCommands] handleLogActivity error:', message);
+    return fail(command, `Error logging activity: ${message}`);
   }
-  const location = command.parameters.location ? ` at ${command.parameters.location}` : '';
-  const contact = command.contactName ? ` with ${command.contactName}` : '';
-  // TODO: Call FUB/CRM API to log activity
-  return success(command, `Logged ${activity}${contact}${location}.`);
 }
 
 async function handleCreateContact(
   command: ParsedVoiceCommand,
-  _organizationId: string
+  _organizationId: string,
+  token?: string,
 ): Promise<VoiceCommandResult> {
-  const firstName = command.parameters.firstName;
-  const lastName = command.parameters.lastName;
-  if (!firstName || !lastName) {
+  const rawName =
+    command.parameters.name ??
+    (command.parameters.firstName && command.parameters.lastName
+      ? `${command.parameters.firstName} ${command.parameters.lastName}`
+      : null) ??
+    command.contactName ??
+    '';
+
+  if (!rawName.trim()) {
     return confirm(command, 'Need at least a first and last name to create a contact.');
   }
-  // TODO: Call FUB/CRM API to create new contact
-  return success(command, `Created new contact: ${firstName} ${lastName}.`);
+
+  try {
+    // Check for duplicate by phone first
+    const rawPhone = command.parameters.phone ?? '';
+    const phone = rawPhone ? tryNormalizePhone(rawPhone) : null;
+
+    if (phone) {
+      const existing = await resolveContact(phone, token);
+      if ('found' in existing) {
+        return success(command, `Contact already exists: ${existing.contactName}.`);
+      }
+    }
+
+    const newContact = await backendRequest(
+      'POST',
+      '/api/contacts',
+      {
+        name: rawName.trim(),
+        phone: phone ?? rawPhone,
+        email: command.parameters.email ?? '',
+        source: command.parameters.source ?? 'voice',
+      },
+      token,
+    ) as { id: string; name: string };
+
+    return success(command, `Created contact ${newContact.name}.`);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Unknown error';
+    console.error('[VoiceCommands] handleCreateContact error:', message);
+    return fail(command, `Error creating contact: ${message}`);
+  }
 }
 
 async function handleGetSummary(
   command: ParsedVoiceCommand,
-  _organizationId: string
+  _organizationId: string,
+  token?: string,
 ): Promise<VoiceCommandResult> {
-  if (!command.contactName) {
+  const nameOrPhone = command.contactName ?? command.parameters.contactPhone ?? '';
+  if (!nameOrPhone) {
     return confirm(command, 'Which contact do you want a summary for?');
   }
-  // TODO: Fetch contact data from CRM and generate AI summary
-  return {
-    success: true,
-    command,
-    message: `Summary for ${command.contactName}: No data loaded yet (CRM integration pending).`,
-    requiresConfirmation: false,
-  };
+
+  try {
+    const resolution = await resolveContact(nameOrPhone, token);
+    if ('notFound' in resolution) {
+      return fail(command, `Contact "${nameOrPhone}" not found.`);
+    }
+    if ('ambiguous' in resolution) {
+      return confirmMsg(command, resolution.confirmationMessage);
+    }
+
+    const [contact, conversations] = await Promise.all([
+      backendRequest('GET', `/api/contacts/${resolution.contactId}`, undefined, token),
+      backendRequest(
+        'GET',
+        `/api/conversations?contact_id=${resolution.contactId}&limit=5`,
+        undefined,
+        token,
+      ),
+    ]);
+
+    const client = getAnthropicClient();
+    const summaryResponse = await client.messages.create({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 200,
+      messages: [
+        {
+          role: 'user',
+          content: `Summarize this contact's history in 2-3 sentences for a sales rep on a call:\nContact: ${JSON.stringify(contact)}\nRecent conversations: ${JSON.stringify(conversations)}`,
+        },
+      ],
+    });
+
+    const firstBlock = summaryResponse.content[0];
+    const summaryText =
+      firstBlock.type === 'text' ? firstBlock.text : 'No summary available.';
+
+    return success(command, summaryText);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Unknown error';
+    console.error('[VoiceCommands] handleGetSummary error:', message);
+    return fail(command, `Error generating summary: ${message}`);
+  }
 }
 
 async function handleUnknown(
   command: ParsedVoiceCommand,
-  _organizationId: string
+  _organizationId: string,
+  _token?: string,
 ): Promise<VoiceCommandResult> {
   return {
     success: false,
@@ -383,7 +866,15 @@ function success(command: ParsedVoiceCommand, message: string): VoiceCommandResu
   return { success: true, command, message, requiresConfirmation: false };
 }
 
+function fail(command: ParsedVoiceCommand, message: string): VoiceCommandResult {
+  return { success: false, command, message, requiresConfirmation: false };
+}
+
 function confirm(command: ParsedVoiceCommand, message: string): VoiceCommandResult {
+  return { success: false, command, message, requiresConfirmation: true };
+}
+
+function confirmMsg(command: ParsedVoiceCommand, message: string): VoiceCommandResult {
   return { success: false, command, message, requiresConfirmation: true };
 }
 
@@ -440,7 +931,7 @@ function saveCommand(organizationId: string, command: ParsedVoiceCommand): void 
   const db = getDb(organizationId);
   db.prepare(
     `INSERT INTO voice_commands (id, organization_id, raw_text, parsed_type, contact_name, parameters, confidence, suggested_confirmation)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
   ).run(
     randomUUID(),
     organizationId,
@@ -449,7 +940,7 @@ function saveCommand(organizationId: string, command: ParsedVoiceCommand): void 
     command.contactName ?? null,
     JSON.stringify(command.parameters),
     command.confidence,
-    command.suggestedConfirmation
+    command.suggestedConfirmation,
   );
 }
 

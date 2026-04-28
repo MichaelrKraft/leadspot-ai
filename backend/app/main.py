@@ -37,6 +37,8 @@ from app.middleware.security import (
 )
 from app.routers import (
     admin,
+    admin_cost_dashboard,
+    admin_purge,
     agent_proxy,
     agency,
     auth,
@@ -45,9 +47,16 @@ from app.routers import (
     campaigns,
     chat,
     contacts as contacts_router,
+    contacts_sync,
+    conv_ai,
     conversations,
+    daemon_auth,
+    daemon_cost,
+    daemon_pause,
+    daemon_unmatched,
     deals,
     decisions,
+    diagnostics,
     documents_local,
     emails,
     health,
@@ -58,13 +67,20 @@ from app.routers import (
     query,
     query_local,
     reports,
+    rtbf,
     scoring,
     segments,
     settings as settings_router,
+    signals as signals_router,
     superadmin,
     suppressions,
+    tombstones,
+    twilio_webhook,
+    users as users_router,
+    workspace,
 )
 from app.seed import seed_demo_data
+from app.services.digest_scheduler import start_digest_scheduler, stop_digest_scheduler
 from app.services.ingestion.pipeline import IngestionPipeline
 from app.workers.health_worker import start_health_worker, stop_health_worker
 from app.workers.sync_worker import init_sync_worker, sync_worker
@@ -103,6 +119,11 @@ async def lifespan(app: FastAPI):
         # Start health worker (doesn't require external API keys)
         await start_health_worker()
         logger.info("Health worker started")
+
+        # Start Ghostlog digest scheduler (per-process asyncio task; see
+        # services/digest_scheduler.py for the production-scaling caveat).
+        start_digest_scheduler()
+        logger.info("Ghostlog digest scheduler started")
     except Exception as e:
         logger.warning(f"Failed to start background workers: {e}")
         # Continue without workers - app still functional
@@ -114,6 +135,10 @@ async def lifespan(app: FastAPI):
         # Stop health worker
         await stop_health_worker()
         logger.info("Health worker stopped")
+
+        # Stop digest scheduler
+        await stop_digest_scheduler()
+        logger.info("Ghostlog digest scheduler stopped")
 
         # Stop sync worker
         if sync_worker:
@@ -182,6 +207,12 @@ app.add_middleware(
 app.include_router(health.router, tags=["health"])
 app.include_router(auth.router, prefix="/auth", tags=["auth"])
 app.include_router(chat.router, prefix="/api", tags=["chat"])
+# Phase 3 conversational AI layer — distinct prefix to avoid collision with
+# the legacy Mautic-bound /api/chat endpoint.
+app.include_router(conv_ai.router, prefix="/api/v2", tags=["conv-ai"])
+# contacts_sync must come BEFORE contacts_router: /api/contacts/sync is a literal
+# path that must match before the parametric /api/contacts/{contact_id} route.
+app.include_router(contacts_sync.router, prefix="/api", tags=["contacts-sync"])
 app.include_router(contacts_router.router, prefix="/api", tags=["contacts"])
 app.include_router(campaigns.router, prefix="/api", tags=["campaigns"])
 app.include_router(deals.router, prefix="/api", tags=["deals"])
@@ -206,6 +237,26 @@ app.include_router(calendar.router, tags=["calendar"])
 app.include_router(segments.router, prefix="/api", tags=["segments"])
 app.include_router(emails.router, prefix="/api", tags=["emails"])
 app.include_router(suppressions.router, prefix="/api", tags=["suppressions"])
+app.include_router(twilio_webhook.router)
+
+# Ghostlog (Ambient daemon ↔ cloud) integration routers
+app.include_router(daemon_auth.router, prefix="/api/daemon/auth", tags=["daemon-auth"])
+app.include_router(daemon_auth.version_router, prefix="/api/daemon", tags=["daemon-auth"])
+app.include_router(signals_router.router, prefix="/api", tags=["signals"])
+# contacts_sync is registered early (before contacts_router) to prevent route shadowing.
+app.include_router(tombstones.router, prefix="/api", tags=["tombstones"])
+app.include_router(diagnostics.router, prefix="/api", tags=["diagnostics"])
+app.include_router(admin_purge.router, prefix="/admin", tags=["admin-purge"])
+app.include_router(daemon_cost.router, prefix="/api/daemon", tags=["daemon-cost"])
+app.include_router(daemon_unmatched.router, prefix="/api/daemon", tags=["daemon-unmatched"])
+app.include_router(users_router.router, prefix="/api", tags=["users"])
+
+# Phase 2 polish: privacy + RTBF + pause + cost dashboard
+app.include_router(daemon_pause.auth_router, prefix="/api/daemon/auth", tags=["daemon-pause"])
+app.include_router(daemon_pause.status_router, prefix="/api/daemon", tags=["daemon-pause"])
+app.include_router(rtbf.router, prefix="/api", tags=["rtbf"])
+app.include_router(admin_cost_dashboard.router, prefix="/api/admin", tags=["admin-cost"])
+app.include_router(workspace.router, prefix="/api", tags=["workspace"])
 
 
 @app.get("/")

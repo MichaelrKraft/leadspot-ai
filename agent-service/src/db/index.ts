@@ -165,7 +165,52 @@ function createTables(db: Database.Database): void {
       enrolled_at       TEXT NOT NULL DEFAULT (datetime('now')),
       next_send_at      TEXT
     );
+
+    CREATE TABLE IF NOT EXISTS workflow_goal_conditions (
+      id              TEXT PRIMARY KEY,
+      workflow_id     TEXT NOT NULL,
+      condition_type  TEXT NOT NULL,
+      condition_value TEXT NOT NULL,
+      created_at      TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+    CREATE INDEX IF NOT EXISTS idx_wgc_workflow
+      ON workflow_goal_conditions(workflow_id);
   `);
+
+  // Additive columns on workflow_enrollments — safe to re-run (try/catch per column)
+  const enrollmentCols = [
+    `ALTER TABLE workflow_enrollments ADD COLUMN contact_first_name TEXT`,
+    `ALTER TABLE workflow_enrollments ADD COLUMN contact_last_name TEXT`,
+    `ALTER TABLE workflow_enrollments ADD COLUMN contact_company TEXT`,
+    `ALTER TABLE workflow_enrollments ADD COLUMN contact_tags TEXT DEFAULT '[]'`,
+    `ALTER TABLE workflow_enrollments ADD COLUMN paused_at TEXT`,
+    `ALTER TABLE workflow_enrollments ADD COLUMN pause_reason TEXT`,
+  ];
+  for (const sql of enrollmentCols) {
+    try { db.exec(sql); } catch { /* column already exists */ }
+  }
+
+  // New table for email open tracking
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS workflow_email_events (
+      id            TEXT PRIMARY KEY,
+      enrollment_id TEXT NOT NULL,
+      event_type    TEXT NOT NULL,
+      occurred_at   TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+    CREATE INDEX IF NOT EXISTS idx_wee_enrollment
+      ON workflow_email_events(enrollment_id);
+  `);
+
+  // New columns on workflow_steps — safe to re-run (try/catch per column)
+  const stepCols = [
+    `ALTER TABLE workflow_steps ADD COLUMN step_type TEXT DEFAULT 'send_email'`,
+    `ALTER TABLE workflow_steps ADD COLUMN action_config TEXT DEFAULT '{}'`,
+    `ALTER TABLE workflow_steps ADD COLUMN branch_condition TEXT`,
+  ];
+  for (const sql of stepCols) {
+    try { db.exec(sql); } catch { /* column already exists */ }
+  }
 
   // Indexes for common query patterns
   db.exec(`

@@ -1,8 +1,8 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 
-// Backend API URL
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+// Use relative URLs so Next.js rewrites proxy to the backend — no CORS
+const API_URL = "";
 
 interface User {
   id: string;

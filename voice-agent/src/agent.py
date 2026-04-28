@@ -8,10 +8,13 @@ LiveKit-powered voice assistant for LeadSpot CRM with:
 """
 
 import asyncio
-import os
+import logging
 import json
+import os
 import re
+import time
 from datetime import datetime, timedelta
+from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
 from dotenv import load_dotenv
 import dateparser
@@ -29,6 +32,18 @@ from livekit.plugins import deepgram, openai, silero
 from twilio.rest import Client as TwilioClient
 
 load_dotenv()
+
+# Configure structured JSON logging for Railway log ingestion
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s %(name)s %(levelname)s %(message)s',
+    handlers=[logging.StreamHandler()]
+)
+logger = logging.getLogger("leadspot.voice")
+
+# Dashboard base URL and API key (used in entrypoint)
+DASHBOARD_URL = os.getenv("DASHBOARD_URL", "http://localhost:3005")
+VOICE_AGENT_API_KEY = os.getenv("VOICE_AGENT_API_KEY", "")
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -90,7 +105,7 @@ def create_dynamic_http_tool(tool_config: Dict[str, Any]) -> Callable:
                         elif 'status' in result:
                             return f"Success: {result.get('status')}"
                     return f"Request completed successfully"
-                except:
+                except Exception:
                     return f"Request completed: {response.text[:200]}"
 
         except httpx.TimeoutException:
@@ -129,32 +144,17 @@ async def load_agent_config(agent_id: str) -> Optional[Dict[str, Any]]:
     """
     Load agent configuration from the dashboard API.
 
-    In production, this fetches from the real API.
-    For development, returns mock data.
+    Returns None if the API call fails so the caller can reject the session.
     """
-    dashboard_url = os.getenv('DASHBOARD_URL', 'http://localhost:3005')
-
     try:
         async with httpx.AsyncClient(timeout=10.0) as client:
-            response = await client.get(f"{dashboard_url}/api/voice/agents/{agent_id}")
+            response = await client.get(f"{DASHBOARD_URL}/api/voice/agents/{agent_id}")
             if response.status_code == 200:
                 return response.json()
     except Exception as e:
-        print(f"Failed to load agent config: {e}")
+        logger.error(f"Failed to load agent config for {agent_id}: {e}")
 
-    # Return default config if API fails
-    return {
-        'name': 'Default Agent',
-        'systemPrompt': 'You are a helpful voice assistant.',
-        'welcomeMessage': 'Hello! How can I help you today?',
-        'allowInterruption': True,
-        'voiceId': 'rachel',
-        'config': {
-            'customVariables': [],
-            'httpTools': [],
-            'mcpServers': [],
-        }
-    }
+    return None
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -181,6 +181,7 @@ class LeadSpotVoiceAssistant(Agent):
         welcome_message: str = None,
         custom_variables: Dict[str, str] = None,
         http_tools: List[Dict] = None,
+        agent_config: Dict[str, Any] = None,
     ) -> None:
         # Build variables dict with built-ins
         self.variables = {
@@ -220,6 +221,13 @@ class LeadSpotVoiceAssistant(Agent):
         # Store HTTP tools for dynamic registration
         self.http_tools = http_tools or []
 
+        # Configurable timezone from agent config (avoids hardcoded region assumption)
+        self.agent_timezone = (
+            agent_config.get('timezone', 'America/Chicago')
+            if agent_config
+            else 'America/Chicago'
+        )
+
         # Initialize Twilio client for SMS
         twilio_sid = os.getenv("TWILIO_ACCOUNT_SID")
         twilio_token = os.getenv("TWILIO_AUTH_TOKEN")
@@ -233,8 +241,8 @@ class LeadSpotVoiceAssistant(Agent):
         self.mautic_url = os.getenv("MAUTIC_API_URL")
         self.mautic_token = os.getenv("MAUTIC_ACCESS_TOKEN")
 
-        # Google Calendar credentials path
-        self.google_creds_path = os.getenv("GOOGLE_CREDENTIALS_PATH", "google_creds.json")
+        # Google Calendar credentials path — configurable via env var
+        self.google_creds_path = os.getenv("GOOGLE_CREDENTIALS_PATH", "/app/google_creds.json")
 
         # Store caller info during conversation
         self.caller_phone = None
@@ -249,7 +257,7 @@ class LeadSpotVoiceAssistant(Agent):
                 tool = create_dynamic_http_tool(tool_config)
                 tools.append(tool)
             except Exception as e:
-                print(f"Failed to create tool '{tool_config.get('name', 'unknown')}': {e}")
+                logger.warning(f"Failed to create tool '{tool_config.get('name', 'unknown')}': {e}")
         return tools
 
     # ═══════════════════════════════════════════════════════════════════════
@@ -303,11 +311,11 @@ class LeadSpotVoiceAssistant(Agent):
                 'description': f'Purpose: {purpose}\nPhone: {self.caller_phone or "N/A"}',
                 'start': {
                     'dateTime': appointment_dt.isoformat(),
-                    'timeZone': 'America/New_York',
+                    'timeZone': self.agent_timezone,
                 },
                 'end': {
                     'dateTime': (appointment_dt + timedelta(minutes=duration_minutes)).isoformat(),
-                    'timeZone': 'America/New_York',
+                    'timeZone': self.agent_timezone,
                 },
                 'reminders': {
                     'useDefault': False,
@@ -363,9 +371,9 @@ class LeadSpotVoiceAssistant(Agent):
             if email:
                 self.variables['caller_email'] = email
 
-            # Parse name
-            name_parts = name.split()
-            firstname = name_parts[0]
+            # Parse name — guard against empty input to avoid IndexError
+            name_parts = name.strip().split() if name and name.strip() else []
+            firstname = name_parts[0] if name_parts else "there"
             lastname = " ".join(name_parts[1:]) if len(name_parts) > 1 else ""
 
             if not self.mautic_url or not self.mautic_token:
@@ -547,6 +555,23 @@ ELEVENLABS_VOICE_IDS = {
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
+# TRANSCRIPT HELPERS (module-level so _flush_transcript can reference them)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def _save_transcript_locally(cid: str, payload: dict) -> None:
+    """Write transcript JSON to local disk as a fallback when the API is unreachable."""
+    try:
+        transcripts_dir = Path(os.getenv("AGENT_DATA_DIR", "./data")) / "transcripts"
+        transcripts_dir.mkdir(parents=True, exist_ok=True)
+        (transcripts_dir / f"{cid}.json").write_text(
+            json.dumps({**payload, "callId": cid}), encoding="utf-8"
+        )
+        logger.info(f"Transcript saved locally for {cid} (will retry on next reconcile)")
+    except Exception as e:
+        logger.error(f"Could not save transcript locally for {cid}: {e}")
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
 # ENTRYPOINT
 # ═══════════════════════════════════════════════════════════════════════════════
 
@@ -559,21 +584,37 @@ async def entrypoint(ctx: JobContext):
     # Parse room metadata for agent configuration
     agent_id = None
     caller_phone = None
-    agent_config = None
+    metadata_dict: Dict[str, Any] = {}
 
     if ctx.room.metadata:
         try:
-            metadata = json.loads(ctx.room.metadata)
-            agent_id = metadata.get("agentId")
-            caller_phone = metadata.get("phoneNumber")
-        except json.JSONDecodeError:
-            pass
+            metadata_dict = json.loads(ctx.room.metadata)
+            agent_id = metadata_dict.get("agentId")
+            caller_phone = metadata_dict.get("phoneNumber")
+        except json.JSONDecodeError as e:
+            logger.warning(f"Failed to parse metadata JSON: {e}")
 
     # Load agent configuration from dashboard
-    if agent_id:
-        agent_config = await load_agent_config(agent_id)
-    else:
-        agent_config = await load_agent_config("default")
+    agent_config = await load_agent_config(agent_id or "default")
+
+    # Reject the call cleanly if no config was found — avoids a broken session
+    if not agent_config:
+        logger.warning(f"No config found for agent {agent_id} — rejecting call")
+        # We need a minimal session just to speak the rejection message
+        from livekit.plugins import elevenlabs as _elevenlabs
+        _tts_reject = _elevenlabs.TTS(voice_id=ELEVENLABS_VOICE_IDS['rachel'])
+        _session_reject = AgentSession(
+            stt=deepgram.STT(model="nova-2"),
+            llm=openai.LLM(model="gpt-4o-mini"),
+            tts=_tts_reject,
+            vad=silero.VAD.load(),
+        )
+        await _session_reject.start(room=ctx.room, agent=Agent(instructions="You are a voice assistant."))
+        await _session_reject.say(
+            "I'm sorry, this agent is not configured yet. Please contact your administrator."
+        )
+        await asyncio.sleep(2)
+        return
 
     # Extract configuration values
     config = agent_config.get('config', {})
@@ -591,7 +632,7 @@ async def entrypoint(ctx: JobContext):
     # Create agent session with voice pipeline
     session = AgentSession(
         stt=deepgram.STT(model="nova-2"),
-        llm=openai.LLM(model="gpt-4"),
+        llm=openai.LLM(model="gpt-4o-mini"),
         tts=tts,
         vad=silero.VAD.load(),
     )
@@ -602,6 +643,7 @@ async def entrypoint(ctx: JobContext):
         welcome_message=welcome_message,
         custom_variables=custom_variables,
         http_tools=http_tools,
+        agent_config=agent_config,
     )
 
     # Set caller phone if available
@@ -609,15 +651,111 @@ async def entrypoint(ctx: JobContext):
         agent.caller_phone = caller_phone
         agent.variables['caller_phone'] = caller_phone
 
+    # ── Fetch call data from from-sip endpoint ────────────────────────────────
+    call_id: Optional[str] = None
+
+    try:
+        room_name = ctx.room.name  # format: "call-{CallSid}" for inbound Twilio rooms
+        if room_name and room_name.startswith("call-"):
+            call_sid = room_name[len("call-"):]
+            async with httpx.AsyncClient(timeout=10.0) as http:
+                resp = await http.post(
+                    f"{DASHBOARD_URL}/api/voice/calls/from-sip",
+                    json={
+                        "twilioCallSid": call_sid,
+                        "agentPhoneNumber": metadata_dict.get("toNumber", ""),
+                        "callerPhone": metadata_dict.get("fromNumber", ""),
+                        "direction": "inbound",
+                    },
+                    headers={"x-api-key": VOICE_AGENT_API_KEY},
+                )
+                if resp.status_code == 200:
+                    call_data = resp.json()
+                    call_id = call_data.get("callId")
+                    logger.info(f"Call registered: callId={call_id}")
+                elif resp.status_code == 402:
+                    logger.warning("Insufficient balance — disconnecting call")
+                    await session.start(room=ctx.room, agent=agent)
+                    await session.say(
+                        "I'm sorry, this service is temporarily unavailable. Please try again later."
+                    )
+                    await asyncio.sleep(2)
+                    return
+                else:
+                    logger.warning(f"from-sip returned {resp.status_code} — continuing without callId")
+    except Exception as e:
+        logger.warning(f"Could not register call with dashboard: {e}")
+
+    # ── Transcript collector ──────────────────────────────────────────────────
+    transcript: list[dict] = []
+
+    def _on_transcript_item(ev) -> None:
+        try:
+            item = ev.item
+            # Access text content — handle both string and list-of-parts layouts
+            if hasattr(item, 'text_content'):
+                text = item.text_content
+            elif hasattr(item, 'content'):
+                content = item.content
+                if isinstance(content, str):
+                    text = content
+                elif isinstance(content, list):
+                    text = ' '.join(
+                        part.get('text', '') if isinstance(part, dict) else str(part)
+                        for part in content
+                    )
+                else:
+                    text = str(content)
+            else:
+                text = str(item)
+
+            transcript.append({
+                "role": getattr(item, 'role', 'unknown'),
+                "text": text,
+                "timestamp": time.time(),
+            })
+        except Exception as e:
+            logger.warning(f"Transcript collection error: {e}")
+
+    session.on("conversation_item_added")(_on_transcript_item)
+
+    # ── Shutdown callback: flush transcript to dashboard ──────────────────────
+    async def _flush_transcript() -> None:
+        if not transcript or not call_id:
+            logger.info("No transcript to flush (empty or no callId)")
+            return
+
+        full_text = "\n".join(f"{m['role']}: {m['text']}" for m in transcript)
+        payload = {"transcript": transcript, "fullText": full_text}
+
+        try:
+            async with asyncio.timeout(8.0):
+                async with httpx.AsyncClient(timeout=7.0) as http:
+                    resp = await http.post(
+                        f"{DASHBOARD_URL}/api/voice/calls/{call_id}/finalize",
+                        json=payload,
+                        headers={"x-api-key": VOICE_AGENT_API_KEY},
+                    )
+                    if resp.status_code in (200, 201):
+                        logger.info(f"Transcript flushed for {call_id} ({len(transcript)} messages)")
+                    else:
+                        logger.warning(f"Finalize returned {resp.status_code} for {call_id}")
+                        _save_transcript_locally(call_id, payload)
+        except Exception as e:
+            logger.warning(f"Transcript flush failed for {call_id}: {e}")
+            _save_transcript_locally(call_id, payload)
+
+    ctx.add_shutdown_callback(_flush_transcript)
+
     # Start the session
     await session.start(
         room=ctx.room,
         agent=agent,
     )
 
-    # Recording consent announcement (legal requirement for recorded calls)
+    # Recording consent announcement
     await session.generate_reply(
-        instructions="Say exactly this: 'This call may be recorded for quality and training purposes.'"
+        instructions="Say exactly this: 'This call may be transcribed for quality purposes.'"
     )
 
     # Generate initial greeting using configured welcome message
@@ -625,29 +763,31 @@ async def entrypoint(ctx: JobContext):
         instructions=f"Say exactly this greeting: {agent.welcome_message}"
     )
 
-    # Mid-call balance check — terminate call gracefully if balance runs out
-    dashboard_url = os.getenv("DASHBOARD_URL", "http://localhost:3005")
-    tenant_id = None
-    call_id = None
+    # ── Mid-call balance check — terminate gracefully if balance runs out ─────
+    dashboard_url = DASHBOARD_URL
+    tenant_id: Optional[str] = None
+    balance_call_id: Optional[str] = None
+
     if ctx.room.metadata:
         try:
             meta = json.loads(ctx.room.metadata)
             tenant_id = meta.get("tenantId")
-            call_id = meta.get("callId")
+            # Prefer the call_id we received from from-sip; fall back to metadata
+            balance_call_id = call_id or meta.get("callId")
         except (json.JSONDecodeError, AttributeError):
             pass
 
     async def check_balance_loop():
-        """Check tenant balance every 60s and terminate call if insufficient."""
+        """Check tenant balance every 15s and terminate call if insufficient."""
         while True:
-            await asyncio.sleep(60)
-            if not tenant_id or not call_id:
+            await asyncio.sleep(15)
+            if not tenant_id or not balance_call_id:
                 continue
             try:
                 async with httpx.AsyncClient(timeout=5.0) as client:
                     resp = await client.get(
                         f"{dashboard_url}/api/billing/balance-check",
-                        params={"tenantId": tenant_id, "callId": call_id},
+                        params={"tenantId": tenant_id, "callId": balance_call_id},
                     )
                     if resp.status_code == 200:
                         data = resp.json()
@@ -658,9 +798,10 @@ async def entrypoint(ctx: JobContext):
                             await ctx.room.disconnect()
                             return
             except Exception as e:
-                print(f"[BalanceCheck] Error checking balance: {e}")
+                logger.warning(f"Balance check error: {e}")
 
-    asyncio.ensure_future(check_balance_loop())
+    balance_task = asyncio.create_task(check_balance_loop())
+    ctx.add_shutdown_callback(lambda: balance_task.cancel())
 
 
 if __name__ == "__main__":

@@ -1,0 +1,1 @@
+worker: python -m livekit.agents.cli start src/agent.py --log-level info

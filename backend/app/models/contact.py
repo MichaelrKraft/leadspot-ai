@@ -4,7 +4,7 @@ import json
 import uuid
 from datetime import datetime
 
-from sqlalchemy import Column, DateTime, Index, Integer, String, Text
+from sqlalchemy import Boolean, Column, DateTime, Index, Integer, String, Text
 
 from app.database import Base
 
@@ -22,6 +22,7 @@ class Contact(Base):
     points = Column(Integer, nullable=False, default=0)
     last_active = Column(DateTime, nullable=True)
     organization_id = Column(String(36), nullable=False)
+    is_demo = Column(Boolean, nullable=False, default=False)
     created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
     updated_at = Column(DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
 

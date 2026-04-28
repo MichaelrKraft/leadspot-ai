@@ -28,7 +28,7 @@ from app.schemas import TokenData
 security = HTTPBearer(auto_error=False)
 
 # Token expiration settings
-ACCESS_TOKEN_EXPIRE_MINUTES = 60  # 1 hour
+ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7  # 7 days for local dev
 REFRESH_TOKEN_EXPIRE_DAYS = 7  # 7 days
 
 

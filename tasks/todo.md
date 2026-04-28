@@ -43,6 +43,45 @@
 - [x] Create `frontend/lib/api/reports.ts` — getReportsSummary() using apiClient
 - [x] Update `frontend/app/(dashboard)/reports/page.tsx` — replace hardcoded data with API call, add loading + error states
 
+---
+
+## Voice AI Production Plan — Phase 1 & 2
+
+### Task 1: from-sip endpoint (Next.js dashboard)
+- [x] Create `/dashboard/src/app/api/voice/calls/from-sip/route.ts`
+  - Auth: x-api-key header (VOICE_AGENT_API_KEY)
+  - Normalize phone numbers
+  - Look up VoiceAgent by phoneNumber + status=active
+  - Look up Wallet for agent owner
+  - Atomic balance hold (Serializable transaction, min $0.10 guard, hold up to $5.00)
+  - Create VoiceCall record (roomId = 'call-' + twilioCallSid)
+  - Return callId, agentId, tenantId, agentConfig, holdAmount
+
+### Task 2: Twilio status webhook (FastAPI backend)
+- [x] Create `/backend/app/routers/twilio_webhook.py`
+  - Signature validation via twilio RequestValidator
+  - Log call status for analytics
+  - Return empty TwiML XML response
+- [x] Register router in `backend/app/main.py`
+- [x] Add `twilio>=8.0.0` to `backend/requirements.txt`
+
+### Task 3: Schema migration — phoneNumber @unique on VoiceAgent
+- [x] Add `@unique` to `phoneNumber` field in `dashboard/prisma/schema.prisma`
+- [x] Applied partial unique index directly via `prisma db execute` (dev DB had drift)
+- [x] Created manual migration file for production: `20260424000000_add_voice_agent_phone_unique`
+
+### Task 4: Webhook route — release hold after call
+- [x] Modified `recordUsageAndDeduct` in webhook/route.ts
+  - Finds hold transaction by `description LIKE 'Call hold: {callId}'`
+  - Computes actualCost and refund (clamped to 0)
+  - Issues 'refund' BillingTransaction if refund > 0
+  - Creates 'usage_deduction' BillingTransaction for actualCost
+  - Falls back to legacy direct-deduction if no hold found
+
+### Review
+All four tasks complete. TypeScript type-check passes with no errors in the voice API files.
+Pre-existing type errors in unrelated files (courses, communities, leaderboard) were present before and not introduced by this work.
+
 #### P2 — UX gaps worth fixing
 - [x] **Contacts** — Import (CSV parse + batch create), "Add to segment" (segment picker modal), "View Details" (editable modal) all implemented; Export + Send email were already working
 - [x] **Decisions page** — was already in nav (no action needed)

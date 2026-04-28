@@ -77,5 +77,8 @@ class RateLimits:
     API_DOCUMENTS = "60/minute"  # 60 document operations per minute
     API_GENERAL = "100/minute"  # 100 requests per minute for general endpoints
 
+    # Space Agent workspace token endpoints
+    WORKSPACE_TOKEN = "10/minute"
+
     # Health/status endpoints - no practical limit
     HEALTH = "1000/minute"

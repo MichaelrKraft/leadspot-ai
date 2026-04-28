@@ -2,9 +2,12 @@
 Authentication routes with rate limiting and secure token handling.
 """
 
+import logging
 from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
+
+logger = logging.getLogger(__name__)
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -110,7 +113,7 @@ async def register(
         organization = Organization(
             name=user_data.organization_domain.split('.')[0].title(),
             domain=user_data.organization_domain,
-            subscription_tier="pilot"
+            subscription_tier="free"
         )
         db.add(organization)
         await db.flush()
@@ -127,6 +130,17 @@ async def register(
     db.add(new_user)
     await db.commit()
     await db.refresh(new_user)
+
+    # Seed demo data for new org (non-blocking)
+    try:
+        from app.seed import seed_org_demo_data
+        await seed_org_demo_data(
+            organization_id=str(new_user.organization_id),
+            user_id=str(new_user.user_id),
+            session=db,
+        )
+    except Exception as _seed_err:
+        logger.warning(f"Demo seed failed for new user (non-fatal): {_seed_err}")
 
     # Create tokens
     access_token = create_access_token(
@@ -534,7 +548,7 @@ async def google_oauth_callback(
             organization = Organization(
                 name=domain.split(".")[0].title(),
                 domain=domain,
-                subscription_tier="pilot"
+                subscription_tier="free"
             )
             db.add(organization)
             await db.flush()
@@ -685,7 +699,7 @@ async def microsoft_oauth_callback(
             organization = Organization(
                 name=domain.split(".")[0].title(),
                 domain=domain,
-                subscription_tier="pilot"
+                subscription_tier="free"
             )
             db.add(organization)
             await db.flush()
@@ -722,3 +736,110 @@ async def microsoft_oauth_callback(
         url=f"{settings.FRONTEND_URL}/dashboard",
         status_code=status.HTTP_302_FOUND
     )
+
+
+# =============================================================================
+# Space Agent Workspace Token Endpoints
+# =============================================================================
+
+
+@router.post("/workspace-token")
+@limiter.limit(RateLimits.WORKSPACE_TOKEN)
+async def issue_workspace_token(
+    request: Request,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Issue a short-lived opaque workspace token for Space Agent iframe authentication.
+    Enforces single active session per user via Redis.
+    """
+    import json
+    from app.services.cache_service import get_cache_service
+
+    user_id = str(current_user.user_id)
+    organization_id = str(current_user.organization_id)
+
+    # Check org feature flag
+    result = await db.execute(select(Organization).where(Organization.organization_id == organization_id))
+    org = result.scalar_one_or_none()
+    if not org or not (org.features or {}).get("space_agent_enabled", False):
+        raise HTTPException(status_code=403, detail="Workspace not enabled for this organization")
+
+    cache = await get_cache_service()
+
+    if not cache.redis_client:
+        raise HTTPException(status_code=503, detail="Workspace temporarily unavailable")
+
+    # Enforce single active session per user (prevent dual-iframe write conflicts)
+    existing_token = await cache.redis_client.get(f"space_session:{user_id}")
+    if existing_token:
+        return {"workspace_token": existing_token, "reused": True}
+
+    # Generate new opaque token
+    token = secrets.token_urlsafe(32)
+    payload = json.dumps({
+        "user_id": user_id,
+        "email": current_user.email,
+        "organization_id": organization_id,
+        "name": current_user.name or "",
+    })
+
+    # 5-minute handshake token (one-time use)
+    await cache.redis_client.setex(f"workspace_token:{token}", 300, payload)
+    # 24-hour session deduplication key
+    await cache.redis_client.setex(f"space_session:{user_id}", 86400, token)
+
+    return {"workspace_token": token, "reused": False}
+
+
+@router.post("/verify-workspace-token")
+async def verify_workspace_token(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Verify a workspace token issued by /auth/workspace-token.
+    Called by Space Agent server-side to establish a session.
+    Validates the caller is Space Agent via X-Space-Admin-Key header.
+    One-time use: token is deleted after successful verification.
+    """
+    import json
+    from app.services.cache_service import get_cache_service
+
+    # Verify caller is Space Agent
+    space_key = request.headers.get("X-Space-Admin-Key", "")
+    if not settings.SPACE_AGENT_ADMIN_KEY or not secrets.compare_digest(space_key, settings.SPACE_AGENT_ADMIN_KEY):
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    # Parse body
+    try:
+        body = await request.json()
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid JSON body")
+
+    token = body.get("token", "")
+    ctx_org_id = body.get("organization_id", "")
+
+    if not token:
+        raise HTTPException(status_code=400, detail="token is required")
+
+    cache = await get_cache_service()
+    if not cache.redis_client:
+        raise HTTPException(status_code=503, detail="Auth service unavailable")
+
+    # Look up token
+    data = await cache.redis_client.get(f"workspace_token:{token}")
+    if not data:
+        raise HTTPException(status_code=401, detail="Invalid or expired token")
+
+    parsed = json.loads(data)
+
+    # Validate org_id matches (prevents URL tampering)
+    if ctx_org_id and ctx_org_id != parsed["organization_id"]:
+        raise HTTPException(status_code=403, detail="Organization mismatch")
+
+    # One-time use: delete token after verification
+    await cache.redis_client.delete(f"workspace_token:{token}")
+
+    return parsed

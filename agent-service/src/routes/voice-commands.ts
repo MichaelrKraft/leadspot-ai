@@ -72,9 +72,16 @@ export function registerVoiceRoutes(router: Router): void {
         throw createApiError('command is required', 400);
       }
 
+      // Extract bearer token from Authorization header and forward to backend calls
+      const authHeader = req.headers.authorization ?? '';
+      const token = authHeader.startsWith('Bearer ')
+        ? authHeader.slice('Bearer '.length)
+        : undefined;
+
       const result = await executeVoiceCommand(
         body.command,
         String(body.organizationId),
+        token,
       );
 
       res.json({ result });

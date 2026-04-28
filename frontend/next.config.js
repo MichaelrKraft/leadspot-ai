@@ -9,18 +9,24 @@ const nextConfig = {
   },
   // API configuration
   async rewrites() {
+    const backendUrl = process.env.BACKEND_URL || 'http://localhost:8000';
+    const agentServiceUrl = process.env.AGENT_SERVICE_URL || 'http://localhost:3008';
     return [
       {
+        source: '/workspace/:path*',
+        destination: `${process.env.SPACE_AGENT_URL || 'http://localhost:3009'}/:path*`,
+      },
+      {
         source: '/api/agent/:path*',
-        destination: 'http://localhost:3008/api/agent/:path*',
+        destination: `${agentServiceUrl}/api/agent/:path*`,
       },
       {
         source: '/api/:path*',
-        destination: 'http://localhost:8000/api/:path*',
+        destination: `${backendUrl}/api/:path*`,
       },
       {
         source: '/auth/:path*',
-        destination: 'http://localhost:8000/auth/:path*',
+        destination: `${backendUrl}/auth/:path*`,
       },
     ];
   },
@@ -28,6 +34,7 @@ const nextConfig = {
   env: {
     NEXT_PUBLIC_APP_NAME: 'LeadSpot.ai',
     NEXT_PUBLIC_APP_VERSION: '0.1.0',
+    NEXT_PUBLIC_SPACE_AGENT_ENABLED: process.env.NEXT_PUBLIC_SPACE_AGENT_ENABLED || 'false',
   },
 };
 

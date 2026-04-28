@@ -102,6 +102,31 @@ services:
     networks:
       - leadspot-network
 
+  space-agent:
+    image: node:20-alpine
+    container_name: leadspot-space-agent
+    working_dir: /app
+    command: sh -c "npm install -g @agent0ai/space-agent@latest && space serve --port 3009"
+    ports:
+      - "3009:3009"
+    environment:
+      - PORT=3009
+      - NODE_ENV=production
+      - LEADSPOT_API_URL=http://backend:8000
+      - LEADSPOT_SPACE_API_KEY=${LEADSPOT_SPACE_API_KEY:-}
+      - SPACE_AGENT_DATA_DIR=/data
+    volumes:
+      - space-agent-data:/data
+    networks:
+      - leadspot-network
+    depends_on:
+      - backend
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3009/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
   prometheus:
     image: prom/prometheus:latest
     container_name: leadspot-prometheus
@@ -146,6 +171,7 @@ volumes:
   redis-data:
   prometheus-data:
   grafana-data:
+  space-agent-data:
 
 networks:
   leadspot-network:

@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 
 const TABS = [
   { label: 'Profile', href: '/settings' },
+  { label: 'Privacy', href: '/settings/privacy' },
   { label: 'Integrations', href: '/settings/integrations' },
   { label: 'Billing', href: '/settings/billing' },
 ];
@@ -13,7 +14,7 @@ export default function SettingsNav() {
   const pathname = usePathname();
 
   return (
-    <div className="flex gap-1 border-b border-white/10 mb-8">
+    <div className="flex gap-1 border-b border-white/10 mb-8 overflow-x-auto">
       {TABS.map((tab) => {
         const isActive = pathname === tab.href;
         return (

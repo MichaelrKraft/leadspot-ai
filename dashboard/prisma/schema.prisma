@@ -357,7 +357,7 @@ model VoiceAgent {
   status       String      @default("inactive") // "active", "inactive", "testing"
   systemPrompt String      @db.Text
   voiceId      String? // TTS voice identifier
-  phoneNumber  String? // Associated phone number
+  phoneNumber  String?  @unique // Associated phone number — unique per active agent
   config       Json? // LiveKit agent configuration
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt
@@ -575,4 +575,20 @@ model RevokedToken {
   @@index([jti])
   @@index([expiresAt])
   @@map("revoked_tokens")
+}
+
+model Task {
+  id          String    @id @default(cuid())
+  contactId   String
+  tenantId    String
+  type        String    // 'followup', 'call', 'email'
+  notes       String?
+  dueAt       DateTime
+  completedAt DateTime?
+  source      String    // 'voice_agent', 'manual'
+  callId      String?
+  createdAt   DateTime  @default(now())
+
+  @@index([tenantId, dueAt])
+  @@index([contactId])
 }

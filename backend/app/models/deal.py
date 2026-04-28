@@ -5,7 +5,7 @@ Deal database model
 import uuid
 from datetime import datetime
 
-from sqlalchemy import Column, DateTime, Float, String
+from sqlalchemy import Boolean, Column, DateTime, Float, String
 
 from app.database import Base
 
@@ -33,6 +33,7 @@ class Deal(Base):
     priority = Column(String(20), default="medium", nullable=False)  # low, medium, high
     notes = Column(String(2000), nullable=True)
     org_id = Column(String(36), nullable=False, index=True)
+    is_demo = Column(Boolean, nullable=False, default=False)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 

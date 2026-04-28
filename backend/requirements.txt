@@ -81,3 +81,6 @@ sentry-sdk[fastapi]>=1.50.0
 
 # Stripe billing
 stripe>=7.0.0
+
+# Twilio (status webhook signature validation)
+twilio>=8.0.0

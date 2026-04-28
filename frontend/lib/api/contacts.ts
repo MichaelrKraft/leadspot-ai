@@ -65,3 +65,24 @@ export async function updateContact(
 export async function deleteContact(id: string): Promise<void> {
   await apiClient.delete(`/api/contacts/${id}`);
 }
+
+export interface CsvImportResponse {
+  imported: number;
+  skipped_duplicate: number;
+  skipped_invalid: number;
+  errors: string[];
+}
+
+export async function importContactsCsv(file: File): Promise<CsvImportResponse> {
+  const form = new FormData();
+  form.append('file', file);
+  // Don't override Content-Type — axios sets the multipart boundary automatically.
+  const res = await apiClient.post<CsvImportResponse>(
+    '/api/contacts/import-csv',
+    form,
+    {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    }
+  );
+  return res.data;
+}

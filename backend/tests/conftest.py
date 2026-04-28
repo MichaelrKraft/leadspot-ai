@@ -198,6 +198,51 @@ def admin_auth_headers(test_admin_data: dict) -> dict[str, str]:
 # Mock Service Fixtures
 # ============================================================================
 
+# ============================================================================
+# Daemon Auth Fixtures (Ghostlog)
+# ============================================================================
+
+@pytest_asyncio.fixture
+async def daemon_credential(db_session: AsyncSession) -> tuple:
+    """Create a seeded DaemonCredential and return (credential, refresh_token_plaintext)."""
+    from app.services.daemon_auth_service import issue_initial_credential
+
+    org_id = str(uuid4())
+    user_id = str(uuid4())
+    daemon_id = str(uuid4())
+
+    refresh_token, _access = await issue_initial_credential(
+        db=db_session,
+        daemon_id=daemon_id,
+        organization_id=org_id,
+        user_id=user_id,
+        user_email="daemon-owner@example.com",
+        device_label="Test Mac",
+    )
+    await db_session.flush()
+
+    from sqlalchemy import select
+    from app.models import DaemonCredential
+    result = await db_session.execute(
+        select(DaemonCredential).where(DaemonCredential.daemon_id == daemon_id)
+    )
+    cred = result.scalar_one()
+    return cred, refresh_token
+
+
+@pytest.fixture
+def daemon_auth_headers(daemon_credential) -> dict[str, str]:
+    """Return Bearer headers for a seeded DaemonCredential (sync fixture wrapper)."""
+    cred, _refresh = daemon_credential
+    from app.services.daemon_auth_service import create_daemon_access_token
+    token = create_daemon_access_token(
+        daemon_id=cred.daemon_id,
+        organization_id=cred.organization_id,
+        user_id=cred.user_id,
+    )
+    return {"Authorization": f"Bearer {token}"}
+
+
 @pytest.fixture
 def mock_anthropic():
     """Mock Anthropic Claude API."""

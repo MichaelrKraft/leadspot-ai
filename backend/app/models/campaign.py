@@ -5,7 +5,7 @@ Campaign database model
 import uuid
 from datetime import datetime
 
-from sqlalchemy import Column, DateTime, Integer, String
+from sqlalchemy import Boolean, Column, DateTime, Integer, String
 
 from app.database import Base
 
@@ -32,6 +32,7 @@ class Campaign(Base):
     opened = Column(Integer, default=0, nullable=False)
     replied = Column(Integer, default=0, nullable=False)
     user_id = Column(String(36), nullable=False, index=True)
+    is_demo = Column(Boolean, nullable=False, default=False)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 

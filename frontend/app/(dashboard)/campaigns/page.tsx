@@ -68,7 +68,7 @@ export default function CampaignsPage() {
     e.preventDefault();
     try {
       setIsSubmitting(true);
-      await createCampaign({ name: form.name, type: form.type, status: 'draft' });
+      await createCampaign({ name: form.name, type: form.type, status: 'Draft' });
       setForm({ name: '', type: 'Email' });
       setShowModal(false);
       await loadCampaigns();
@@ -93,11 +93,12 @@ export default function CampaignsPage() {
     setTestSending(true);
     setTestSendResult(null);
     try {
-      const response = await fetch('/api/campaigns/test-send', {
+      const response = await fetch('/api/agent/campaigns/test-send', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           campaignId: testSendCampaign.id,
+          campaignName: testSendCampaign.name,
           email: testEmail.trim(),
         }),
       });

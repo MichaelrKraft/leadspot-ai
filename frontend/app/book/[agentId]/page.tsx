@@ -7,7 +7,7 @@ interface PageProps {
   params: { agentId: string };
 }
 
-type Step = 'slots' | 'form' | 'success';
+type Step = 'slots' | 'questions' | 'form' | 'success';
 
 function formatSlot(iso: string): string {
   const d = new Date(iso);
@@ -29,6 +29,13 @@ function formatDateHeader(iso: string): string {
   });
 }
 
+const INTAKE_QUESTIONS = [
+  "What's the biggest operational bottleneck slowing your team down right now?",
+  "What have you already tried to solve it? (tools, hires, processes)",
+  "If we don't end up working together, what's your plan B for fixing this?",
+  "Describe your business 6 months from now if we nail this.",
+] as const;
+
 export default function BookingPage({ params }: PageProps) {
   const { agentId } = params;
 
@@ -36,6 +43,9 @@ export default function BookingPage({ params }: PageProps) {
   const [slots, setSlots] = useState<AvailabilitySlot[]>([]);
   const [isLoadingSlots, setIsLoadingSlots] = useState(true);
   const [selectedSlot, setSelectedSlot] = useState<AvailabilitySlot | null>(null);
+
+  // Intake question answers
+  const [answers, setAnswers] = useState(['', '', '', '']);
 
   // Form fields
   const [name, setName] = useState('');
@@ -63,6 +73,21 @@ export default function BookingPage({ params }: PageProps) {
     slotsByDate[dateKey].push(slot);
   }
 
+  function setAnswer(index: number, value: string) {
+    setAnswers((prev) => {
+      const next = [...prev];
+      next[index] = value;
+      return next;
+    });
+  }
+
+  const allAnswered = answers.every((a) => a.trim().length > 0);
+
+  function buildNotesWithIntake(): string {
+    const intake = INTAKE_QUESTIONS.map((q, i) => `Q: ${q}\nA: ${answers[i]}`).join('\n\n');
+    return notes.trim() ? `${intake}\n\n---\n\n${notes.trim()}` : intake;
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!selectedSlot) return;
@@ -76,7 +101,7 @@ export default function BookingPage({ params }: PageProps) {
         contact_phone: phone || undefined,
         start: selectedSlot.start,
         end: selectedSlot.end,
-        notes: notes || undefined,
+        notes: buildNotesWithIntake(),
       });
       setConfirmedSlot(selectedSlot);
       setStep('success');
@@ -149,6 +174,68 @@ export default function BookingPage({ params }: PageProps) {
               <div className="mt-6 flex justify-end">
                 <button
                   disabled={!selectedSlot}
+                  onClick={() => setStep('questions')}
+                  className="rounded-lg bg-indigo-600 px-5 py-2.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  Continue
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Step: Intake questions */}
+          {step === 'questions' && selectedSlot && (
+            <div className="p-6">
+              {/* Selected slot summary */}
+              <div className="mb-6 flex items-center gap-3 rounded-lg bg-indigo-50 px-4 py-3">
+                <svg className="h-5 w-5 flex-shrink-0 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                    d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                <div>
+                  <p className="text-sm font-medium text-indigo-900">{formatSlot(selectedSlot.start)}</p>
+                  <p className="text-xs text-indigo-600">30 minutes</p>
+                </div>
+                <button
+                  onClick={() => setStep('slots')}
+                  className="ml-auto text-xs text-indigo-600 underline hover:text-indigo-800"
+                >
+                  Change
+                </button>
+              </div>
+
+              <h2 className="mb-1 text-base font-semibold text-gray-900">A few quick questions</h2>
+              <p className="mb-5 text-sm text-gray-500">
+                These help me make the most of our time together.
+              </p>
+
+              <div className="space-y-5">
+                {INTAKE_QUESTIONS.map((question, i) => (
+                  <div key={i}>
+                    <label className="mb-1 block text-sm font-medium text-gray-700">
+                      {question} <span className="text-red-500">*</span>
+                    </label>
+                    <textarea
+                      rows={3}
+                      required
+                      value={answers[i]}
+                      onChange={(e) => setAnswer(i, e.target.value)}
+                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                    />
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-6 flex items-center justify-between">
+                <button
+                  type="button"
+                  onClick={() => setStep('slots')}
+                  className="text-sm text-gray-500 underline hover:text-gray-700"
+                >
+                  Back
+                </button>
+                <button
+                  disabled={!allAnswered}
                   onClick={() => setStep('form')}
                   className="rounded-lg bg-indigo-600 px-5 py-2.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-40"
                 >
@@ -224,13 +311,13 @@ export default function BookingPage({ params }: PageProps) {
 
                 <div>
                   <label className="mb-1 block text-sm font-medium text-gray-700">
-                    Notes
+                    Anything else you'd like us to know?
                   </label>
                   <textarea
                     rows={3}
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
-                    placeholder="Anything you'd like us to know before the call…"
+                    placeholder="Optional additional context…"
                     className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                   />
                 </div>
@@ -242,7 +329,7 @@ export default function BookingPage({ params }: PageProps) {
                 <div className="flex items-center justify-between pt-2">
                   <button
                     type="button"
-                    onClick={() => setStep('slots')}
+                    onClick={() => setStep('questions')}
                     className="text-sm text-gray-500 underline hover:text-gray-700"
                   >
                     Back

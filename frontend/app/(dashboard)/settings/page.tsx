@@ -229,10 +229,14 @@ function BillingSection() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    let cancelled = false;
+    const token = useAuthStore.getState().token;
+    if (!token) { setLoading(false); return; }
     api.billing.getStatus()
-      .then((res) => setStatus(res.data))
-      .catch(() => setError('Could not load billing info.'))
-      .finally(() => setLoading(false));
+      .then((res) => { if (!cancelled) setStatus(res.data); })
+      .catch(() => { if (!cancelled) setError('Could not load billing info.'); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
   }, []);
 
   const handlePortal = async () => {
@@ -493,9 +497,64 @@ function ApiKeysSection() {
   );
 }
 
+// ─── Demo Data Section ────────────────────────────────────────────────────────
+
+function DemoDataSection() {
+  const { token } = useAuthStore();
+  const [isDemo, setIsDemo] = useState(false);
+  const [clearing, setClearing] = useState(false);
+
+  useEffect(() => {
+    if (!token) return;
+    fetch('/api/onboarding/demo-status', { headers: { Authorization: `Bearer ${token}` } })
+      .then((r) => r.json())
+      .then((d) => setIsDemo(d.is_demo))
+      .catch(() => {});
+  }, [token]);
+
+  if (!isDemo) return null;
+
+  const handleClear = async () => {
+    if (!confirm('Delete all sample data? This cannot be undone.')) return;
+    setClearing(true);
+    try {
+      await fetch('/api/onboarding/demo-data', {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setIsDemo(false);
+    } catch {
+      // non-fatal
+    } finally {
+      setClearing(false);
+    }
+  };
+
+  return (
+    <section className="bg-yellow-500/5 backdrop-blur-xl border border-yellow-500/20 rounded-2xl p-5 flex items-start justify-between gap-4">
+      <div>
+        <p className="text-sm font-semibold text-yellow-300 mb-1">Sample data active</p>
+        <p className="text-xs text-yellow-300/70">Your account contains demo contacts and deals. Remove them when you're ready to use real data.</p>
+      </div>
+      <button
+        onClick={handleClear}
+        disabled={clearing}
+        className="flex-shrink-0 px-4 py-2 rounded-xl text-xs font-medium bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-300 border border-yellow-500/20 transition-colors disabled:opacity-40"
+      >
+        {clearing ? 'Clearing…' : 'Clear Demo Data'}
+      </button>
+    </section>
+  );
+}
+
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function SettingsPage() {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); }, []);
+
+  if (!mounted) return null;
+
   return (
     <div className="p-8 max-w-3xl">
       <div className="mb-6">
@@ -506,6 +565,7 @@ export default function SettingsPage() {
       <SettingsNav />
 
       <div className="space-y-6">
+        <DemoDataSection />
         <ProfileSection />
         <MauticSection />
         <BillingSection />

@@ -23,8 +23,8 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next: Callable) -> Response:
         response = await call_next(request)
 
-        # Prevent clickjacking
-        response.headers["X-Frame-Options"] = "DENY"
+        # Prevent clickjacking (SAMEORIGIN allows embedding within the same origin)
+        response.headers["X-Frame-Options"] = "SAMEORIGIN"
 
         # Prevent MIME type sniffing
         response.headers["X-Content-Type-Options"] = "nosniff"
@@ -44,7 +44,8 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
             "img-src 'self' data: https:; "
             "font-src 'self' https:; "
             "connect-src 'self' https:; "
-            "frame-ancestors 'none';"
+            "frame-ancestors 'self'; "
+            "frame-src 'self';"
         )
 
         # Permissions Policy - disable unnecessary browser features

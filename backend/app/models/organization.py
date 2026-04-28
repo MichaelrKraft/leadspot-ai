@@ -35,6 +35,7 @@ DEFAULT_FEATURES = {
     "max_users": 5,
     "ai_insights_enabled": True,
     "lead_scoring_enabled": True,
+    "space_agent_enabled": False,
 }
 
 
@@ -51,8 +52,9 @@ class Organization(Base):
     )
     name = Column(String(255), nullable=False)
     domain = Column(String(255), unique=True, nullable=False, index=True)
-    subscription_tier = Column(String(50), default="pilot", nullable=False)
+    subscription_tier = Column(String(50), default="free", nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    demo_seeded_at = Column(DateTime, nullable=True)
 
     # BYOK - Bring Your Own Key (Anthropic API)
     anthropic_api_key = Column(String(255), nullable=True)

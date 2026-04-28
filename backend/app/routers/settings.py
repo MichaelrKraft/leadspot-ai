@@ -540,3 +540,53 @@ async def plugin_mautic_status(
         "organization_id": org.organization_id,
         "has_credentials": bool(org.mautic_client_id and org.mautic_client_secret),
     }
+
+
+# ============================================================================
+# Privacy: EU strict mode (plan §11.3)
+# ============================================================================
+
+class EuStrictModeStatus(BaseModel):
+    eu_strict_mode: bool
+
+
+class UpdateEuStrictMode(BaseModel):
+    eu_strict_mode: bool
+
+
+@router.get("/privacy/eu-strict-mode", response_model=EuStrictModeStatus)
+async def get_eu_strict_mode(
+    current_user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_db),
+):
+    """Returns the user's EU strict mode flag.
+
+    Read off `current_user` after re-fetching to avoid stale session state
+    when the same instance was loaded earlier in the request.
+    """
+    from sqlalchemy import select
+
+    result = await session.execute(
+        select(User).where(User.user_id == str(current_user.user_id))
+    )
+    user = result.scalar_one_or_none()
+    return EuStrictModeStatus(eu_strict_mode=bool(user and user.eu_strict_mode))
+
+
+@router.put("/privacy/eu-strict-mode", response_model=EuStrictModeStatus)
+async def update_eu_strict_mode(
+    body: UpdateEuStrictMode,
+    current_user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_db),
+):
+    """Toggle the user's EU strict mode (plan §11.3)."""
+    from sqlalchemy import update as sa_update
+
+    await session.execute(
+        sa_update(User)
+        .where(User.user_id == str(current_user.user_id))
+        .values(eu_strict_mode=bool(body.eu_strict_mode))
+        .execution_options(synchronize_session=False)
+    )
+    await session.flush()
+    return EuStrictModeStatus(eu_strict_mode=bool(body.eu_strict_mode))

@@ -8,6 +8,7 @@ import AuthGuard from '@/components/auth/AuthGuard';
 import { useAuthStore } from '@/stores/useAuthStore';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import ThemeToggle from '@/components/ThemeToggle';
+import CommandPalette from '@/components/conv-ai/CommandPalette';
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -170,6 +171,16 @@ const navigation: NavItem[] = [
     dividerAfter: true,
   },
   {
+    name: 'My Workspace',
+    href: '/workspace',
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M3 3h8v8H3V3zm0 10h8v8H3v-8zm10-10h8v8h-8V3zm0 10h8v8h-8v-8z" />
+      </svg>
+    ),
+    dividerAfter: true,
+  },
+  {
     name: 'Settings',
     href: '/settings',
     icon: (
@@ -197,6 +208,7 @@ const pageTitles: Record<string, string> = {
   '/decisions': 'Decisions',
   '/voice-agents': 'Voice Agents',
   '/community': 'Community',
+  '/workspace': 'My Workspace',
   '/settings': 'Settings',
 };
 
@@ -221,6 +233,8 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
   return (
     <AuthGuard>
+      {/* Phase 3 Conversational AI palette — global Cmd/Ctrl+K trigger */}
+      <CommandPalette />
       <div className="flex h-screen overflow-hidden">
         {/* Sidebar */}
         <aside className="fixed inset-y-0 left-0 z-40 flex w-[220px] flex-col border-r border-slate-200 bg-[#f8fafc] dark:border-white/10 dark:bg-[#1e2639]">
@@ -319,7 +333,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           </header>
 
           {/* Page Content */}
-          <main className="flex-1 overflow-y-auto bg-white dark:bg-[#0a0a0d]">
+          <main className="flex-1 overflow-y-auto overflow-x-hidden bg-white dark:bg-[#0a0a0d]">
             <ErrorBoundary>
               <div className="relative z-10">{children}</div>
             </ErrorBoundary>

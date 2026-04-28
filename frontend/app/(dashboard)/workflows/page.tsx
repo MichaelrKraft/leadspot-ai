@@ -10,12 +10,17 @@ import {
   listEnrollments,
   enrollContacts,
   enrollSegment,
+  pauseEnrollment,
+  resumeEnrollment,
+  cancelEnrollment,
+  refreshEnrollmentContact,
   type Workflow,
   type WorkflowEnrollment,
   type WorkflowStepInput,
 } from '@/lib/api/workflows';
 import { listContacts, type Contact } from '@/lib/api/contacts';
 import { listSegments, type Segment } from '@/lib/api/segments';
+import WorkflowDetailPanel from '@/components/workflows/WorkflowDetailPanel';
 
 // ============================================================================
 // Helpers
@@ -78,10 +83,14 @@ export default function WorkflowsPage() {
   const [enrollLoading, setEnrollLoading] = useState(false);
   const [enrollSubmitting, setEnrollSubmitting] = useState(false);
 
+  // Detail panel
+  const [selectedWorkflowId, setSelectedWorkflowId] = useState<string | null>(null);
+
   // Enrollments view modal
   const [enrollmentsWorkflowId, setEnrollmentsWorkflowId] = useState<string | null>(null);
   const [enrollments, setEnrollments] = useState<WorkflowEnrollment[]>([]);
   const [enrollmentsLoading, setEnrollmentsLoading] = useState(false);
+  const [enrollmentActionId, setEnrollmentActionId] = useState<string | null>(null);
 
   useEffect(() => {
     if (orgId) loadWorkflows();
@@ -210,6 +219,27 @@ export default function WorkflowsPage() {
     }
   }
 
+  async function handleEnrollmentAction(
+    action: 'pause' | 'resume' | 'cancel' | 'refresh',
+    enrollment: WorkflowEnrollment,
+  ) {
+    if (!enrollmentsWorkflowId) return;
+    setEnrollmentActionId(enrollment.id);
+    try {
+      if (action === 'pause') await pauseEnrollment(orgId, enrollmentsWorkflowId, enrollment.id);
+      else if (action === 'resume') await resumeEnrollment(orgId, enrollmentsWorkflowId, enrollment.id);
+      else if (action === 'cancel') await cancelEnrollment(orgId, enrollmentsWorkflowId, enrollment.id);
+      else if (action === 'refresh') await refreshEnrollmentContact(orgId, enrollmentsWorkflowId, enrollment.id);
+      // Reload enrollments to show updated state
+      const data = await listEnrollments(orgId, enrollmentsWorkflowId);
+      setEnrollments(data);
+    } catch {
+      setError(`Failed to ${action} enrollment`);
+    } finally {
+      setEnrollmentActionId(null);
+    }
+  }
+
   // ── Render ──────────────────────────────────────────────────────────────────
 
   return (
@@ -268,7 +298,12 @@ export default function WorkflowsPage() {
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2">
                         <GitBranch className="h-4 w-4 text-indigo-400 flex-shrink-0" />
-                        <p className="text-sm font-medium text-slate-900 dark:text-zinc-100">{workflow.name}</p>
+                        <button
+                          onClick={() => setSelectedWorkflowId(workflow.id)}
+                          className="text-sm font-medium text-slate-900 hover:text-indigo-600 dark:text-zinc-100 dark:hover:text-indigo-400 text-left"
+                        >
+                          {workflow.name}
+                        </button>
                       </div>
                     </td>
                     <td className="px-6 py-4 text-right text-sm text-slate-700 dark:text-zinc-300">{workflow.step_count}</td>
@@ -534,6 +569,15 @@ export default function WorkflowsPage() {
         </div>
       )}
 
+      {/* ── Workflow Detail Panel ── */}
+      <WorkflowDetailPanel
+        workflowId={selectedWorkflowId}
+        orgId={orgId}
+        onClose={() => setSelectedWorkflowId(null)}
+        onSaved={loadWorkflows}
+        onEnroll={(id) => { setSelectedWorkflowId(null); openEnroll(id); }}
+      />
+
       {/* ── Enrollments View Modal ── */}
       {enrollmentsWorkflowId && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
@@ -555,21 +599,76 @@ export default function WorkflowsPage() {
                 <table className="w-full">
                   <thead>
                     <tr className="border-b border-slate-200 dark:border-zinc-700">
-                      <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-400">Email</th>
-                      <th className="px-6 py-3 text-center text-xs font-medium uppercase tracking-wider text-slate-400">Step</th>
-                      <th className="px-6 py-3 text-center text-xs font-medium uppercase tracking-wider text-slate-400">Status</th>
-                      <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-slate-400">Next Send</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-400">Contact</th>
+                      <th className="px-4 py-3 text-center text-xs font-medium uppercase tracking-wider text-slate-400">Step</th>
+                      <th className="px-4 py-3 text-center text-xs font-medium uppercase tracking-wider text-slate-400">Status</th>
+                      <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider text-slate-400">Next Send</th>
+                      <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider text-slate-400">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 dark:divide-zinc-800">
-                    {enrollments.map(e => (
-                      <tr key={e.id} className="hover:bg-slate-50 dark:hover:bg-zinc-800/30">
-                        <td className="px-6 py-3 text-sm text-slate-700 dark:text-zinc-300">{e.contact_email}</td>
-                        <td className="px-6 py-3 text-center text-sm text-slate-500 dark:text-zinc-400">{e.current_step + 1}</td>
-                        <td className="px-6 py-3 text-center"><StatusBadge status={e.status} /></td>
-                        <td className="px-6 py-3 text-right text-xs text-slate-400 dark:text-zinc-500">{formatDate(e.next_send_at)}</td>
-                      </tr>
-                    ))}
+                    {enrollments.map(e => {
+                      const isActioning = enrollmentActionId === e.id;
+                      return (
+                        <tr key={e.id} className="hover:bg-slate-50 dark:hover:bg-zinc-800/30">
+                          <td className="px-4 py-3">
+                            <p className="text-sm font-medium text-slate-700 dark:text-zinc-300">
+                              {e.contact_first_name ? `${e.contact_first_name} ${e.contact_last_name ?? ''}`.trim() : e.contact_email}
+                            </p>
+                            {e.contact_first_name && (
+                              <p className="text-xs text-slate-400 dark:text-zinc-500">{e.contact_email}</p>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 text-center text-sm text-slate-500 dark:text-zinc-400">{e.current_step + 1}</td>
+                          <td className="px-4 py-3 text-center"><StatusBadge status={e.status} /></td>
+                          <td className="px-4 py-3 text-right text-xs text-slate-400 dark:text-zinc-500">{formatDate(e.next_send_at)}</td>
+                          <td className="px-4 py-3 text-right">
+                            <div className="flex items-center justify-end gap-1">
+                              {isActioning ? (
+                                <Loader2 className="h-4 w-4 animate-spin text-slate-400" />
+                              ) : (
+                                <>
+                                  {e.status === 'active' && (
+                                    <button
+                                      onClick={() => void handleEnrollmentAction('pause', e)}
+                                      className="rounded px-2 py-0.5 text-xs font-medium text-yellow-600 hover:bg-yellow-50 dark:hover:bg-yellow-500/10"
+                                      title="Pause"
+                                    >
+                                      Pause
+                                    </button>
+                                  )}
+                                  {e.status === 'paused' && (
+                                    <button
+                                      onClick={() => void handleEnrollmentAction('resume', e)}
+                                      className="rounded px-2 py-0.5 text-xs font-medium text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-500/10"
+                                      title="Resume"
+                                    >
+                                      Resume
+                                    </button>
+                                  )}
+                                  {(e.status === 'active' || e.status === 'paused') && (
+                                    <button
+                                      onClick={() => void handleEnrollmentAction('cancel', e)}
+                                      className="rounded p-1 text-slate-400 hover:text-red-500 dark:hover:text-red-400"
+                                      title="Cancel enrollment"
+                                    >
+                                      <X className="h-3.5 w-3.5" />
+                                    </button>
+                                  )}
+                                  <button
+                                    onClick={() => void handleEnrollmentAction('refresh', e)}
+                                    className="rounded p-1 text-xs text-slate-400 hover:text-indigo-500 dark:hover:text-indigo-400"
+                                    title="Refresh contact data"
+                                  >
+                                    ↺
+                                  </button>
+                                </>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               )}

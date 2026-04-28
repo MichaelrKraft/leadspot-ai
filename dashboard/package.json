@@ -16,6 +16,7 @@
     "seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.91.1",
     "@aws-sdk/client-ses": "^3.1000.0",
     "@fullcalendar/daygrid": "^6.1.19",
     "@fullcalendar/interaction": "^6.1.19",
@@ -41,6 +42,8 @@
     "react": "^18",
     "react-dom": "^18",
     "stripe": "^20.1.0",
+    "twilio": "^5.3.0",
+    "@vercel/functions": "^1.0.0",
     "video.js": "^8.23.4"
   },
   "devDependencies": {

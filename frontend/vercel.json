@@ -1,0 +1,9 @@
+{
+  "framework": "nextjs",
+  "buildCommand": "npm run build",
+  "outputDirectory": ".next",
+  "env": {
+    "BACKEND_URL": "@backend_url",
+    "AGENT_SERVICE_URL": "@agent_service_url"
+  }
+}

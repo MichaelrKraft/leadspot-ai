@@ -56,6 +56,7 @@ const config: Config = {
         "fade-in": "fadeIn 0.5s ease-in-out",
         "slide-up": "slideUp 0.5s ease-out",
         pulse: "pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite",
+        "scale-in-glow": "scaleInGlow 0.4s ease-out",
       },
       keyframes: {
         fadeIn: {
@@ -65,6 +66,11 @@ const config: Config = {
         slideUp: {
           "0%": { transform: "translateY(20px)", opacity: "0" },
           "100%": { transform: "translateY(0)", opacity: "1" },
+        },
+        scaleInGlow: {
+          "0%": { transform: "scale(0.92)", opacity: "0", boxShadow: "0 0 0px rgba(99,102,241,0)" },
+          "60%": { boxShadow: "0 0 30px rgba(99,102,241,0.4)" },
+          "100%": { transform: "scale(1)", opacity: "1", boxShadow: "0 0 0px rgba(99,102,241,0)" },
         },
       },
     },

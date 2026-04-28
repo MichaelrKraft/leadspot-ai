@@ -32,6 +32,7 @@ export interface SendEmailOptions {
   campaignId?: string;
   organizationId: string;
   fromName?: string;
+  enrollmentId?: string;
 }
 
 export interface SendEmailResult {
@@ -132,6 +133,21 @@ function addComplianceFooter(htmlBody: string, unsubscribeUrl: string): string {
 }
 
 /**
+ * Inject a 1x1 tracking pixel into an HTML body to detect email opens.
+ * Only called when enrollmentId is provided and the body is HTML.
+ */
+function injectTrackingPixel(htmlBody: string, enrollmentId: string, organizationId: string): string {
+  const agentUrl = process.env.AGENT_SERVICE_URL || 'http://localhost:3008';
+  const token = Buffer.from(`${organizationId}:${enrollmentId}`).toString('base64');
+  const pixel = `<img src="${agentUrl}/api/agent/workflows/track/open?t=${token}" width="1" height="1" style="display:none;border:0" alt="" />`;
+
+  if (htmlBody.includes('</body>')) {
+    return htmlBody.replace('</body>', `${pixel}</body>`);
+  }
+  return htmlBody + pixel;
+}
+
+/**
  * Send an email with full compliance and tracking
  */
 export async function sendEmail(options: SendEmailOptions): Promise<SendEmailResult> {
@@ -149,7 +165,12 @@ export async function sendEmail(options: SendEmailOptions): Promise<SendEmailRes
   const unsubscribeUrl = `${APP_URL}/api/unsubscribe?token=${token}`;
 
   // 3. Add compliance footer
-  const htmlBody = addComplianceFooter(body, unsubscribeUrl);
+  let htmlBody = addComplianceFooter(body, unsubscribeUrl);
+
+  // 3a. Inject open-tracking pixel for workflow enrollments (HTML only)
+  if (options.enrollmentId && body.includes('<')) {
+    htmlBody = injectTrackingPixel(htmlBody, options.enrollmentId, options.organizationId);
+  }
 
   // 4. Send via Resend
   try {

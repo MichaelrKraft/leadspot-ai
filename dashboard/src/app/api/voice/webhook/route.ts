@@ -175,6 +175,16 @@ async function handleRoomFinished(event: any) {
 // explicitly to every record.  We use the base prisma client inside the
 // $transaction because Prisma's $extends interceptors do not propagate
 // into interactive transaction callbacks; tenantId is injected manually.
+//
+// Hold-release flow (for calls pre-authorized via /api/voice/calls/from-sip):
+//   1. Find the 'hold' BillingTransaction created at call start.
+//   2. Compute actualCost = minutes * COST_PER_MINUTE.
+//   3. Compute refund = holdAmount - actualCost (clamped to 0 if negative).
+//   4. Credit refund back to wallet + create a 'refund' transaction.
+//   5. Create a 'usage_deduction' transaction for the actual cost.
+//
+// Legacy flow (calls without a hold, e.g. outbound calls or pre-feature):
+//   Falls back to the original direct deduction logic.
 async function recordUsageAndDeduct(
   userId: string,
   tenantId: string,
@@ -201,52 +211,139 @@ async function recordUsageAndDeduct(
     const baseCost = minutes * BASE_COST_PER_MINUTE;
     const margin = totalCost - baseCost;
 
-    // Atomic wallet deduction — Serializable isolation prevents race conditions
-    // when multiple concurrent webhooks fire for the same user.
-    await prisma.$transaction(async (tx) => {
-      // Re-read wallet inside the transaction for accurate balance
-      const wallet = await tx.wallet.findUnique({
-        where: { userId },
-      });
+    // Look up the hold transaction created by the from-sip endpoint (if any)
+    const holdTransaction = await prisma.billingTransaction.findFirst({
+      where: {
+        type: 'hold',
+        description: `Call hold: ${callId}`,
+      },
+      select: { id: true, walletId: true, amount: true },
+    });
 
-      if (!wallet) {
-        console.warn(`[Billing] No wallet found for user: ${userId}`);
+    if (holdTransaction) {
+      // Hold-release path: reconcile the pre-authorized hold against actual cost
+      const holdAmount = Math.abs(Number(holdTransaction.amount)); // hold was stored as negative
+      const refundAmount = Math.max(0, holdAmount - totalCost);
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await prisma.$transaction(async (tx: any) => {
+        // Re-read wallet inside the transaction for accurate snapshot
+        const wallet = await tx.wallet.findUnique({
+          where: { userId },
+          select: { id: true, balance: true, lowBalanceAt: true },
+        });
+
+        if (!wallet) {
+          console.warn(`[Billing] No wallet found for user: ${userId}`);
+          await tx.voiceUsage.create({
+            data: { userId, tenantId, callId, minutes, costRate: COST_PER_MINUTE, totalCost, baseCost, margin },
+          });
+          return;
+        }
+
+        const currentBalance = Number(wallet.balance);
+
+        // Credit back any unused portion of the hold
+        let balanceAfterRefund = currentBalance;
+        if (refundAmount > 0) {
+          const updatedWallet = await tx.wallet.update({
+            where: { userId },
+            data: { balance: { increment: refundAmount } },
+            select: { balance: true },
+          });
+          balanceAfterRefund = Number(updatedWallet.balance);
+
+          await tx.billingTransaction.create({
+            data: {
+              walletId: wallet.id,
+              tenantId,
+              type: 'refund',
+              amount: refundAmount,
+              balanceAfter: balanceAfterRefund,
+              description: `Hold refund: ${callId} (unused ${refundAmount.toFixed(4)} of ${holdAmount.toFixed(4)} hold)`,
+              callId,
+            },
+          });
+        }
+
+        // Record the actual usage deduction.
+        // The hold already removed the funds; balanceAfter reflects the post-refund
+        // balance minus the actual cost (the remainder that was already deducted).
+        const balanceAfterUsage = balanceAfterRefund - (holdAmount - refundAmount);
+        await tx.billingTransaction.create({
+          data: {
+            walletId: wallet.id,
+            tenantId,
+            type: 'usage_deduction',
+            amount: -totalCost,
+            balanceAfter: balanceAfterUsage,
+            description: `Voice call: ${minutes.toFixed(1)} minutes`,
+            callId,
+          },
+        });
+
         await tx.voiceUsage.create({
           data: { userId, tenantId, callId, minutes, costRate: COST_PER_MINUTE, totalCost, baseCost, margin },
         });
-        return;
-      }
 
-      const numBalance = Number(wallet.balance);
-      const newBalance = Math.max(0, numBalance - totalCost);
+        if (balanceAfterRefund < Number(wallet.lowBalanceAt)) {
+          console.warn(`[Billing] Low balance alert for user ${userId}: ${balanceAfterRefund.toFixed(2)}`);
+        }
+      }, { isolationLevel: 'Serializable' });
 
-      await tx.voiceUsage.create({
-        data: { userId, tenantId, callId, minutes, costRate: COST_PER_MINUTE, totalCost, baseCost, margin },
-      });
+      console.log(
+        `[Billing] Hold released for call ${callId}: ` +
+        `held=${holdAmount.toFixed(4)}, actual=${totalCost.toFixed(4)}, refund=${refundAmount.toFixed(4)}`
+      );
+    } else {
+      // Legacy path: no hold was created — deduct directly from wallet balance
+      // (handles outbound calls and calls placed before the from-sip endpoint existed)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await prisma.$transaction(async (tx: any) => {
+        // Re-read wallet inside the transaction for accurate balance
+        const wallet = await tx.wallet.findUnique({
+          where: { userId },
+        });
 
-      await tx.wallet.update({
-        where: { userId },
-        data: {
-          balance: newBalance,
-          transactions: {
-            create: {
-              type: 'usage_deduction',
-              tenantId,
-              amount: -totalCost,
-              balanceAfter: newBalance,
-              description: `Voice call: ${minutes.toFixed(1)} minutes`,
-              callId,
+        if (!wallet) {
+          console.warn(`[Billing] No wallet found for user: ${userId}`);
+          await tx.voiceUsage.create({
+            data: { userId, tenantId, callId, minutes, costRate: COST_PER_MINUTE, totalCost, baseCost, margin },
+          });
+          return;
+        }
+
+        const numBalance = Number(wallet.balance);
+        const newBalance = Math.max(0, numBalance - totalCost);
+
+        await tx.voiceUsage.create({
+          data: { userId, tenantId, callId, minutes, costRate: COST_PER_MINUTE, totalCost, baseCost, margin },
+        });
+
+        await tx.wallet.update({
+          where: { userId },
+          data: {
+            balance: newBalance,
+            transactions: {
+              create: {
+                type: 'usage_deduction',
+                tenantId,
+                amount: -totalCost,
+                balanceAfter: newBalance,
+                description: `Voice call: ${minutes.toFixed(1)} minutes`,
+                callId,
+              },
             },
           },
-        },
-      });
+        });
 
-      if (newBalance < Number(wallet.lowBalanceAt)) {
-        console.warn(`[Billing] Low balance alert for user ${userId}: ${newBalance.toFixed(2)}`);
-      }
-    }, { isolationLevel: 'Serializable' });
+        if (newBalance < Number(wallet.lowBalanceAt)) {
+          console.warn(`[Billing] Low balance alert for user ${userId}: ${newBalance.toFixed(2)}`);
+        }
+      }, { isolationLevel: 'Serializable' });
 
-    console.log(`[Billing] Recorded usage for call ${callId}: ${minutes.toFixed(2)} mins, ${totalCost.toFixed(2)} charged`);
+      console.log(`[Billing] Recorded usage for call ${callId}: ${minutes.toFixed(2)} mins, ${totalCost.toFixed(4)} charged`);
+    }
 
     // Auto-pause agents if balance is depleted
     await checkBalanceAndPauseIfNeeded(userId);

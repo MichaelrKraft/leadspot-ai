@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { Suspense, useState, useEffect } from 'react';
 import Link from 'next/link';
 import { BarChart3, Sparkles, BrainCircuit, CheckCircle2, Activity } from 'lucide-react';
 import { fetchDailyInsights } from '@/lib/api/dashboard';
+import OnboardingBanner from '@/components/OnboardingBanner';
 import {
   fetchPipelineBrief,
   fetchApprovalQueue,
@@ -120,6 +121,11 @@ export default function DashboardPage() {
 
   return (
     <div className="flex flex-col items-center px-6 py-8 max-w-[800px] mx-auto animate-in fade-in duration-300">
+      {/* Onboarding-complete banner (only shows when ?onboarded=1) */}
+      <Suspense fallback={null}>
+        <OnboardingBanner />
+      </Suspense>
+
       {/* Greeting Header */}
       <div className="text-center mb-8">
         <h1 className="text-[28px] font-bold text-slate-900 dark:text-zinc-50 mb-2">

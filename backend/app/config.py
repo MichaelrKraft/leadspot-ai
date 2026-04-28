@@ -120,6 +120,12 @@ class Settings(BaseSettings):
     # Frontend URL (for OAuth redirects)
     FRONTEND_URL: str = "http://localhost:3000"
 
+    # Space Agent Integration
+    SPACE_AGENT_URL: str = ""  # e.g., http://localhost:3009 or Render URL
+    SPACE_AGENT_API_KEY: str = ""  # Shared secret for Space Agent → Backend calls
+    SPACE_AGENT_ADMIN_KEY: str = ""  # Admin key for provisioning
+    SPACE_AGENT_API_KEY_PREVIOUS: str = ""  # For zero-downtime key rotation
+
     def validate_production_settings(self) -> list[str]:
         """
         Validate that all required settings are properly configured for production.

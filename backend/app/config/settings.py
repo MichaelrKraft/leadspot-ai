@@ -127,6 +127,12 @@ class Settings(BaseSettings):
     STRIPE_PRICE_ID_PRO: str = ""      # Pro plan $39/mo
     STRIPE_PRICE_ID_BUSINESS: str = "" # Business plan $79/mo
 
+    # Ghostlog single-player install loop (the $39/mo flat plan locked per
+    # the Phase 1 plan §0). When unset, the /api/billing/checkout?plan=ghostlog
+    # endpoint logs a warning and returns 503 instead of crashing — Mike's
+    # Stripe Price ID is BLOCKED on his account provisioning.
+    LEADSPOT_PRICE_ID: str = ""
+
     def validate_production_settings(self) -> list[str]:
         """
         Validate that all required settings are properly configured for production.

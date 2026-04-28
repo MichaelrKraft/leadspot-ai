@@ -32,6 +32,7 @@ import type {
 } from './types';
 import { registerSmartListRoutes } from './routes/smart-lists';
 import { registerActionPlanRoutes } from './routes/action-plans';
+import { getInitializedOrgs, getDueEnrollments, processNextStep } from './action-plans';
 import {
   listWorkflows,
   createWorkflow,
@@ -39,6 +40,14 @@ import {
   deleteWorkflow,
   listEnrollments,
   enrollContacts,
+  updateWorkflow,
+  pauseEnrollment,
+  resumeEnrollment,
+  cancelEnrollment,
+  refreshEnrollmentContact,
+  listGoals,
+  addGoal,
+  removeGoal,
 } from './workflows';
 import { registerLeadRoutingRoutes } from './routes/lead-routing';
 import { registerLeadPondRoutes } from './routes/lead-ponds';
@@ -378,6 +387,50 @@ function createApp(): express.Application {
     }
   });
 
+  // Tracking pixel — must be before /:id routes so Express doesn't treat "track" as a workflow ID
+  app.get('/api/agent/workflows/track/open', async (req: Request, res: Response) => {
+    try {
+      const token = req.query.t as string | undefined;
+      if (token) {
+        const decoded = Buffer.from(token, 'base64').toString('utf-8');
+        const [organizationId, enrollmentId] = decoded.split(':');
+
+        if (organizationId && enrollmentId) {
+          const { getDb } = await import('./db');
+          const { randomUUID } = await import('crypto');
+          const db = getDb(organizationId);
+
+          // Only record if enrollment exists and is active
+          const enrollment = db.prepare(
+            "SELECT id FROM workflow_enrollments WHERE id = ? AND status = 'active'"
+          ).get(enrollmentId);
+
+          if (enrollment) {
+            db.prepare(`
+              INSERT INTO workflow_email_events (id, enrollment_id, event_type)
+              VALUES (?, ?, 'opened')
+            `).run(randomUUID(), enrollmentId);
+          }
+        }
+      }
+    } catch {
+      // Non-fatal — always return the pixel
+    }
+
+    // 1x1 transparent GIF
+    const pixel = Buffer.from(
+      'R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7',
+      'base64'
+    );
+    res.writeHead(200, {
+      'Content-Type': 'image/gif',
+      'Content-Length': pixel.length,
+      'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+      'Pragma': 'no-cache',
+    });
+    res.end(pixel);
+  });
+
   app.get('/api/agent/workflows/:id', async (req: Request, res: Response, next: NextFunction) => {
     try {
       const id = String(req.params.id);
@@ -385,6 +438,26 @@ function createApp(): express.Application {
       if (!organizationId) throw createApiError('organizationId query parameter is required', 400);
       const { getDb } = await import('./db');
       const workflow = getWorkflow(getDb(organizationId), id);
+      if (!workflow) throw createApiError('Workflow not found', 404);
+      res.json({ workflow });
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  app.put('/api/agent/workflows/:id', async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const id = String(req.params.id);
+      const { organizationId, name, steps } = req.body as {
+        organizationId?: string;
+        name?: string;
+        steps?: Array<{ delayDays: number; subject: string; body: string }>;
+      };
+      if (!organizationId) throw createApiError('organizationId is required', 400);
+      if (!name?.trim()) throw createApiError('name is required', 400);
+      if (!steps || !Array.isArray(steps) || steps.length === 0) throw createApiError('steps array is required', 400);
+      const { getDb } = await import('./db');
+      const workflow = updateWorkflow(getDb(organizationId), id, name.trim(), steps);
       if (!workflow) throw createApiError('Workflow not found', 404);
       res.json({ workflow });
     } catch (err) {
@@ -415,7 +488,8 @@ function createApp(): express.Application {
       if (!organizationId) throw createApiError('organizationId is required', 400);
       if (!contacts || !Array.isArray(contacts) || contacts.length === 0) throw createApiError('contacts array is required', 400);
       const { getDb } = await import('./db');
-      await enrollContacts(getDb(organizationId), id, organizationId, contacts);
+      const authHeader = req.headers.authorization;
+      await enrollContacts(getDb(organizationId), id, organizationId, contacts, authHeader);
       res.json({ success: true, enrolled: contacts.length });
     } catch (err) {
       next(err);
@@ -468,6 +542,99 @@ function createApp(): express.Application {
     } catch (err) {
       next(err);
     }
+  });
+
+  app.patch('/api/agent/workflows/:workflowId/enrollments/:enrollmentId/pause', async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { organizationId, reason } = req.body as { organizationId?: string; reason?: string };
+      if (!organizationId) throw createApiError('organizationId is required', 400);
+      const { getDb } = await import('./db');
+      pauseEnrollment(getDb(organizationId), String(req.params.enrollmentId), reason);
+      res.json({ success: true });
+    } catch (err) { next(err); }
+  });
+
+  app.patch('/api/agent/workflows/:workflowId/enrollments/:enrollmentId/resume', async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { organizationId } = req.body as { organizationId?: string };
+      if (!organizationId) throw createApiError('organizationId is required', 400);
+      const { getDb } = await import('./db');
+      resumeEnrollment(getDb(organizationId), String(req.params.enrollmentId));
+      res.json({ success: true });
+    } catch (err) { next(err); }
+  });
+
+  app.patch('/api/agent/workflows/:workflowId/enrollments/:enrollmentId/cancel', async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { organizationId } = req.body as { organizationId?: string };
+      if (!organizationId) throw createApiError('organizationId is required', 400);
+      const { getDb } = await import('./db');
+      cancelEnrollment(getDb(organizationId), String(req.params.enrollmentId));
+      res.json({ success: true });
+    } catch (err) { next(err); }
+  });
+
+  app.post('/api/agent/workflows/:workflowId/enrollments/:enrollmentId/refresh', async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { organizationId } = req.body as { organizationId?: string };
+      if (!organizationId) throw createApiError('organizationId is required', 400);
+      const { getDb } = await import('./db');
+      await refreshEnrollmentContact(getDb(organizationId), String(req.params.enrollmentId), req.headers.authorization as string | undefined);
+      res.json({ success: true });
+    } catch (err) { next(err); }
+  });
+
+  app.get('/api/agent/workflows/:id/goals', async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const organizationId = req.query.organizationId as string | undefined;
+      if (!organizationId) throw createApiError('organizationId query parameter is required', 400);
+      const { getDb } = await import('./db');
+      res.json({ goals: listGoals(getDb(organizationId), String(req.params.id)) });
+    } catch (err) { next(err); }
+  });
+
+  app.post('/api/agent/workflows/:id/goals', async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { organizationId, conditionType, conditionValue } = req.body as {
+        organizationId?: string;
+        conditionType?: string;
+        conditionValue?: string;
+      };
+      if (!organizationId) throw createApiError('organizationId is required', 400);
+      if (!conditionType || !conditionValue) throw createApiError('conditionType and conditionValue are required', 400);
+      const { getDb } = await import('./db');
+      const goal = addGoal(getDb(organizationId), String(req.params.id), conditionType, conditionValue);
+      res.status(201).json({ goal });
+    } catch (err) { next(err); }
+  });
+
+  app.delete('/api/agent/workflows/:id/goals/:goalId', async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { organizationId } = req.body as { organizationId?: string };
+      if (!organizationId) throw createApiError('organizationId is required', 400);
+      const { getDb } = await import('./db');
+      removeGoal(getDb(organizationId), String(req.params.goalId));
+      res.json({ success: true });
+    } catch (err) { next(err); }
+  });
+
+  // --------------------------------------------------------------------------
+  // Action Plan Manual Trigger (debugging)
+  // --------------------------------------------------------------------------
+
+  app.post('/api/agent/action-plans/process', async (_req: Request, res: Response) => {
+    const orgIds = getInitializedOrgs();
+    let processed = 0;
+    for (const orgId of orgIds) {
+      const dueEnrollments = getDueEnrollments(orgId);
+      for (const enrollment of dueEnrollments) {
+        await processNextStep(orgId, enrollment.id).catch((err: unknown) => {
+          console.error(`[ActionPlan] Manual trigger error org=${orgId}:`, err);
+        });
+        processed++;
+      }
+    }
+    res.json({ processed, orgs: orgIds.length });
   });
 
   // --------------------------------------------------------------------------
@@ -694,9 +861,29 @@ async function main(): Promise<void> {
     console.log(`[AgentService] LeadSpot Agent Service running on port ${config.port}`);
   });
 
+  // Action plan processing loop — runs every 60 seconds
+  const processActionPlans = async (): Promise<void> => {
+    const orgIds = getInitializedOrgs();
+    for (const orgId of orgIds) {
+      const dueEnrollments = getDueEnrollments(orgId);
+      for (const enrollment of dueEnrollments) {
+        processNextStep(orgId, enrollment.id).catch((err: unknown) => {
+          console.error(`[ActionPlan] processNextStep failed for org=${orgId} enrollment=${enrollment.id}:`, err);
+        });
+      }
+    }
+  };
+
+  const actionPlanInterval = setInterval(() => {
+    processActionPlans().catch((err: unknown) => {
+      console.error('[ActionPlan] Processing loop error:', err);
+    });
+  }, 60_000);
+
   // Graceful shutdown
   const shutdown = (): void => {
     console.log('[AgentService] Shutting down gracefully...');
+    clearInterval(actionPlanInterval);
 
     server.close(() => {
       resetCronService();

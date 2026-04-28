@@ -5,7 +5,7 @@
   "description": "AI Agent Service for LeadSpot CRM - autonomous CRM intelligence powered by Johnny5 technology",
   "main": "dist/index.js",
   "scripts": {
-    "dev": "tsx watch src/server.ts",
+    "dev": "node --env-file=.env ./node_modules/.bin/tsx watch src/server.ts",
     "build": "tsc",
     "start": "node dist/server.js",
     "type-check": "tsc --noEmit"

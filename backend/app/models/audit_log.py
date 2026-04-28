@@ -8,7 +8,7 @@ for compliance and security monitoring.
 import uuid
 from datetime import datetime
 
-from sqlalchemy import JSON, Column, DateTime, ForeignKey, String, Text
+from sqlalchemy import Enum, JSON, Column, DateTime, ForeignKey, String, Text
 from sqlalchemy.orm import relationship
 
 from app.database import Base
@@ -37,6 +37,13 @@ class AuditLog(Base):
         ForeignKey("users.user_id"),
         nullable=True,  # Nullable for system actions
         index=True
+    )
+    # Who performed the action — human user or AI agent (Space Agent)
+    actor_type = Column(
+        String(20),
+        default="human",
+        nullable=False,
+        server_default="human"
     )
 
     # Action details

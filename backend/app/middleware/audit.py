@@ -69,6 +69,9 @@ class AuditMiddleware(BaseHTTPMiddleware):
             user_id = request.state.user.get("id")
             organization_id = request.state.user.get("organization_id")
 
+        # Determine actor type (human user or AI agent)
+        actor_type = "ai_agent" if request.headers.get("X-Actor-Type") == "ai_agent" else "human"
+
         # Get client info
         ip_address = self._get_client_ip(request)
         user_agent = request.headers.get("user-agent")
@@ -101,6 +104,7 @@ class AuditMiddleware(BaseHTTPMiddleware):
                             "path": str(request.url.path),
                             "duration_ms": duration_ms,
                             "status_code": response.status_code,
+                            "actor_type": actor_type,
                         },
                         ip_address=ip_address,
                         user_agent=user_agent,
