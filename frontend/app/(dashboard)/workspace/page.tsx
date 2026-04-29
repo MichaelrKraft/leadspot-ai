@@ -8,6 +8,7 @@ import { useWorkspaceMessaging } from '@/hooks/useWorkspaceMessaging';
 import { WorkspaceFirstRunModal } from '@/components/workspace/WorkspaceFirstRunModal';
 
 const SPACE_AGENT_ENABLED = process.env.NEXT_PUBLIC_SPACE_AGENT_ENABLED === 'true';
+const SPACE_AGENT_URL = process.env.NEXT_PUBLIC_SPACE_AGENT_URL || 'http://localhost:3009';
 const READY_TIMEOUT_MS = 8000;
 
 type WorkspaceState = 'loading' | 'ready' | 'blocked' | 'error' | 'starting';
@@ -86,7 +87,11 @@ function WorkspaceContent() {
     };
 
     const ctxB64 = btoa(JSON.stringify(ctx));
-    const src = `/workspace/?wt=${tokenData.workspace_token}&ctx=${ctxB64}&theme=dark`;
+    // Direct cross-origin iframe to Space Agent. We tried proxying via
+    // /workspace/* through Next.js rewrites, but the bare /workspace path
+    // collides with this React page route — the rewrite never fires for
+    // /workspace?... and the iframe ended up rendering this page recursively.
+    const src = `${SPACE_AGENT_URL}/?wt=${tokenData.workspace_token}&ctx=${ctxB64}&theme=dark`;
     setIframeSrc(src);
 
     // Start ready timeout — if READY postMessage doesn't arrive, assume blocked
@@ -173,7 +178,11 @@ function WorkspaceContent() {
   }
 
   return (
-    <div className="relative flex h-full flex-col bg-[#0a0a0d]">
+    // h-[calc(100vh-9rem)] forces the iframe area to fill the viewport minus
+    // the header (~73px) and footer (~49px). Using h-full here doesn't work
+    // because <main> in the dashboard layout uses overflow-y-auto, which
+    // makes h-full collapse to content height.
+    <div className="relative flex h-[calc(100vh-9rem)] flex-col bg-[#0a0a0d]">
       {/* Mobile fallback — iframe is unusable on small screens */}
       <div className="md:hidden flex flex-col items-center justify-center h-full p-6 text-center">
         <h2 className="text-lg font-semibold text-zinc-200">Workspace Lite</h2>
