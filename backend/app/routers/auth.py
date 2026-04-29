@@ -775,10 +775,15 @@ async def issue_workspace_token(
     if not cache.redis_client:
         raise HTTPException(status_code=503, detail="Workspace temporarily unavailable")
 
-    # Enforce single active session per user (prevent dual-iframe write conflicts)
+    # Single-active-session dedup: only reuse if the existing workspace_token
+    # actually still exists in Redis (5-minute TTL). Otherwise the marker has
+    # outlived the token, and reusing it would 401 on verify.
     existing_token = await cache.redis_client.get(f"space_session:{user_id}")
     if existing_token:
-        return {"workspace_token": existing_token, "reused": True}
+        existing_str = existing_token.decode() if isinstance(existing_token, bytes) else existing_token
+        if await cache.redis_client.exists(f"workspace_token:{existing_str}"):
+            return {"workspace_token": existing_str, "reused": True}
+        # Fall through and generate a fresh token below.
 
     # Generate new opaque token
     token = secrets.token_urlsafe(32)
@@ -843,7 +848,8 @@ async def verify_workspace_token(
     if ctx_org_id and ctx_org_id != parsed["organization_id"]:
         raise HTTPException(status_code=403, detail="Organization mismatch")
 
-    # One-time use: delete token after verification
-    await cache.redis_client.delete(f"workspace_token:{token}")
-
+    # NOTE: token is left in Redis to expire on its 5-minute TTL rather than
+    # being deleted on first verify. This allows the iframe to be re-mounted
+    # (React Strict Mode dev, reloads, navigation) without the second verify
+    # 401-ing. The 5-minute window is short enough that token replay is bounded.
     return parsed
