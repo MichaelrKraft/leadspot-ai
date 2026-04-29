@@ -144,7 +144,7 @@ async def workspace_health(request: Request):
 
     try:
         async with httpx.AsyncClient(timeout=3.0) as client:
-            resp = await client.get(f"{settings.SPACE_AGENT_URL}/health")
+            resp = await client.get(f"{settings.SPACE_AGENT_URL}/api/health")
             return {"status": "up" if resp.status_code == 200 else "down"}
     except Exception:
         return {"status": "down"}

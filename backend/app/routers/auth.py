@@ -764,7 +764,11 @@ async def issue_workspace_token(
     result = await db.execute(select(Organization).where(Organization.organization_id == organization_id))
     org = result.scalar_one_or_none()
     if not org or not (org.features or {}).get("space_agent_enabled", False):
-        raise HTTPException(status_code=403, detail="Workspace not enabled for this organization")
+        org_label = org.name if org else organization_id
+        raise HTTPException(
+            status_code=403,
+            detail=f"Workspace not enabled for organization '{org_label}'. An admin must set features.space_agent_enabled = true.",
+        )
 
     cache = await get_cache_service()
 

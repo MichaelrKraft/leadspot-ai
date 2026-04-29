@@ -120,7 +120,7 @@ async def full_health():
     if settings.SPACE_AGENT_URL:
         try:
             async with httpx.AsyncClient(timeout=2.0) as client:
-                r = await client.get(f"{settings.SPACE_AGENT_URL}/health")
+                r = await client.get(f"{settings.SPACE_AGENT_URL}/api/health")
                 space_agent_status = "ok" if r.status_code == 200 else "unavailable"
         except Exception:
             space_agent_status = "unavailable"

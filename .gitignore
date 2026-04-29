@@ -85,3 +85,6 @@ Thumbs.db
 *.db-shm
 *.db-wal
 agent-service/data/
+
+# Space Agent — third-party MIT clone, not part of this repo
+space-agent/

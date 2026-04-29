@@ -29,6 +29,7 @@ function WorkspaceContent() {
   const [reconnectBanner, setReconnectBanner] = useState(false);
   const [skillUpdateBanner, setSkillUpdateBanner] = useState<string | null>(null);
   const [sessionExpired, setSessionExpired] = useState(false);
+  const [errorDetail, setErrorDetail] = useState<string>('');
   const readyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const isFirstRun = searchParams?.get('first_run') === '1';
@@ -38,23 +39,29 @@ function WorkspaceContent() {
   // Token exchange
   const fetchToken = useCallback(async (): Promise<WorkspaceToken | null> => {
     try {
-      const token = localStorage.getItem('access_token');
-      const res = await fetch('/api/auth/workspace-token', {
+      const res = await fetch('/auth/workspace-token', {
         method: 'POST',
+        credentials: 'include',
         headers: {
-          Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
       });
       if (!res.ok) {
-        if (res.status === 403) {
-          setState('error');
-          return null;
-        }
-        throw new Error(`Token fetch failed: ${res.status}`);
+        let detail = '';
+        try {
+          const body = await res.json();
+          detail = body?.detail || '';
+        } catch { /* body wasn't JSON */ }
+        console.error('[workspace] token fetch failed', res.status, detail);
+        setErrorDetail(detail || `HTTP ${res.status}`);
+        setState('error');
+        return null;
       }
+      setErrorDetail('');
       return await res.json();
-    } catch {
+    } catch (e) {
+      console.error('[workspace] token fetch threw', e);
+      setErrorDetail(e instanceof Error ? e.message : 'Network error');
       setState('error');
       return null;
     }
@@ -234,12 +241,19 @@ function WorkspaceContent() {
 
         {/* Error state */}
         {state === 'error' && (
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="max-w-sm rounded-2xl border border-red-500/20 bg-red-500/5 p-8 text-center">
+          <div className="absolute inset-0 flex items-center justify-center bg-[#0a0a0d] min-h-[300px]">
+            <div className="max-w-md rounded-2xl border border-red-500/20 bg-red-500/5 p-8 text-center">
               <p className="text-sm font-medium text-zinc-200">
                 {healthStatus === 'down' ? 'Workspace is starting up…' : 'Workspace unavailable'}
               </p>
-              <p className="mt-2 text-xs text-zinc-500">Usually takes a few seconds. Try again momentarily.</p>
+              {errorDetail && (
+                <p className="mt-2 text-xs text-red-300 break-words">{errorDetail}</p>
+              )}
+              <p className="mt-2 text-xs text-zinc-500">
+                {errorDetail.toLowerCase().includes('not enabled')
+                  ? 'Contact your admin to enable My Workspace for your organization.'
+                  : 'Usually takes a few seconds. Try again momentarily.'}
+              </p>
               <div className="mt-4 flex justify-center gap-3">
                 <button
                   onClick={initWorkspace}
