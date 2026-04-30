@@ -44,27 +44,19 @@ export function useWorkspaceMessaging({
   onReconnect,
 }: UseWorkspaceMessagingOptions) {
   const origin = typeof window !== 'undefined' ? window.location.origin : '';
-  const spaceAgentOrigin =
-    typeof process !== 'undefined' && process.env.NEXT_PUBLIC_SPACE_AGENT_URL
-      ? process.env.NEXT_PUBLIC_SPACE_AGENT_URL
-      : 'http://localhost:3009';
 
   const sendMessage = useCallback(
     (type: LeadSpotMessageType, payload?: unknown) => {
-      // Send to the iframe at its actual cross-origin (Space Agent's origin),
-      // not the parent's origin. Same-origin paths still work because the
-      // browser short-circuits same-origin postMessage with any targetOrigin.
-      iframeRef.current?.contentWindow?.postMessage({ type, payload }, spaceAgentOrigin);
+      // Same-origin proxy: iframe lives under /_sa/* on the parent's origin.
+      iframeRef.current?.contentWindow?.postMessage({ type, payload }, origin);
     },
-    [iframeRef, spaceAgentOrigin]
+    [iframeRef, origin]
   );
 
   useEffect(() => {
     const handler = (event: MessageEvent) => {
-      // Accept messages from the parent's own origin (legacy same-origin
-      // proxy mode) AND from Space Agent's cross-origin URL. Reject anything
-      // else.
-      if (event.origin !== origin && event.origin !== spaceAgentOrigin) return;
+      // Same-origin only — iframe is mounted under /_sa/* on the parent's origin.
+      if (event.origin !== origin) return;
       const { type, payload } = event.data || {};
 
       switch (type as SpaceAgentMessageType) {

@@ -2,7 +2,10 @@ const { withSentryConfig } = require('@sentry/nextjs');
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  reactStrictMode: true,
+  // Strict Mode causes the workspace iframe to remount in dev, which thrashes
+  // the SSO redirect chain (each remount re-fetches /space/login). Production
+  // doesn't run Strict Mode in dev-double-invocation form anyway.
+  reactStrictMode: false,
   swcMinify: true,
   images: {
     domains: [],
@@ -12,10 +15,6 @@ const nextConfig = {
     const backendUrl = process.env.BACKEND_URL || 'http://localhost:8000';
     const agentServiceUrl = process.env.AGENT_SERVICE_URL || 'http://localhost:3008';
     return [
-      {
-        source: '/workspace/:path*',
-        destination: `${process.env.SPACE_AGENT_URL || 'http://localhost:3009'}/:path*`,
-      },
       {
         source: '/api/agent/:path*',
         destination: `${agentServiceUrl}/api/agent/:path*`,

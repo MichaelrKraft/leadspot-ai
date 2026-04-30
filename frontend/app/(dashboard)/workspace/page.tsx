@@ -8,7 +8,7 @@ import { useWorkspaceMessaging } from '@/hooks/useWorkspaceMessaging';
 import { WorkspaceFirstRunModal } from '@/components/workspace/WorkspaceFirstRunModal';
 
 const SPACE_AGENT_ENABLED = process.env.NEXT_PUBLIC_SPACE_AGENT_ENABLED === 'true';
-const SPACE_AGENT_URL = process.env.NEXT_PUBLIC_SPACE_AGENT_URL || 'http://localhost:3009';
+const SPACE_AGENT_MOUNT = '/space';
 const READY_TIMEOUT_MS = 8000;
 
 type WorkspaceState = 'loading' | 'ready' | 'blocked' | 'error' | 'starting';
@@ -87,11 +87,11 @@ function WorkspaceContent() {
     };
 
     const ctxB64 = btoa(JSON.stringify(ctx));
-    // Direct cross-origin iframe to Space Agent. We tried proxying via
-    // /workspace/* through Next.js rewrites, but the bare /workspace path
-    // collides with this React page route — the rewrite never fires for
-    // /workspace?... and the iframe ended up rendering this page recursively.
-    const src = `${SPACE_AGENT_URL}/?wt=${tokenData.workspace_token}&ctx=${ctxB64}&theme=dark`;
+    // Hit /_sa/login directly — Space Agent's pages_handler will serve login.html
+    // with our SSO bootstrap, which exchanges the wt for a session cookie and
+    // then location.replace("/") (caught by the runtime monkey-patch and rewritten
+    // to "/_sa/").
+    const src = `${SPACE_AGENT_MOUNT}/login?wt=${encodeURIComponent(tokenData.workspace_token)}&ctx=${encodeURIComponent(ctxB64)}&theme=dark`;
     setIframeSrc(src);
 
     // Start ready timeout — if READY postMessage doesn't arrive, assume blocked
