@@ -11,6 +11,22 @@ export const maxDuration = 300;
 const SPACE_AGENT_URL = process.env.SPACE_AGENT_URL || 'http://localhost:3009';
 const PREFIX = '/space';
 
+// Explicit allowlist — only these origins may receive credentialed CORS responses.
+const ALLOWED_ORIGINS = new Set(
+  [
+    process.env.NEXT_PUBLIC_APP_URL,
+    process.env.NEXT_PUBLIC_FRONTEND_URL,
+    'https://app.leadspot.ai',
+    'https://leadspot.onrender.com',
+  ].filter(Boolean) as string[]
+);
+
+function isAllowedOrigin(origin: string | null): boolean {
+  if (!origin) return false;
+  if (origin.startsWith('http://localhost') || origin.startsWith('http://127.0.0.1')) return true;
+  return ALLOWED_ORIGINS.has(origin);
+}
+
 // Dedicated dispatcher — undici default of 5 connections/origin serializes at
 // burst. 256 supports thousands of concurrent users on a long-running Node
 // server. On Vercel serverless this matters less per-invocation.
@@ -81,11 +97,13 @@ async function proxy(req: NextRequest, ctx: { params: { path?: string[] } }) {
   const hasBody = method !== 'GET' && method !== 'HEAD';
 
   let upstreamRes: Response;
+  const bodyForUpstream: BodyInit | undefined = hasBody ? req.body : undefined;
+
   try {
     upstreamRes = await fetch(upstream.toString(), {
       method,
       headers: fwdHeaders,
-      body: hasBody ? req.body : undefined,
+      body: bodyForUpstream,
       // @ts-ignore duplex required for streaming uploads in undici
       duplex: hasBody ? 'half' : undefined,
       redirect: 'manual',
@@ -122,6 +140,24 @@ async function proxy(req: NextRequest, ctx: { params: { path?: string[] } }) {
         ? [upstreamRes.headers.get('set-cookie') as string]
         : [];
   for (const c of setCookies) respHeaders.append('set-cookie', rewriteCookie(c, isHttps));
+
+  // Prevent browser from caching h2/h3 Alt-Svc entries for this origin.
+  // Chromium attempts ALPN negotiation for cached h2 connections, which fails
+  // against Next.js dev (HTTP/1.1 only) with ERR_ALPN_NEGOTIATION_FAILED —
+  // silently breaking extensions_load and causing a black screen.
+  respHeaders.set('alt-svc', 'clear');
+
+  // CORS — if the space iframe ends up at the Space Agent's direct origin
+  // (e.g. after an SSO redirect the monkey-patch couldn't intercept), its
+  // requests to this proxy are cross-origin. Echo back the request Origin so
+  // the actual POST response passes the CORS check after the preflight.
+  const requestOrigin = req.headers.get('origin');
+  if (isAllowedOrigin(requestOrigin)) {
+    respHeaders.set('access-control-allow-origin', requestOrigin!);
+    respHeaders.set('access-control-allow-credentials', 'true');
+    respHeaders.set('access-control-expose-headers', 'Space-State-Version');
+    respHeaders.set('vary', 'Origin');
+  }
 
   const ct = upstreamRes.headers.get('content-type') ?? '';
   const isHtml = ct.includes('text/html');
@@ -250,9 +286,14 @@ function rewriteHtml(html: string): string {
   // d) Runtime monkey-patch — wraps fetch / XHR / WebSocket / Location methods
   //    / Location.href setter / history.pushState+replaceState /
   //    serviceWorker.register so absolute-path URLs get prefixed at runtime.
+  // Space Agent's direct origin — baked in at request-serve time so the
+  // browser-side fix() function can rewrite any absolute URL that points
+  // directly at Space Agent back through the /space proxy, keeping the iframe
+  // same-origin after SSO redirects.
+  const spaceAgentOrigin = new URL(SPACE_AGENT_URL).origin;
   const runtimePatch =
     '<script>(function(){' +
-    "var P='/space';" +
+    `var P='/space',SA='${spaceAgentOrigin}';` +
     'function fix(u){' +
     "if(typeof u!=='string')return u;" +
     // Same-origin absolute URL (e.g. "http://localhost:3006/api/foo"):
@@ -262,14 +303,21 @@ function rewriteHtml(html: string): string {
     "if(rest.charAt(0)==='/'&&rest.indexOf(P+'/')!==0&&rest!==P)return location.origin+P+rest;" +
     "return u;" +
     '}' +
+    // Space Agent direct URL — rewrite through the /space proxy so the iframe
+    // stays same-origin after SSO exchange redirects to the real SA origin.
+    "if(SA&&u.indexOf(SA)===0){var saRest=u.slice(SA.length)||'/';if(saRest.charAt(0)==='/'&&saRest.indexOf(P+'/')!==0&&saRest!==P)return location.origin+P+saRest;return location.origin+P+'/';}" +
     // Absolute path (starts with single /): prefix with /space if not already.
     "if(u.charAt(0)==='/'&&u.charAt(1)!=='/'&&u.indexOf(P+'/')!==0&&u!==P)return P+u;" +
     'return u;' +
     '}' +
     'var of=window.fetch;' +
     'window.fetch=function(input,init){' +
-    "if(typeof input==='string')return of(fix(input),init);" +
-    'if(input&&input.url){try{return of(new Request(fix(input.url),input),init);}catch(_e){}}' +
+    "if(typeof input==='string'){var _fs=fix(input);var _ss=_fs.charAt(0)==='/'||_fs.indexOf(location.origin)===0;var _is=_ss&&(!init||init.mode==null||init.mode==='cors')?Object.assign({},init||{},{mode:'same-origin'}):init;return of(_fs,_is);}" +
+    // For Request objects: fix the URL, then buffer the body to ArrayBuffer before
+    // calling native fetch. Chrome triggers ALPN negotiation failures when a
+    // ReadableStream body is passed directly — buffering avoids this entirely.
+    // mode:'same-origin' bypasses CORS preflight for same-origin requests.
+    "if(input&&input.url){try{var _fu=fix(input.url);var _so=_fu.charAt(0)==='/'||_fu.indexOf(location.origin)===0;if(_so){var _bp=input.body?new Response(input.body).arrayBuffer():Promise.resolve(undefined);return _bp.then(function(_bb){return of(_fu,{method:input.method,headers:input.headers,body:_bb,credentials:input.credentials||'same-origin',mode:'same-origin',redirect:input.redirect||'follow',signal:input.signal});});}return of(new Request(_fu,input),init);}catch(_e){}}" +
     'return of(input,init);' +
     '};' +
     'var oo=XMLHttpRequest.prototype.open;' +
@@ -297,6 +345,11 @@ function rewriteHtml(html: string): string {
     'var ro=navigator.serviceWorker.register.bind(navigator.serviceWorker);' +
     'navigator.serviceWorker.register=function(u,o){return ro(fix(u),o);};' +
     '}' +
+    // Grant enter-guard access unconditionally — in the embedded iframe context
+    // the user is already authenticated via LeadSpot SSO, so we never want the
+    // Space Agent "enter" interstitial page. Setting this key prevents
+    // enter-guard.js from redirecting to /enter on every page load.
+    "try{sessionStorage.setItem('space.enter.tab-access','1');}catch(e){}" +
     '})();</script>';
 
   // Inject importmap THEN runtime patch as the FIRST elements in <head>.
@@ -323,6 +376,26 @@ export async function PATCH(req: NextRequest, ctx: any) {
 export async function DELETE(req: NextRequest, ctx: any) {
   return proxy(req, ctx);
 }
-export async function OPTIONS(req: NextRequest, ctx: any) {
-  return proxy(req, ctx);
+export async function OPTIONS(req: NextRequest, _ctx: any) {
+  // Handle CORS preflight directly — never forward OPTIONS to Space Agent.
+  // This prevents ERR_ALPN_NEGOTIATION_FAILED (Chrome's reported error) when
+  // the space iframe ends up cross-origin and the preflight OPTIONS fails.
+  const requestOrigin = req.headers.get('origin') ?? '';
+  const allowOrigin = isAllowedOrigin(requestOrigin) ? requestOrigin : '';
+  if (!allowOrigin) {
+    return new Response(null, { status: 403 });
+  }
+  return new Response(null, {
+    status: 204,
+    headers: {
+      'access-control-allow-origin': allowOrigin,
+      'vary': 'Origin',
+      'access-control-allow-methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS, HEAD',
+      'access-control-allow-headers':
+        'Content-Type, Space-State-Version, X-Space-Max-Layer, Authorization, Cookie, Accept',
+      'access-control-allow-credentials': 'true',
+      'access-control-max-age': '86400',
+      'alt-svc': 'clear',
+    },
+  });
 }
