@@ -9,7 +9,7 @@ All secrets should be provided via environment variables in production.
 import secrets
 import sys
 
-from pydantic import field_validator
+from pydantic import computed_field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -36,16 +36,13 @@ class Settings(BaseSettings):
     # Error Tracking (Sentry)
     SENTRY_DSN: str = ""  # Optional - set to enable error tracking
 
-    # CORS - comma-separated origins in env, parsed to list
-    CORS_ORIGINS: list[str] = ["http://localhost:3000", "http://localhost:3001", "http://localhost:3002", "http://localhost:3003", "http://localhost:3006"]
+    # CORS - stored as comma-separated string; use cors_origins_list for the parsed list
+    CORS_ORIGINS: str = "http://localhost:3000,http://localhost:3001,http://localhost:3002,http://localhost:3003,http://localhost:3006"
 
-    @field_validator("CORS_ORIGINS", mode="before")
-    @classmethod
-    def parse_cors_origins(cls, v):
-        """Parse CORS_ORIGINS from comma-separated string or list"""
-        if isinstance(v, str):
-            return [origin.strip() for origin in v.split(",") if origin.strip()]
-        return v
+    @computed_field
+    @property
+    def cors_origins_list(self) -> list[str]:
+        return [o.strip() for o in self.CORS_ORIGINS.split(",") if o.strip()]
 
     # Database (PostgreSQL) - NO DEFAULT for production safety
     DATABASE_URL: str = ""
@@ -167,7 +164,7 @@ class Settings(BaseSettings):
         # Production-specific validations
         if self.ENVIRONMENT == "production":
             # No localhost in CORS
-            for origin in self.CORS_ORIGINS:
+            for origin in self.cors_origins_list:
                 if "localhost" in origin or "127.0.0.1" in origin:
                     errors.append(f"CORS_ORIGINS contains localhost in production: {origin}")
 

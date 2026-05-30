@@ -172,7 +172,7 @@ app.add_middleware(SecurityHeadersMiddleware)
 
 # 3. CORS configuration - must be after security headers
 # Lock down origins in production
-allowed_origins = settings.CORS_ORIGINS
+allowed_origins = settings.cors_origins_list
 if not settings.DEBUG:
     # In production, only allow specific origins
     # Remove wildcard and localhost if present
@@ -182,7 +182,7 @@ if not settings.DEBUG:
     ]
     # Ensure at least the production frontend is allowed
     if not allowed_origins:
-        allowed_origins = settings.CORS_ORIGINS  # Fall back to configured origins
+        allowed_origins = settings.cors_origins_list  # Fall back to configured origins
 
 app.add_middleware(
     CORSMiddleware,
