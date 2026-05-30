@@ -46,7 +46,7 @@ export async function GET(request: NextRequest) {
       callIds.length > 0
         ? (
             await prisma.voiceCall.findMany({
-              where: { id: { in: callIds } },
+              where: { id: { in: callIds }, tenantId },
               select: { id: true, summary: true, phoneNumber: true, direction: true },
             })
           ).map((c) => [c.id, c])
@@ -104,6 +104,23 @@ export async function POST(request: NextRequest) {
   }
 
   try {
+    // Verify foreign keys belong to this tenant before creating
+    const contact = await prisma.contact.findFirst({
+      where: { id: body.contactId, tenantId },
+    });
+    if (!contact) {
+      return NextResponse.json({ error: 'contactId not found' }, { status: 404 });
+    }
+
+    if (body.callId) {
+      const call = await prisma.voiceCall.findFirst({
+        where: { id: body.callId, tenantId },
+      });
+      if (!call) {
+        return NextResponse.json({ error: 'callId not found' }, { status: 404 });
+      }
+    }
+
     const task = await prisma.task.create({
       data: {
         contactId: body.contactId,

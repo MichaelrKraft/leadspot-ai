@@ -117,10 +117,26 @@ def _is_loopback_cb(cb: str) -> bool:
     """Anti-phishing: only redirect to localhost loopback. No remote callbacks
     ever. The daemon spins a server on a free localhost port; the cb is
     `http://localhost:<port>/cb` or `http://127.0.0.1:<port>/cb`.
+
+    Uses urlparse to prevent userinfo-bypass attacks like
+    http://attacker@localhost:8080 matching the old string prefix check.
     """
     if not cb:
         return False
-    return cb.startswith("http://localhost:") or cb.startswith("http://127.0.0.1:")
+    try:
+        from urllib.parse import urlparse
+        u = urlparse(cb)
+    except Exception:
+        return False
+    if u.scheme != "http":
+        return False
+    if u.username is not None or u.password is not None:
+        return False
+    if (u.hostname or "").lower() not in {"localhost", "127.0.0.1", "::1"}:
+        return False
+    if u.port is None:
+        return False
+    return True
 
 
 def _parse_version(v: str) -> tuple[int, int, int]:
