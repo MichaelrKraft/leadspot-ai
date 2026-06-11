@@ -36,6 +36,10 @@ const nextConfig = {
     NEXT_PUBLIC_APP_NAME: 'LeadSpot.ai',
     NEXT_PUBLIC_APP_VERSION: '0.1.0',
     NEXT_PUBLIC_SPACE_AGENT_ENABLED: process.env.NEXT_PUBLIC_SPACE_AGENT_ENABLED || 'false',
+    // Default to empty string so all client-side fetch calls use relative URLs,
+    // which Next.js rewrites proxy to the backend at runtime. Avoids baking
+    // localhost:8000 into the Docker bundle when the env var isn't set at build time.
+    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || '',
   },
 };
 
