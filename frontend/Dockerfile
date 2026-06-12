@@ -13,10 +13,7 @@ ENV AGENT_SERVICE_URL=$AGENT_SERVICE_URL
 
 RUN npm run build
 
-EXPOSE 3000
-
 ENV NODE_ENV=production
 ENV HOSTNAME=0.0.0.0
-ENV PORT=3000
 
 CMD ["npm", "start"]
