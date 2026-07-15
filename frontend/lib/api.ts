@@ -132,18 +132,6 @@ export const api = {
       apiClient.post("/auth/refresh"),
   },
 
-  // Search
-  search: {
-    query: (query: string, options?: { filters?: Record<string, unknown> }) =>
-      apiClient.post("/search/query", { query, ...options }),
-
-    suggestions: (partial: string) =>
-      apiClient.get("/search/suggestions", { params: { q: partial } }),
-
-    history: (limit = 20) =>
-      apiClient.get("/search/history", { params: { limit } }),
-  },
-
   // Knowledge Base
   knowledge: {
     getSources: () =>
@@ -159,18 +147,6 @@ export const api = {
       apiClient.post("/knowledge/index", data),
   },
 
-  // Analytics
-  analytics: {
-    getUsageStats: (params?: { start_date?: string; end_date?: string }) =>
-      apiClient.get("/analytics/usage", { params }),
-
-    getPopularQueries: (limit = 10) =>
-      apiClient.get("/analytics/popular-queries", { params: { limit } }),
-
-    getSourceDistribution: () =>
-      apiClient.get("/analytics/source-distribution"),
-  },
-
   // Integrations
   integrations: {
     list: () =>
@@ -184,24 +160,6 @@ export const api = {
 
     sync: (provider: string) =>
       apiClient.post(`/integrations/${provider}/sync`),
-  },
-
-  // Bookmarks
-  bookmarks: {
-    list: () =>
-      apiClient.get("/bookmarks"),
-
-    create: (data: { query: string; answer: string; citations: unknown[] }) =>
-      apiClient.post("/bookmarks", data),
-
-    delete: (id: string) =>
-      apiClient.delete(`/bookmarks/${id}`),
-  },
-
-  // Feedback
-  feedback: {
-    submit: (data: { query: string; answer_id: string; rating: "up" | "down"; comment?: string }) =>
-      apiClient.post("/feedback", data),
   },
 
   // Billing

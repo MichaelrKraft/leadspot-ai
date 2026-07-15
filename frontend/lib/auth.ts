@@ -1,5 +1,5 @@
 /**
- * Authentication module for InnoSynth.ai
+ * Authentication module for LeadSpot.ai
  *
  * Uses secure httpOnly cookies for token storage.
  * CSRF token is required for state-changing requests.
