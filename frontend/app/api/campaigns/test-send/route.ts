@@ -15,6 +15,21 @@ const AGENT_SERVICE_URL = process.env.AGENT_SERVICE_URL || 'http://localhost:300
  */
 export async function POST(request: NextRequest) {
   try {
+    // Require an authenticated session — without this check the route is an
+    // open relay to real email sending. The caller's credentials are also
+    // forwarded to the backend so campaign access stays org-scoped.
+    const callerHeaders: Record<string, string> = {};
+    const cookie = request.headers.get('cookie');
+    const authorization = request.headers.get('authorization');
+    if (cookie) callerHeaders['Cookie'] = cookie;
+    if (authorization) callerHeaders['Authorization'] = authorization;
+
+    const meResponse = await fetch(`${BACKEND_URL}/auth/me`, { headers: callerHeaders });
+    if (!meResponse.ok) {
+      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+    }
+    const me = await meResponse.json() as { organization_id?: string };
+
     const body = await request.json() as { campaignId?: string; email?: string };
     const { campaignId, email } = body;
 
@@ -28,8 +43,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid email address' }, { status: 400 });
     }
 
-    // Fetch campaign details from backend
-    const campaignResponse = await fetch(`${BACKEND_URL}/api/campaigns/${campaignId}`);
+    // Fetch campaign details from backend as the caller
+    const campaignResponse = await fetch(`${BACKEND_URL}/api/campaigns/${campaignId}`, {
+      headers: callerHeaders,
+    });
     if (!campaignResponse.ok) {
       return NextResponse.json({ error: 'Campaign not found' }, { status: 404 });
     }
@@ -38,13 +55,16 @@ export async function POST(request: NextRequest) {
     // Call agent-service to send a single test email
     const agentResponse = await fetch(`${AGENT_SERVICE_URL}/api/email/test-send`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Internal-Api-Key': process.env.LEADSPOT_INTERNAL_API_KEY || '',
+      },
       body: JSON.stringify({
         to: email,
         subject: `[TEST] ${campaign.name ?? 'Campaign'}`,
         body: campaign.description ?? '<p>This is a test email from your campaign.</p>',
         contactId: 'test-send',
-        organizationId: 'test',
+        organizationId: me.organization_id ?? 'test',
       }),
     });
 
