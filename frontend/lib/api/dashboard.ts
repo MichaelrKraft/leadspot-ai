@@ -1,7 +1,13 @@
 /**
  * Dashboard API service
- * Wraps /api/insights/* endpoints (public, no auth required)
+ * Wraps /api/insights/* endpoints. The backend derives data from the
+ * organization when organization_id is supplied (it is preferred over the
+ * mautic_url lookup), so we pass the authenticated org id rather than a
+ * hardcoded localhost URL that never matched a real Mautic instance.
  */
+
+import { apiClient } from '@/lib/api';
+import { useAuthStore } from '@/stores/useAuthStore';
 
 export interface HotLead {
   id: number;
@@ -28,38 +34,31 @@ export interface DailyInsightsResponse {
   generated_at: string;
 }
 
-export async function fetchDailyInsights(
-  mauticUrl = 'http://localhost'
-): Promise<DailyInsightsResponse> {
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 10000);
+// mautic_url is a required query param on the backend but is ignored when
+// organization_id resolves; send a harmless placeholder alongside the real org.
+function insightsParams(extra: Record<string, unknown> = {}) {
+  const orgId = useAuthStore.getState().user?.organizationId;
+  return { mautic_url: 'https://unused.invalid', organization_id: orgId, ...extra };
+}
 
-  try {
-    const res = await fetch(
-      `/api/insights/daily?mautic_url=${encodeURIComponent(mauticUrl)}`,
-      { signal: controller.signal }
-    );
-    if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
-    return res.json();
-  } finally {
-    clearTimeout(timeoutId);
-  }
+export async function fetchDailyInsights(): Promise<DailyInsightsResponse> {
+  const res = await apiClient.get<DailyInsightsResponse>('/api/insights/daily', {
+    params: insightsParams(),
+    timeout: 10000,
+  });
+  return res.data;
 }
 
 export async function fetchHotLeads(limit = 5): Promise<HotLead[]> {
-  const res = await fetch(
-    `/api/insights/hot-leads?limit=${limit}&mautic_url=${encodeURIComponent('http://localhost')}`
-  );
-  if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
-  const data = await res.json();
-  return data.hot_leads;
+  const res = await apiClient.get<{ hot_leads: HotLead[] }>('/api/insights/hot-leads', {
+    params: insightsParams({ limit }),
+  });
+  return res.data.hot_leads;
 }
 
 export async function fetchCRMStats(): Promise<SummaryStats> {
-  const res = await fetch(
-    `/api/insights/stats?mautic_url=${encodeURIComponent('http://localhost')}`
-  );
-  if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
-  const data = await res.json();
-  return data.stats;
+  const res = await apiClient.get<{ stats: SummaryStats }>('/api/insights/stats', {
+    params: insightsParams(),
+  });
+  return res.data.stats;
 }
