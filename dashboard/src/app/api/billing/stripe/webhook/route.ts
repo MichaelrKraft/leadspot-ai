@@ -25,22 +25,31 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    let event: Stripe.Event;
+    // Signature verification is mandatory: without it, anyone who can reach
+    // this endpoint can credit wallets with a forged event body.
+    if (!webhookSecret) {
+      console.error('STRIPE_WEBHOOK_SECRET is not configured — rejecting webhook');
+      return NextResponse.json(
+        { error: 'Webhook secret not configured' },
+        { status: 500 }
+      );
+    }
+    if (!signature) {
+      return NextResponse.json(
+        { error: 'Missing stripe-signature header' },
+        { status: 400 }
+      );
+    }
 
-    // Verify webhook signature if secret is configured
-    if (webhookSecret && signature) {
-      try {
-        event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
-      } catch (err: any) {
-        console.error('Webhook signature verification failed:', err.message);
-        return NextResponse.json(
-          { error: 'Webhook signature verification failed' },
-          { status: 400 }
-        );
-      }
-    } else {
-      // For development/testing without webhook secret
-      event = JSON.parse(body) as Stripe.Event;
+    let event: Stripe.Event;
+    try {
+      event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
+    } catch (err: any) {
+      console.error('Webhook signature verification failed:', err.message);
+      return NextResponse.json(
+        { error: 'Webhook signature verification failed' },
+        { status: 400 }
+      );
     }
 
     // Handle different event types
