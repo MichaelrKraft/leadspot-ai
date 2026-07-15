@@ -122,6 +122,10 @@ class Settings(BaseSettings):
     RESEND_API_KEY: str = ""
     TRANSACTIONAL_FROM_EMAIL: str = "LeadSpot <noreply@mail.leadspot.ai>"
 
+    # Enables the credential-less /auth/demo-login endpoint. Off by default so
+    # no shared public login exists in production unless explicitly turned on.
+    DEMO_LOGIN_ENABLED: bool = False
+
     # Stripe Billing
     STRIPE_SECRET_KEY: str = ""
     STRIPE_PUBLISHABLE_KEY: str = ""

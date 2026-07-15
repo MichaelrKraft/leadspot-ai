@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import LoginForm from '@/components/auth/LoginForm';
 import { useAuthStore } from '@/stores/useAuthStore';
 import { loginWithGoogle, loginWithMicrosoft } from '@/lib/auth';
+import { api } from '@/lib/api';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -41,26 +42,33 @@ export default function LoginPage() {
     loginWithMicrosoft();
   };
 
-  const handleDemoLogin = () => {
-    // Write to localStorage directly so AuthGuard picks it up immediately
-    const demoState = {
-      state: {
-        user: {
-          id: 'demo-user',
-          email: 'demo@leadspot.ai',
-          name: 'Demo User',
-          organization: 'LeadSpot Demo',
-          role: 'admin',
-        },
-        token: 'demo-token',
-        isAuthenticated: true,
-      },
-      version: 0,
-    };
-    localStorage.setItem('auth-storage', JSON.stringify(demoState));
+  // Demo access is only offered when the backend enables it (NEXT_PUBLIC flag
+  // mirrors the server's DEMO_LOGIN_ENABLED). Otherwise the button is hidden
+  // rather than left as a no-op.
+  const demoEnabled = process.env.NEXT_PUBLIC_DEMO_LOGIN_ENABLED === 'true';
 
-    // Full page navigation to ensure AuthGuard re-reads localStorage
-    window.location.href = '/dashboard';
+  const handleDemoLogin = async () => {
+    setError(undefined);
+    setLoading(true);
+    try {
+      // Real backend session: sets the httpOnly cookie so middleware/AuthGuard
+      // treat it as a genuine login (the old localStorage-only shim was
+      // immediately bounced by middleware in production).
+      const res = await api.auth.demoLogin();
+      const u = res.data.user;
+      useAuthStore.getState().setUser({
+        id: u.user_id,
+        email: u.email,
+        name: u.name,
+        organizationId: u.organization_id,
+        role: u.role,
+      });
+      router.push('/dashboard');
+    } catch {
+      setError('Demo is not available right now. Please try again later.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -68,7 +76,7 @@ export default function LoginPage() {
       onSubmit={handleLogin}
       onGoogleLogin={handleGoogleLogin}
       onMicrosoftLogin={handleMicrosoftLogin}
-      onDemoLogin={handleDemoLogin}
+      onDemoLogin={demoEnabled ? handleDemoLogin : undefined}
       error={error}
       loading={loading}
     />

@@ -122,6 +122,9 @@ export const api = {
     logout: () =>
       apiClient.post("/auth/logout"),
 
+    demoLogin: () =>
+      apiClient.post("/auth/demo-login"),
+
     getCurrentUser: () =>
       apiClient.get("/auth/me"),
 

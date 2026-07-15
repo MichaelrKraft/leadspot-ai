@@ -37,6 +37,9 @@ const nextConfig = {
     // which Next.js rewrites proxy to the backend at runtime. Avoids baking
     // localhost:8000 into the Docker bundle when the env var isn't set at build time.
     NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || '',
+    // Mirrors the backend DEMO_LOGIN_ENABLED flag; controls whether the
+    // "Explore Demo" button is shown on the login page.
+    NEXT_PUBLIC_DEMO_LOGIN_ENABLED: process.env.NEXT_PUBLIC_DEMO_LOGIN_ENABLED || 'false',
   },
 };
 

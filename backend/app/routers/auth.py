@@ -274,6 +274,46 @@ async def logout(response: Response):
     return {"message": "Successfully logged out"}
 
 
+@router.post("/demo-login", response_model=Token)
+@limiter.limit(RateLimits.AUTH_LOGIN)
+async def demo_login(
+    request: Request,
+    response: Response,
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Log in as the shared demo user and set real auth cookies.
+
+    Gated behind DEMO_LOGIN_ENABLED (off by default) so no credential-less
+    login exists in production unless explicitly turned on. Only works if the
+    demo user has already been provisioned; it never creates the account.
+    """
+    if not settings.DEMO_LOGIN_ENABLED:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Not found")
+
+    from app.seed import DEMO_EMAIL
+
+    result = await db.execute(select(User).where(User.email == DEMO_EMAIL))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Demo account is not available",
+        )
+
+    access_token = create_access_token(
+        user_id=user.user_id,
+        email=user.email,
+        organization_id=user.organization_id,
+        role=user.role,
+    )
+    refresh_token = create_refresh_token(user_id=user.user_id)
+    set_auth_cookies(response, access_token, refresh_token)
+
+    user_response = UserResponse.model_validate(user)
+    return Token(access_token=access_token, user=user_response)
+
+
 @router.get("/me", response_model=UserResponse)
 async def get_current_user_info(
     current_user: User = Depends(get_current_user)
