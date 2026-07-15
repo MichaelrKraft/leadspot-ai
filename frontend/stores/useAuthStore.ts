@@ -193,16 +193,13 @@ export const useAuthStore = create<AuthState>()(
     {
       name: "auth-storage",
       storage: createJSONStorage(() => localStorage),
+      // The JWT is intentionally NOT persisted: the real credential is the
+      // httpOnly access_token cookie, and persisting the token to localStorage
+      // makes it XSS-stealable. It lives in memory for the current session only.
       partialize: (state) => ({
         user: state.user,
-        token: state.token,
         isAuthenticated: state.isAuthenticated,
       }),
-      onRehydrateStorage: () => {
-        return (state) => {
-          console.log('[useAuthStore] Hydration complete, token present:', !!state?.token);
-        };
-      },
     }
   )
 );
