@@ -1,11 +1,9 @@
 /**
  * Calendar API service
- * Wraps /api/calendar/* endpoints
+ * Wraps /api/calendar/* endpoints via apiClient (cookie/Bearer auth + CSRF header)
  */
 
-import { useAuthStore } from '@/stores/useAuthStore';
-
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000';
+import { apiClient } from '@/lib/api';
 
 export interface CalendarEventAPI {
   id: string;
@@ -45,69 +43,38 @@ export interface BookingResponse {
   message: string;
 }
 
-function authHeaders(): HeadersInit {
-  const token = useAuthStore.getState().token;
-  return {
-    'Content-Type': 'application/json',
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-  };
-}
-
 export async function listEvents(start: string, end: string): Promise<CalendarEventAPI[]> {
-  const params = new URLSearchParams({ start, end });
-  const res = await fetch(`${BASE_URL}/api/calendar/events?${params}`, {
-    headers: authHeaders(),
-    credentials: 'include',
+  const res = await apiClient.get<{ events: CalendarEventAPI[] }>('/api/calendar/events', {
+    params: { start, end },
   });
-  if (!res.ok) throw new Error(`Failed to fetch events: ${res.status}`);
-  const data = await res.json();
-  return data.events as CalendarEventAPI[];
+  return res.data.events;
 }
 
 export async function createEvent(data: Partial<CalendarEventAPI>): Promise<CalendarEventAPI> {
-  const res = await fetch(`${BASE_URL}/api/calendar/events`, {
-    method: 'POST',
-    headers: authHeaders(),
-    credentials: 'include',
-    body: JSON.stringify(data),
-  });
-  if (!res.ok) throw new Error(`Failed to create event: ${res.status}`);
-  return res.json() as Promise<CalendarEventAPI>;
+  const res = await apiClient.post<CalendarEventAPI>('/api/calendar/events', data);
+  return res.data;
 }
 
 export async function updateEvent(id: string, data: Partial<CalendarEventAPI>): Promise<CalendarEventAPI> {
-  const res = await fetch(`${BASE_URL}/api/calendar/events/${id}`, {
-    method: 'PATCH',
-    headers: authHeaders(),
-    credentials: 'include',
-    body: JSON.stringify(data),
-  });
-  if (!res.ok) throw new Error(`Failed to update event: ${res.status}`);
-  return res.json() as Promise<CalendarEventAPI>;
+  const res = await apiClient.patch<CalendarEventAPI>(`/api/calendar/events/${id}`, data);
+  return res.data;
 }
 
 export async function deleteEvent(id: string): Promise<void> {
-  const res = await fetch(`${BASE_URL}/api/calendar/events/${id}`, {
-    method: 'DELETE',
-    headers: authHeaders(),
-    credentials: 'include',
-  });
-  if (!res.ok) throw new Error(`Failed to delete event: ${res.status}`);
+  await apiClient.delete(`/api/calendar/events/${id}`);
 }
 
+// Public booking-page endpoints (no auth required server-side, but going
+// through apiClient keeps the CSRF header for visitors who ARE logged in).
+
 export async function getAvailability(agentId: string): Promise<AvailabilitySlot[]> {
-  const res = await fetch(`${BASE_URL}/api/calendar/availability/${agentId}`);
-  if (!res.ok) throw new Error(`Failed to fetch availability: ${res.status}`);
-  const data = await res.json();
-  return data.slots as AvailabilitySlot[];
+  const res = await apiClient.get<{ slots: AvailabilitySlot[] }>(
+    `/api/calendar/availability/${agentId}`
+  );
+  return res.data.slots;
 }
 
 export async function bookAppointment(data: BookingRequest): Promise<BookingResponse> {
-  const res = await fetch(`${BASE_URL}/api/calendar/book`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data),
-  });
-  if (!res.ok) throw new Error(`Failed to book appointment: ${res.status}`);
-  return res.json() as Promise<BookingResponse>;
+  const res = await apiClient.post<BookingResponse>('/api/calendar/book', data);
+  return res.data;
 }
