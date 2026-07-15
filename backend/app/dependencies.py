@@ -8,17 +8,12 @@ Provides dependency injection for FastAPI routes:
 - Database connections
 """
 
-import os
-
-from fastapi import Depends, HTTPException, status
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from jose import ExpiredSignatureError, JWTError, jwt
+from fastapi import Depends
 
 from app.database import get_db
+from app.models.user import User
+from app.services.auth_service import get_current_user as _get_current_user_orm
 from app.services.ingestion.pipeline import IngestionPipeline
-
-# Security
-security = HTTPBearer()
 
 # Singleton instances
 _pipeline: Optional[IngestionPipeline] = None
@@ -67,69 +62,21 @@ def get_ingestion_pipeline() -> IngestionPipeline:
 
 
 async def get_current_user(
-    credentials: HTTPAuthorizationCredentials = Depends(security)
+    user: User = Depends(_get_current_user_orm)
 ) -> dict:
     """
-    Get current authenticated user from JWT token.
+    Get current authenticated user as a dict.
 
-    Args:
-        credentials: Bearer token credentials
-
-    Returns:
-        User dictionary with id, email, organization_id
-
-    Raises:
-        HTTPException: If token is invalid or expired
+    Thin adapter over the canonical auth_service.get_current_user
+    (single JWT validation path). Kept for routers that consume the
+    dict shape: id, email, organization_id, role.
     """
-    token = credentials.credentials
-
-    try:
-        # Decode JWT token
-        secret_key = os.getenv("JWT_SECRET", "your-secret-key-change-in-production")
-        payload = jwt.decode(token, secret_key, algorithms=["HS256"])
-
-        # Extract user info
-        user = {
-            "id": payload.get("user_id"),
-            "email": payload.get("email"),
-            "organization_id": payload.get("organization_id")
-        }
-
-        if not user["id"] or not user["organization_id"]:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid token payload"
-            )
-
-        return user
-
-    except ExpiredSignatureError:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Token has expired"
-        )
-    except JWTError:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid token"
-        )
-
-
-async def get_optional_user(
-    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security)
-) -> Optional[dict]:
-    """
-    Get current user if authenticated, None otherwise.
-
-    Useful for routes that work with or without authentication.
-    """
-    if not credentials:
-        return None
-
-    try:
-        return await get_current_user(credentials)
-    except HTTPException:
-        return None
+    return {
+        "id": str(user.user_id),
+        "email": user.email,
+        "organization_id": str(user.organization_id),
+        "role": user.role,
+    }
 
 
 async def get_cache_service_dependency():
