@@ -199,7 +199,7 @@ async function handleRefund(charge: Stripe.Charge) {
     return;
   }
 
-  // Check if we already credited this refund (idempotency)
+  // Check if we already processed this refund (idempotency)
   const existing = await prisma.billingTransaction.findFirst({
     where: { stripePaymentId: `refund_${charge.id}` },
   });
@@ -208,6 +208,33 @@ async function handleRefund(charge: Stripe.Charge) {
     return;
   }
 
-  await addCreditsToWallet(userId, refundedAmount, `refund_${charge.id}`, `Refund from Stripe: ${charge.id}`);
-  console.log(`[Billing] Processed refund of ${refundedAmount} for user ${userId}`);
+  // A refund returns money to the customer via Stripe, so the wallet credit
+  // it paid for must be removed — deduct, never credit. Balance may go
+  // negative if the credits were already spent.
+  const wallet = await prisma.wallet.findUnique({ where: { userId } });
+  if (!wallet) {
+    console.warn('[Billing] Refund for user with no wallet:', charge.id);
+    return;
+  }
+
+  const newBalance = Number(wallet.balance) - refundedAmount;
+
+  await prisma.wallet.update({
+    where: { userId },
+    data: {
+      balance: newBalance,
+      transactions: {
+        create: {
+          type: 'refund',
+          amount: -refundedAmount,
+          balanceAfter: newBalance,
+          description: `Refund from Stripe: ${charge.id}`,
+          stripePaymentId: `refund_${charge.id}`,
+          tenantId: wallet.tenantId,
+        },
+      },
+    },
+  });
+
+  console.log(`[Billing] Deducted refund of ${refundedAmount} for user ${userId}. New balance: ${newBalance}`);
 }
