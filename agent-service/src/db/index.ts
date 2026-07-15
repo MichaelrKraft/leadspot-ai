@@ -36,8 +36,13 @@ const connections: Map<string, Database.Database> = new Map();
 
 /**
  * Get the file path for an organization's database.
+ * organizationId can originate from request input, so it must never be
+ * allowed to escape the orgs directory.
  */
 function getDbPath(organizationId: string): string {
+  if (!/^[A-Za-z0-9_-]+$/.test(organizationId)) {
+    throw new Error(`Invalid organization id: ${JSON.stringify(organizationId)}`);
+  }
   return path.join(dataDir, 'orgs', organizationId, 'agent.db');
 }
 
