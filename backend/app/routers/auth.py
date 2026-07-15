@@ -32,6 +32,7 @@ from app.services.auth_service import (
     verify_password,
     verify_refresh_token,
 )
+from app.services.transactional_email import send_transactional_email
 
 router = APIRouter()
 
@@ -329,10 +330,21 @@ async def request_password_reset(
         # Build reset URL
         reset_url = f"{settings.FRONTEND_URL}/reset-password?token={reset_token.token}"
 
-        # TODO: In production, send email using email service
-        # For now, log the reset URL (useful for development/testing)
-        print(f"[PASSWORD RESET] Token for {user.email}: {reset_token.token}")
-        print(f"[PASSWORD RESET] Reset URL: {reset_url}")
+        # Send the reset email. send_transactional_email fails soft (returns
+        # False, never raises) so a mail outage can't break the endpoint or
+        # leak which addresses exist. The token is never logged.
+        html = (
+            f"<p>We received a request to reset your LeadSpot password.</p>"
+            f'<p><a href="{reset_url}">Reset your password</a></p>'
+            f"<p>This link expires shortly. If you didn't request it, you can ignore this email.</p>"
+        )
+        sent = await send_transactional_email(
+            to=user.email,
+            subject="Reset your LeadSpot password",
+            html=html,
+        )
+        if not sent:
+            logger.warning("Password reset email could not be sent to a user")
 
     # Always return success to prevent email enumeration
     return PasswordResetResponse(

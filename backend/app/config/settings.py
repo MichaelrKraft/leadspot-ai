@@ -118,6 +118,10 @@ class Settings(BaseSettings):
     # Frontend URL (for OAuth redirects)
     FRONTEND_URL: str = "http://localhost:3000"
 
+    # Transactional email (Resend) — used for password reset, etc.
+    RESEND_API_KEY: str = ""
+    TRANSACTIONAL_FROM_EMAIL: str = "LeadSpot <noreply@mail.leadspot.ai>"
+
     # Stripe Billing
     STRIPE_SECRET_KEY: str = ""
     STRIPE_PUBLISHABLE_KEY: str = ""
