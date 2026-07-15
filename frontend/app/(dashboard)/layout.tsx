@@ -265,9 +265,20 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
           {/* Navigation */}
           <nav className="flex-1 overflow-y-auto py-3">
-            {navigation.filter(item =>
-              item.href !== '/workspace' || process.env.NEXT_PUBLIC_SPACE_AGENT_ENABLED === 'true'
-            ).map((item, index) => {
+            {navigation.filter(item => {
+              // Hide screens whose backing services aren't running yet. Each is
+              // re-enabled by setting its env flag once the infra is provisioned:
+              //   /workspace     -> NEXT_PUBLIC_SPACE_AGENT_ENABLED (Space Agent service)
+              //   /decisions     -> NEXT_PUBLIC_DECISIONS_ENABLED   (Neo4j graph DB)
+              //   /voice-agents  -> NEXT_PUBLIC_VOICE_ENABLED       (voice providers)
+              if (item.href === '/workspace')
+                return process.env.NEXT_PUBLIC_SPACE_AGENT_ENABLED === 'true';
+              if (item.href === '/decisions')
+                return process.env.NEXT_PUBLIC_DECISIONS_ENABLED === 'true';
+              if (item.href === '/voice-agents')
+                return process.env.NEXT_PUBLIC_VOICE_ENABLED === 'true';
+              return true;
+            }).map((item, index) => {
               const isActive =
                 !item.external &&
                 (pathname === item.href || pathname?.startsWith(item.href + '/'));

@@ -40,6 +40,10 @@ const nextConfig = {
     // Mirrors the backend DEMO_LOGIN_ENABLED flag; controls whether the
     // "Explore Demo" button is shown on the login page.
     NEXT_PUBLIC_DEMO_LOGIN_ENABLED: process.env.NEXT_PUBLIC_DEMO_LOGIN_ENABLED || 'false',
+    // Gate screens whose backing services aren't running by default.
+    // /decisions needs Neo4j; /voice-agents needs voice provider accounts.
+    NEXT_PUBLIC_DECISIONS_ENABLED: process.env.NEXT_PUBLIC_DECISIONS_ENABLED || 'false',
+    NEXT_PUBLIC_VOICE_ENABLED: process.env.NEXT_PUBLIC_VOICE_ENABLED || 'false',
   },
 };
 
