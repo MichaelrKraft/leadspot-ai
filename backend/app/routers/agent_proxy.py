@@ -10,7 +10,11 @@ import logging
 import os
 
 import httpx
-from fastapi import APIRouter, Request, Response
+from fastapi import APIRouter, Depends, Request, Response
+
+from app.config import settings
+from app.models.user import User
+from app.services.auth_service import get_current_user
 
 logger = logging.getLogger(__name__)
 
@@ -20,12 +24,16 @@ AGENT_SERVICE_URL = os.environ.get("AGENT_SERVICE_URL", "http://localhost:3008")
 
 
 @router.api_route("/{path:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH"])
-async def proxy_to_agent_service(path: str, request: Request) -> Response:
+async def proxy_to_agent_service(
+    path: str,
+    request: Request,
+    current_user: User = Depends(get_current_user),
+) -> Response:
     """
-    Forward all requests to the agent-service.
+    Forward requests to the agent-service on behalf of an authenticated user.
 
-    The full path /api/agent/{path} is forwarded as /api/agent/{path}
-    to the agent-service, preserving query parameters and request body.
+    Client headers are NOT forwarded. The proxy sends the internal service
+    key plus the user's organization so agent-service can enforce org scoping.
     """
     target_url = f"{AGENT_SERVICE_URL}/api/agent/{path}"
 
@@ -36,11 +44,11 @@ async def proxy_to_agent_service(path: str, request: Request) -> Response:
     # Read request body for methods that may have one
     body = await request.body() if request.method in ("POST", "PUT", "PATCH") else None
 
-    # Build headers to forward (skip hop-by-hop headers)
-    forward_headers = {}
-    for key, value in request.headers.items():
-        if key.lower() not in ("host", "connection", "transfer-encoding"):
-            forward_headers[key] = value
+    forward_headers = {
+        "Content-Type": request.headers.get("content-type", "application/json"),
+        "X-Internal-Api-Key": settings.INTERNAL_API_KEY,
+        "X-Organization-Id": str(current_user.organization_id),
+    }
 
     try:
         async with httpx.AsyncClient(timeout=30.0) as client:

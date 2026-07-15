@@ -22,6 +22,7 @@ if (process.env.SENTRY_DSN) {
 
 import express, { Router, type Request, type Response, type NextFunction } from 'express';
 import cors from 'cors';
+import { timingSafeEqual } from 'crypto';
 import { createOrchestrator, getOrchestrator } from './orchestrator';
 import type {
   AgentServiceConfig,
@@ -111,6 +112,58 @@ function createApp(): express.Application {
   // Middleware
   app.use(cors());
   app.use(express.json());
+
+  // --------------------------------------------------------------------------
+  // Internal authentication — every route requires the shared internal key
+  // except endpoints that must be reachable from the public internet
+  // (health checks, tracking pixel, unsubscribe link, signed Resend webhook).
+  // Callers: LeadSpot backend (agent_proxy + chat context) and the frontend's
+  // server-side test-send route. Fails closed when the key is unset.
+  // --------------------------------------------------------------------------
+
+  const PUBLIC_PATHS = new Set([
+    '/health',
+    '/api/agent/health',
+    '/api/agent/workflows/track/open',
+    '/api/webhooks/resend',
+    '/api/unsubscribe',
+  ]);
+
+  app.use((req: Request, res: Response, next: NextFunction) => {
+    if (PUBLIC_PATHS.has(req.path)) {
+      next();
+      return;
+    }
+
+    const configuredKey = process.env.LEADSPOT_INTERNAL_API_KEY || '';
+    const providedKey = req.header('x-internal-api-key') || '';
+    const configured = Buffer.from(configuredKey);
+    const provided = Buffer.from(providedKey);
+    if (
+      !configuredKey ||
+      configured.length !== provided.length ||
+      !timingSafeEqual(configured, provided)
+    ) {
+      res.status(401).json({ error: 'Unauthorized' });
+      return;
+    }
+
+    // When the backend proxy forwards on behalf of an authenticated user it
+    // sets x-organization-id from the user's token; a client-claimed
+    // organizationId must match it.
+    const trustedOrg = req.header('x-organization-id');
+    if (trustedOrg) {
+      const claimed =
+        (req.query.organizationId as string | undefined) ||
+        (req.body as { organizationId?: string } | undefined)?.organizationId;
+      if (claimed && claimed !== trustedOrg) {
+        res.status(403).json({ error: 'Organization mismatch' });
+        return;
+      }
+    }
+
+    next();
+  });
 
   // --------------------------------------------------------------------------
   // Health Check

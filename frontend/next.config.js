@@ -15,12 +15,9 @@ const nextConfig = {
   // API configuration
   async rewrites() {
     const backendUrl = process.env.BACKEND_URL || 'http://localhost:8000';
-    const agentServiceUrl = process.env.AGENT_SERVICE_URL || 'http://localhost:3008';
     return [
-      {
-        source: '/api/agent/:path*',
-        destination: `${agentServiceUrl}/api/agent/:path*`,
-      },
+      // /api/agent/* intentionally goes through the backend (below), whose
+      // authenticated proxy adds the internal key agent-service requires.
       {
         source: '/api/:path*',
         destination: `${backendUrl}/api/:path*`,

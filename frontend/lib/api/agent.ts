@@ -4,10 +4,8 @@
  * timeline, approval queue, and action plans.
  */
 
+import { apiClient } from '@/lib/api';
 import { useAuthStore } from '@/stores/useAuthStore';
-
-// Use relative URL so Next.js rewrites proxy to agent service — eliminates CORS
-const API_URL = '';
 
 // Returns the current org ID from auth context, falls back to 'demo-org' in dev mode
 function getOrgId(): string {
@@ -60,36 +58,28 @@ export interface SmartListResult {
 }
 
 export async function fetchSmartLists(): Promise<SmartList[]> {
-  const res = await fetch(
-    `${API_URL}/api/agent/smart-lists?organizationId=${encodeURIComponent(getOrgId())}`
-  );
-  if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
-  const data = await res.json();
-  return data.lists || data;
+  const res = await apiClient.get('/api/agent/smart-lists', {
+    params: { organizationId: getOrgId() },
+  });
+  return res.data.lists || res.data;
 }
 
 export async function evaluateSmartList(listId: string): Promise<SmartListResult> {
-  const res = await fetch(`${API_URL}/api/agent/smart-lists/${listId}/evaluate`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ organizationId: getOrgId() }),
+  const res = await apiClient.post(`/api/agent/smart-lists/${listId}/evaluate`, {
+    organizationId: getOrgId(),
   });
-  if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
-  const data = await res.json();
-  return data.result || data;
+  return res.data.result || res.data;
 }
 
 export async function markContactActedUpon(
   listId: string,
   contactId: string
 ): Promise<{ success: boolean }> {
-  const res = await fetch(`${API_URL}/api/agent/smart-lists/${listId}/mark-acted`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ organizationId: getOrgId(), contactId }),
+  const res = await apiClient.post(`/api/agent/smart-lists/${listId}/mark-acted`, {
+    organizationId: getOrgId(),
+    contactId,
   });
-  if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
-  return res.json();
+  return res.data;
 }
 
 // ---- Pipeline Brief ----
@@ -102,13 +92,10 @@ export interface PipelineBrief {
 }
 
 export async function fetchPipelineBrief(): Promise<PipelineBrief> {
-  const res = await fetch(`${API_URL}/api/agent/brief`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ organizationId: getOrgId() }),
+  const res = await apiClient.post('/api/agent/brief', {
+    organizationId: getOrgId(),
   });
-  if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
-  return res.json();
+  return res.data;
 }
 
 // ---- Timeline ----
@@ -131,19 +118,17 @@ export interface TimelineSummary {
 }
 
 export async function fetchTimeline(contactId: string): Promise<TimelineEvent[]> {
-  const res = await fetch(
-    `${API_URL}/api/agent/timeline/${contactId}?organizationId=${encodeURIComponent(getOrgId())}`
-  );
-  if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
-  return res.json();
+  const res = await apiClient.get(`/api/agent/timeline/${contactId}`, {
+    params: { organizationId: getOrgId() },
+  });
+  return res.data;
 }
 
 export async function fetchTimelineSummary(contactId: string): Promise<TimelineSummary> {
-  const res = await fetch(
-    `${API_URL}/api/agent/timeline/${contactId}/summary?organizationId=${encodeURIComponent(getOrgId())}`
-  );
-  if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
-  return res.json();
+  const res = await apiClient.get(`/api/agent/timeline/${contactId}/summary`, {
+    params: { organizationId: getOrgId() },
+  });
+  return res.data;
 }
 
 // ---- Approval Queue ----
@@ -158,31 +143,24 @@ export interface QueueItem {
 }
 
 export async function fetchApprovalQueue(): Promise<QueueItem[]> {
-  const res = await fetch(
-    `${API_URL}/api/agent/queue?organizationId=${encodeURIComponent(getOrgId())}`
-  );
-  if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
-  return res.json();
+  const res = await apiClient.get('/api/agent/queue', {
+    params: { organizationId: getOrgId() },
+  });
+  return res.data;
 }
 
 export async function approveAction(id: string): Promise<{ success: boolean }> {
-  const res = await fetch(`${API_URL}/api/agent/queue/${id}/approve`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ organizationId: getOrgId() }),
+  const res = await apiClient.post(`/api/agent/queue/${id}/approve`, {
+    organizationId: getOrgId(),
   });
-  if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
-  return res.json();
+  return res.data;
 }
 
 export async function dismissAction(id: string): Promise<{ success: boolean }> {
-  const res = await fetch(`${API_URL}/api/agent/queue/${id}/dismiss`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ organizationId: getOrgId() }),
+  const res = await apiClient.post(`/api/agent/queue/${id}/dismiss`, {
+    organizationId: getOrgId(),
   });
-  if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
-  return res.json();
+  return res.data;
 }
 
 // ---- Action Plans ----
@@ -197,19 +175,17 @@ export interface ActionPlan {
 }
 
 export async function fetchActionPlans(): Promise<ActionPlan[]> {
-  const res = await fetch(
-    `${API_URL}/api/agent/action-plans?organizationId=${encodeURIComponent(getOrgId())}`
-  );
-  if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
-  return res.json();
+  const res = await apiClient.get('/api/agent/action-plans', {
+    params: { organizationId: getOrgId() },
+  });
+  return res.data;
 }
 
 // ---- Recent Activity ----
 
 export async function fetchRecentActivity(): Promise<TimelineEvent[]> {
-  const res = await fetch(
-    `${API_URL}/api/agent/timeline/recent?organizationId=${encodeURIComponent(getOrgId())}`
-  );
-  if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
-  return res.json();
+  const res = await apiClient.get('/api/agent/timeline/recent', {
+    params: { organizationId: getOrgId() },
+  });
+  return res.data;
 }

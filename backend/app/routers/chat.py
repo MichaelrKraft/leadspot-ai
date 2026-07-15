@@ -143,6 +143,10 @@ async def fetch_agent_context(
             resp = await client.get(
                 f"{AGENT_SERVICE_URL}/api/agent/context",
                 params=params,
+                headers={
+                    "X-Internal-Api-Key": settings.INTERNAL_API_KEY,
+                    "X-Organization-Id": organization_id,
+                },
             )
             if resp.status_code == 200:
                 data = resp.json()
