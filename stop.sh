@@ -9,7 +9,7 @@ echo ""
 
 STOPPED=0
 
-for PORT in 8000 3006; do
+for PORT in 8000 3008 3006; do
   PID=$(lsof -ti tcp:"$PORT" 2>/dev/null || true)
   if [ -n "$PID" ]; then
     echo "  Killing process $PID on port $PORT"
