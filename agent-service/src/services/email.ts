@@ -90,16 +90,20 @@ export function verifyUnsubscribeToken(token: string): { contactId: string; emai
 /**
  * Check if an email address is suppressed (bounced, unsubscribed, complained)
  */
-async function isEmailSuppressed(email: string): Promise<boolean> {
+type SuppressionStatus = 'suppressed' | 'not_suppressed' | 'unknown';
+
+async function checkSuppression(email: string): Promise<SuppressionStatus> {
   try {
     const response = await fetch(`${BACKEND_API_URL}/api/suppressions/${encodeURIComponent(email.toLowerCase())}`, {
       headers: internalApiHeaders(),
     });
-    return response.status === 200;
+    if (response.status === 200) return 'suppressed';
+    if (response.status === 404) return 'not_suppressed';
+    console.warn(`[EmailService] Suppression check returned ${response.status} for ${email}`);
+    return 'unknown';
   } catch (error) {
-    // If suppression check fails, err on the side of caution and allow sending
     console.warn(`[EmailService] Suppression check failed for ${email}:`, error);
-    return false;
+    return 'unknown';
   }
 }
 
@@ -167,11 +171,17 @@ function injectTrackingPixel(htmlBody: string, enrollmentId: string, organizatio
 export async function sendEmail(options: SendEmailOptions): Promise<SendEmailResult> {
   const { to, subject, body, contactId, campaignId, fromName } = options;
 
-  // 1. Suppression check
-  const suppressed = await isEmailSuppressed(to);
-  if (suppressed) {
+  // 1. Suppression check — the CAN-SPAM safety gate, so it fails closed:
+  // if the list can't be checked (backend down), the send is blocked as a
+  // retryable failure (NOT marked suppressed, which would skip the contact
+  // permanently). Mail resumes when the backend is reachable again.
+  const suppressionStatus = await checkSuppression(to);
+  if (suppressionStatus === 'suppressed') {
     console.log(`[EmailService] Skipping suppressed email: ${to}`);
     return { success: false, suppressed: true, error: 'Email address is suppressed' };
+  }
+  if (suppressionStatus === 'unknown') {
+    return { success: false, error: 'Suppression list unavailable; send blocked' };
   }
 
   // 2. Generate unsubscribe URL
