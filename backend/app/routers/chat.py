@@ -15,14 +15,14 @@ import httpx
 from anthropic import AsyncAnthropic
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
 
 AGENT_SERVICE_URL = os.environ.get("AGENT_SERVICE_URL", "http://localhost:3008")
 from app.database import get_db
-from app.models.organization import Organization
+from app.models.user import User
+from app.services.auth_service import get_current_user
 from app.services.mautic_client import MauticClient, MauticAuthError
 from app.services.mautic_tools import (
     MAUTIC_READ_TOOLS,
@@ -40,7 +40,7 @@ class ChatRequest(BaseModel):
     """Request model for chat messages"""
     message: str = Field(..., min_length=1, max_length=4000, description="User's message/command")
     mautic_url: Optional[str] = Field(None, description="Mautic instance URL for context")
-    organization_id: Optional[str] = Field(None, description="Organization ID for Mautic API access")
+    organization_id: Optional[str] = Field(None, description="Ignored — org is derived from the auth token (kept for API compatibility)")
     enable_tools: bool = Field(True, description="Enable Mautic tool calling")
 
 
@@ -288,21 +288,25 @@ async def run_tool_loop(
 @router.post("/chat", response_model=ChatResponse)
 async def process_chat(
     request: ChatRequest,
+    current_user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_db),
 ):
     """
-    Process a chat message from the Mautic plugin.
+    Process a chat message from the dashboard command center.
 
     This endpoint receives natural language commands and returns AI-generated responses.
     When Mautic is connected, the AI can use tools to read and write CRM data.
 
+    Requires authentication. The organization is always derived from the
+    authenticated user's token — client-supplied organization_id/mautic_url
+    are ignored for authorization (they previously allowed cross-org access).
+
     - **message**: User's natural language command
-    - **mautic_url**: (Optional) The Mautic instance URL for context
-    - **organization_id**: (Optional) Organization ID for authenticated Mautic access
     - **enable_tools**: Enable/disable tool calling (default: true)
 
     Returns an AI response with optional tool call results.
     """
+    org_id = str(current_user.organization_id)
     try:
         # Check if Anthropic API key is configured
         if not settings.ANTHROPIC_API_KEY:
@@ -320,43 +324,22 @@ async def process_chat(
         mautic_client = None
         tools = []
 
-        if request.enable_tools and request.organization_id:
+        if request.enable_tools:
             mautic_client = await get_mautic_client_for_org(
-                request.organization_id,
+                org_id,
                 session,
             )
 
             if mautic_client:
                 # Enable all Mautic tools
                 tools = MAUTIC_READ_TOOLS + MAUTIC_WRITE_TOOLS
-                logger.info(f"Mautic tools enabled for org {request.organization_id}")
+                logger.info(f"Mautic tools enabled for org {org_id}")
             else:
-                logger.info(f"No Mautic connection for org {request.organization_id}")
-
-        # Also try to find organization by mautic_url if no org_id provided
-        if not mautic_client and request.enable_tools and request.mautic_url:
-            # Try to find org by Mautic URL
-            result = await session.execute(
-                select(Organization).where(
-                    Organization.mautic_url == request.mautic_url.rstrip("/")
-                )
-            )
-            org = result.scalar_one_or_none()
-
-            if org and org.mautic_access_token:
-                try:
-                    mautic_client = await MauticClient.from_organization(
-                        org.organization_id,
-                        session,
-                    )
-                    tools = MAUTIC_READ_TOOLS + MAUTIC_WRITE_TOOLS
-                    logger.info(f"Mautic tools enabled via URL match for org {org.organization_id}")
-                except MauticAuthError as e:
-                    logger.warning(f"Could not create Mautic client: {e}")
+                logger.info(f"No Mautic connection for org {org_id}")
 
         # Fetch agent memory context
         agent_context = await fetch_agent_context(
-            organization_id=request.organization_id or "demo-org",
+            organization_id=org_id,
             message=request.message,
         )
 
