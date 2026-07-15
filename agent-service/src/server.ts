@@ -691,9 +691,10 @@ function createApp(): express.Application {
         const bounceType = payload.data.bounce?.type ?? 'hard';
         const emailAddress = payload.data.email_address ?? '';
         if (bounceType === 'hard' && emailAddress) {
+          const { internalApiHeaders } = await import('./services/email');
           await fetch(`${backendUrl}/api/suppressions`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: internalApiHeaders(),
             body: JSON.stringify({ email: emailAddress, reason: 'hard_bounce', source: 'resend_webhook' }),
           });
           console.log(`[Webhook] Hard bounce suppressed: ${emailAddress}`);
@@ -701,9 +702,10 @@ function createApp(): express.Application {
       } else if (payload.type === 'email.complained') {
         const emailAddress = payload.data.email_address ?? '';
         if (emailAddress) {
+          const { internalApiHeaders } = await import('./services/email');
           await fetch(`${backendUrl}/api/suppressions`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: internalApiHeaders(),
             body: JSON.stringify({ email: emailAddress, reason: 'spam_complaint', source: 'resend_webhook' }),
           });
           console.log(`[Webhook] Spam complaint suppressed: ${emailAddress}`);
@@ -728,7 +730,7 @@ function createApp(): express.Application {
       return;
     }
 
-    const { verifyUnsubscribeToken } = await import('./services/email');
+    const { verifyUnsubscribeToken, internalApiHeaders } = await import('./services/email');
     const result = verifyUnsubscribeToken(token);
 
     if (!result) {
@@ -740,7 +742,7 @@ function createApp(): express.Application {
     try {
       await fetch(`${backendUrl}/api/suppressions`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: internalApiHeaders(),
         body: JSON.stringify({ email: result.email, reason: 'unsubscribed', source: 'user_click' }),
       });
       res.send(`

@@ -8,8 +8,11 @@ Provides dependency injection for FastAPI routes:
 - Database connections
 """
 
-from fastapi import Depends
+import secrets
 
+from fastapi import Depends, Header, HTTPException, status
+
+from app.config import settings
 from app.database import get_db
 from app.models.user import User
 from app.services.auth_service import get_current_user as _get_current_user_orm
@@ -59,6 +62,22 @@ def get_ingestion_pipeline() -> IngestionPipeline:
     if not _pipeline:
         raise RuntimeError("Ingestion pipeline not initialized. Call init_pipeline() during startup.")
     return _pipeline
+
+
+async def require_internal_key(
+    x_internal_api_key: str = Header(default="")
+) -> None:
+    """
+    Guard for internal service-to-service endpoints (e.g. agent-service ->
+    backend). Fails closed: rejects all calls when INTERNAL_API_KEY is unset.
+    """
+    if not settings.INTERNAL_API_KEY or not secrets.compare_digest(
+        x_internal_api_key, settings.INTERNAL_API_KEY
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid internal API key",
+        )
 
 
 async def get_current_user(

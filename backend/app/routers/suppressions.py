@@ -7,6 +7,7 @@ from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import get_db
+from app.dependencies import require_internal_key
 from app.models.suppression import EmailSuppression
 
 logger = logging.getLogger(__name__)
@@ -19,7 +20,7 @@ class SuppressionCreate(BaseModel):
     source: Optional[str] = None
 
 
-@router.get("/suppressions/{email}")
+@router.get("/suppressions/{email}", dependencies=[Depends(require_internal_key)])
 async def check_suppression(email: str, db: AsyncSession = Depends(get_db)):
     """Check if an email is suppressed. Returns suppression record or 404."""
     result = await db.execute(
@@ -36,7 +37,7 @@ async def check_suppression(email: str, db: AsyncSession = Depends(get_db)):
     }
 
 
-@router.post("/suppressions")
+@router.post("/suppressions", dependencies=[Depends(require_internal_key)])
 async def add_suppression(data: SuppressionCreate, db: AsyncSession = Depends(get_db)):
     """Add an email to the suppression list. Idempotent — updates reason if already exists."""
     email = data.email.lower().strip()

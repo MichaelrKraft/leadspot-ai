@@ -19,6 +19,18 @@ function getResend(): Resend {
 }
 
 const BACKEND_API_URL = process.env.LEADSPOT_API_URL || 'http://localhost:8000';
+const INTERNAL_API_KEY = process.env.LEADSPOT_INTERNAL_API_KEY || '';
+
+/**
+ * Headers for internal service-to-service calls to the backend
+ * (record-send, suppressions). Backend rejects calls without the key.
+ */
+export function internalApiHeaders(): Record<string, string> {
+  return {
+    'Content-Type': 'application/json',
+    'X-Internal-Api-Key': INTERNAL_API_KEY,
+  };
+}
 const UNSUBSCRIBE_SECRET = process.env.UNSUBSCRIBE_SECRET || process.env.JWT_SECRET || 'change-me-in-production';
 const FROM_EMAIL = process.env.FROM_EMAIL || 'outreach@mail.leadspot.ai';
 const PHYSICAL_ADDRESS = process.env.PHYSICAL_ADDRESS || '123 Business St, City, ST 00000';
@@ -80,7 +92,9 @@ export function verifyUnsubscribeToken(token: string): { contactId: string; emai
  */
 async function isEmailSuppressed(email: string): Promise<boolean> {
   try {
-    const response = await fetch(`${BACKEND_API_URL}/api/suppressions/${encodeURIComponent(email.toLowerCase())}`);
+    const response = await fetch(`${BACKEND_API_URL}/api/suppressions/${encodeURIComponent(email.toLowerCase())}`, {
+      headers: internalApiHeaders(),
+    });
     return response.status === 200;
   } catch (error) {
     // If suppression check fails, err on the side of caution and allow sending
@@ -96,7 +110,7 @@ async function recordSentEmail(options: SendEmailOptions, messageId: string): Pr
   try {
     await fetch(`${BACKEND_API_URL}/api/emails/record-send`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: internalApiHeaders(),
       body: JSON.stringify({
         contact_id: options.contactId,
         campaign_id: options.campaignId,

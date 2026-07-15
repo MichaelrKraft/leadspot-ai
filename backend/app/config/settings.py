@@ -137,6 +137,9 @@ class Settings(BaseSettings):
     SPACE_AGENT_ADMIN_KEY: str = ""
     SPACE_AGENT_API_KEY_PREVIOUS: str = ""
 
+    # Shared secret for internal service-to-service calls (agent-service -> backend)
+    INTERNAL_API_KEY: str = ""
+
     def validate_production_settings(self) -> list[str]:
         """
         Validate that all required settings are properly configured for production.

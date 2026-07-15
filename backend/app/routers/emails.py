@@ -12,6 +12,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
+from app.dependencies import require_internal_key
 from app.models.email import Email
 from app.models.user import User
 from app.services.auth_service import get_current_user
@@ -217,7 +218,12 @@ class RecordSendRequest(BaseModel):
     user_id: str = "agent-service"
 
 
-@router.post("/emails/record-send", status_code=status.HTTP_201_CREATED, tags=["emails"])
+@router.post(
+    "/emails/record-send",
+    status_code=status.HTTP_201_CREATED,
+    tags=["emails"],
+    dependencies=[Depends(require_internal_key)],
+)
 async def record_email_send(data: RecordSendRequest, db: AsyncSession = Depends(get_db)):
     """Called by agent-service after sending an email via Resend to record it in the database."""
     import uuid
