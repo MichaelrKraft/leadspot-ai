@@ -10,7 +10,7 @@ import type {
   AlertStatus
 } from '@/types/health';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000';
 
 // Demo data for when API is unavailable (bond trading focused)
 const DEMO_HEALTH_DASHBOARD: HealthDashboard = {

@@ -10,7 +10,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Document, DocumentListItem, DocumentFilters } from '@/types/document';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000';
 
 // Transform backend document to frontend format
 function transformDocument(doc: any): DocumentListItem {

@@ -9,7 +9,7 @@
 import { useState } from 'react';
 import { QueryRequest, QueryResponse, QueryHistoryItem } from '@/types/query';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000';
 
 // Demo responses organized by industry
 type IndustryResponses = Record<string, QueryResponse>;

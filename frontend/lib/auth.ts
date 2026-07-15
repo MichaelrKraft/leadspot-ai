@@ -5,7 +5,7 @@
  * CSRF token is required for state-changing requests.
  */
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000';
 
 export interface LoginCredentials {
   email: string;

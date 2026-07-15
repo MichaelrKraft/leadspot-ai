@@ -18,7 +18,7 @@ import {
   CheckCircle2,
 } from 'lucide-react';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000';
 
 interface PlatformStats {
   total_organizations: number;
