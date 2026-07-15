@@ -167,13 +167,15 @@ export const useAuthStore = create<AuthState>()(
         }
       },
 
-      // Logout - call backend to clear httpOnly cookies
+      // Logout - call backend to clear httpOnly cookies.
+      // Goes through apiClient so the CSRF header is sent (raw fetch was
+      // rejected 403 by the backend and the cookie never cleared, making
+      // logout impossible). Dynamic import avoids a module cycle:
+      // lib/api statically imports this store.
       logout: async () => {
         try {
-          await fetch(`${API_URL}/auth/logout`, {
-            method: "POST",
-            credentials: "include",
-          });
+          const { apiClient } = await import("@/lib/api");
+          await apiClient.post("/auth/logout");
         } catch (error) {
           console.error("Logout error:", error);
         }
