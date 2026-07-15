@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/stores/useAuthStore';
+import { api } from '@/lib/api';
 
 interface AuthGuardProps {
   children: React.ReactNode;
@@ -11,45 +12,55 @@ interface AuthGuardProps {
 
 export default function AuthGuard({ children, fallback }: AuthGuardProps) {
   const router = useRouter();
-  const { isAuthenticated } = useAuthStore();
-  const [isHydrated, setIsHydrated] = useState(false);
-  const [hasAuth, setHasAuth] = useState(false);
+  const setUser = useAuthStore((s) => s.setUser);
+  const [status, setStatus] = useState<'checking' | 'authed' | 'unauthed'>('checking');
 
   // Dev mode bypass: skip auth entirely when backend is unavailable
   const isDev = process.env.NEXT_PUBLIC_APP_ENV === 'development';
 
-  // Check localStorage directly on mount to handle zustand hydration timing
+  // Validate the session against the backend once on mount, rather than
+  // trusting persisted localStorage (which can be stale — an expired cookie
+  // plus a persisted store would render the page while every fetch 401s).
   useEffect(() => {
-    // In dev mode, always grant access
     if (isDev) {
-      setHasAuth(true);
-      setIsHydrated(true);
+      setStatus('authed');
       return;
     }
 
-    try {
-      const authStorage = localStorage.getItem('auth-storage');
-      if (authStorage) {
-        const parsed = JSON.parse(authStorage);
-        if (parsed?.state?.isAuthenticated) {
-          setHasAuth(true);
-        }
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await api.auth.getCurrentUser();
+        if (cancelled) return;
+        const u = res.data;
+        setUser({
+          id: u.user_id,
+          email: u.email,
+          name: u.name,
+          organizationId: u.organization_id,
+          role: u.role,
+        });
+        setStatus('authed');
+      } catch {
+        if (cancelled) return;
+        // Session invalid/expired — clear any stale persisted state and redirect.
+        setUser(null);
+        setStatus('unauthed');
       }
-    } catch {
-      // Ignore parse errors
-    }
-    setIsHydrated(true);
-  }, [isDev]);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isDev, setUser]);
 
   useEffect(() => {
-    if (isDev) return; // Skip redirect in dev mode
-    if (isHydrated && !hasAuth && !isAuthenticated) {
+    if (status === 'unauthed') {
       router.push('/login');
     }
-  }, [isHydrated, hasAuth, isAuthenticated, router, isDev]);
+  }, [status, router]);
 
-  // Show loading state while hydrating
-  if (!isHydrated) {
+  if (status === 'checking') {
     return (
       fallback || (
         <div className="min-h-screen bg-[#0A0F1C] flex items-center justify-center">
@@ -62,11 +73,9 @@ export default function AuthGuard({ children, fallback }: AuthGuardProps) {
     );
   }
 
-  // Show nothing while redirecting if not authenticated (skip in dev)
-  if (!isDev && !hasAuth && !isAuthenticated) {
+  if (status === 'unauthed') {
     return null;
   }
 
-  // Render protected content
   return <>{children}</>;
 }
