@@ -4,9 +4,15 @@ import { prisma } from '@/lib/prisma';
 /**
  * GET /api/billing/balance-check
  * Used by voice agents to check if a call should continue based on wallet balance.
- * Called every 60 seconds during active calls.
+ * Called periodically during active calls. Requires the voice-agent API key.
  */
 export async function GET(request: NextRequest) {
+  const expectedKey = process.env.VOICE_AGENT_API_KEY;
+  const providedKey = request.headers.get('x-api-key');
+  if (!expectedKey || providedKey !== expectedKey) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   const tenantId = request.nextUrl.searchParams.get('tenantId');
   const callId = request.nextUrl.searchParams.get('callId');
 
@@ -25,8 +31,8 @@ export async function GET(request: NextRequest) {
     });
 
     if (!tenantMember) {
-      // No owner found — allow call to continue (fail open)
-      return NextResponse.json({ shouldContinue: true, remainingBalance: 0 });
+      // No owner / wallet resolvable — fail closed (don't grant free minutes).
+      return NextResponse.json({ shouldContinue: false, remainingBalance: 0 });
     }
 
     const wallet = await prisma.wallet.findUnique({

@@ -653,6 +653,7 @@ async def entrypoint(ctx: JobContext):
 
     # ── Fetch call data from from-sip endpoint ────────────────────────────────
     call_id: Optional[str] = None
+    sip_tenant_id: Optional[str] = None
 
     try:
         room_name = ctx.room.name  # format: "call-{CallSid}" for inbound Twilio rooms
@@ -672,6 +673,7 @@ async def entrypoint(ctx: JobContext):
                 if resp.status_code == 200:
                     call_data = resp.json()
                     call_id = call_data.get("callId")
+                    sip_tenant_id = call_data.get("tenantId")
                     logger.info(f"Call registered: callId={call_id}")
                 elif resp.status_code == 402:
                     logger.warning("Insufficient balance — disconnecting call")
@@ -768,37 +770,70 @@ async def entrypoint(ctx: JobContext):
     tenant_id: Optional[str] = None
     balance_call_id: Optional[str] = None
 
-    if ctx.room.metadata:
+    # Prefer the tenant/call ids resolved from from-sip (authoritative); fall
+    # back to room metadata for outbound rooms that carry it.
+    tenant_id = sip_tenant_id
+    balance_call_id = call_id
+    if (not tenant_id or not balance_call_id) and ctx.room.metadata:
         try:
             meta = json.loads(ctx.room.metadata)
-            tenant_id = meta.get("tenantId")
-            # Prefer the call_id we received from from-sip; fall back to metadata
-            balance_call_id = call_id or meta.get("callId")
+            tenant_id = tenant_id or meta.get("tenantId")
+            balance_call_id = balance_call_id or meta.get("callId")
         except (json.JSONDecodeError, AttributeError):
             pass
 
+    async def _end_call_no_balance() -> None:
+        try:
+            await session.generate_reply(
+                instructions="Say exactly this: 'I apologize, but we need to end this call. Your account balance is insufficient to continue. Please add credits to your account to make future calls. Thank you and have a great day.'"
+            )
+        except Exception:
+            pass
+        await ctx.room.disconnect()
+
     async def check_balance_loop():
-        """Check tenant balance every 15s and terminate call if insufficient."""
+        """
+        Check tenant balance every 15s and terminate the call if it runs out.
+        Fails CLOSED: if we can't identify the tenant/call for billing, or the
+        balance endpoint keeps erroring, the call is ended rather than running
+        unbounded free minutes (previously it looped forever in both cases).
+        """
+        # Without billing identity we cannot meter this call — don't let it run.
+        if not tenant_id or not balance_call_id:
+            logger.warning(
+                "No tenantId/callId available for billing; ending call to avoid unmetered usage"
+            )
+            await _end_call_no_balance()
+            return
+
+        consecutive_errors = 0
         while True:
             await asyncio.sleep(15)
-            if not tenant_id or not balance_call_id:
-                continue
             try:
                 async with httpx.AsyncClient(timeout=5.0) as client:
                     resp = await client.get(
                         f"{dashboard_url}/api/billing/balance-check",
                         params={"tenantId": tenant_id, "callId": balance_call_id},
+                        headers={"x-api-key": VOICE_AGENT_API_KEY},
                     )
                     if resp.status_code == 200:
+                        consecutive_errors = 0
                         data = resp.json()
                         if not data.get("shouldContinue", True):
-                            await session.generate_reply(
-                                instructions="Say exactly this: 'I apologize, but we need to end this call. Your account balance is insufficient to continue. Please add credits to your account to make future calls. Thank you and have a great day.'"
-                            )
-                            await ctx.room.disconnect()
+                            await _end_call_no_balance()
                             return
+                    else:
+                        consecutive_errors += 1
+                        logger.warning(f"Balance check returned {resp.status_code}")
             except Exception as e:
+                consecutive_errors += 1
                 logger.warning(f"Balance check error: {e}")
+
+            # Fail closed after ~1 minute (4 checks) of not being able to verify.
+            if consecutive_errors >= 4:
+                logger.warning("Balance check unavailable repeatedly; ending call")
+                await _end_call_no_balance()
+                return
 
     balance_task = asyncio.create_task(check_balance_loop())
     ctx.add_shutdown_callback(lambda: balance_task.cancel())

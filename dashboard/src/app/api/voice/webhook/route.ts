@@ -313,8 +313,11 @@ async function recordUsageAndDeduct(
           return;
         }
 
+        // Allow the balance to go negative so overage (minutes used past zero
+        // before the mid-call kill switch fired) is recorded as real debt
+        // rather than silently written off by clamping at zero.
         const numBalance = Number(wallet.balance);
-        const newBalance = Math.max(0, numBalance - totalCost);
+        const newBalance = numBalance - totalCost;
 
         await tx.voiceUsage.create({
           data: { userId, tenantId, callId, minutes, costRate: COST_PER_MINUTE, totalCost, baseCost, margin },
