@@ -482,6 +482,37 @@ import httpx
 from urllib.parse import urlencode
 
 
+async def _store_oauth_state(state: str) -> None:
+    """
+    Persist an OAuth state token in Redis (10-minute TTL) so it can be
+    verified on callback. Sessions aren't installed in this app, so Redis is
+    the state store (same backend as workspace tokens).
+    """
+    from app.services.cache_service import get_cache_service
+
+    cache = await get_cache_service()
+    if cache.redis_client:
+        await cache.redis_client.setex(f"oauth_state:{state}", 600, "1")
+
+
+async def _verify_oauth_state(state: str) -> bool:
+    """
+    Verify and consume a one-time OAuth state token. Returns False if the
+    state is unknown/expired, or if Redis is unavailable (fail closed).
+    """
+    from app.services.cache_service import get_cache_service
+
+    cache = await get_cache_service()
+    if not cache.redis_client:
+        return False
+    key = f"oauth_state:{state}"
+    exists = await cache.redis_client.get(key)
+    if not exists:
+        return False
+    await cache.redis_client.delete(key)
+    return True
+
+
 @router.get("/oauth/google/authorize")
 async def google_oauth_authorize(request: Request):
     """
@@ -494,12 +525,9 @@ async def google_oauth_authorize(request: Request):
             detail="Google OAuth is not configured"
         )
 
-    # Generate state for CSRF protection
+    # Generate state for CSRF protection and persist it for callback verification
     state = secrets.token_urlsafe(32)
-
-    # Store state in session (if available) - check scope to avoid triggering property getter
-    if 'session' in request.scope:
-        request.session["oauth_state"] = state
+    await _store_oauth_state(state)
 
     # Build authorization URL
     params = {
@@ -533,6 +561,13 @@ async def google_oauth_callback(
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Google OAuth is not configured"
+        )
+
+    # Verify the state token to prevent login CSRF
+    if not await _verify_oauth_state(state):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid or expired OAuth state"
         )
 
     # Exchange code for tokens
@@ -655,10 +690,7 @@ async def microsoft_oauth_authorize(request: Request):
         )
 
     state = secrets.token_urlsafe(32)
-
-    # Store state in session (if available) - check scope to avoid triggering property getter
-    if 'session' in request.scope:
-        request.session["oauth_state"] = state
+    await _store_oauth_state(state)
 
     params = {
         "client_id": settings.MICROSOFT_CLIENT_ID,
@@ -689,6 +721,13 @@ async def microsoft_oauth_callback(
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Microsoft OAuth is not configured"
+        )
+
+    # Verify the state token to prevent login CSRF
+    if not await _verify_oauth_state(state):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid or expired OAuth state"
         )
 
     async with httpx.AsyncClient() as client:
