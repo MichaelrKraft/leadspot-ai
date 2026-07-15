@@ -38,6 +38,16 @@ export function getInitializedOrgs(): string[] {
   return Array.from(initializedOrgs);
 }
 
+/**
+ * Initialize action-plan processing for an organization (creates tables and
+ * marks the org active in the in-memory set). Safe to call repeatedly.
+ * Called at startup for every org on disk so the 60s processing loop resumes
+ * after a restart instead of waiting for an unrelated API call.
+ */
+export function initializeOrg(organizationId: string): void {
+  ensureTables(organizationId);
+}
+
 // --- Types ---
 
 export type ActionStepType = 'email' | 'sms' | 'task' | 'call_reminder' | 'tag' | 'wait';
@@ -351,6 +361,22 @@ export async function processNextStep(organizationId: string, enrollmentId: stri
   ensureTables(organizationId);
   const db = getDb(organizationId);
 
+  // Atomically claim the enrollment by pushing next_step_at forward before
+  // doing any send. If two workers race (the 60s loop and the manual
+  // /action-plans/process endpoint), only the one whose UPDATE changes a row
+  // proceeds; the other sees changes === 0 and skips. On success/failure the
+  // code below rewrites next_step_at, so the lease is just the lock window.
+  const claim = db.prepare(`
+    UPDATE action_plan_enrollments
+    SET next_step_at = ?
+    WHERE id = ? AND organization_id = ? AND status = 'active' AND next_step_at <= ?
+  `).run(addMinutesISO(nowISO(), 5), enrollmentId, organizationId, nowISO());
+
+  if (claim.changes === 0) {
+    // Not claimable: already taken by another worker, not due, or not active.
+    return { stepIndex: -1, executedAt: nowISO(), status: 'skipped', result: 'Enrollment not claimable (already processing, not due, or inactive)' };
+  }
+
   const eRow = db.prepare(
     'SELECT * FROM action_plan_enrollments WHERE id = ? AND organization_id = ?',
   ).get(enrollmentId, organizationId) as EnrollmentRow | undefined;
@@ -358,7 +384,6 @@ export async function processNextStep(organizationId: string, enrollmentId: stri
   const enrollment = rowToEnrollment(eRow);
 
   if (enrollment.status !== 'active') throw new Error(`Enrollment is ${enrollment.status}, not active`);
-  if (new Date(enrollment.nextStepAt) > new Date()) throw new Error('Next step is not yet due');
 
   const plan = getActionPlan(organizationId, enrollment.planId);
   if (!plan) throw new Error(`Plan ${enrollment.planId} not found`);

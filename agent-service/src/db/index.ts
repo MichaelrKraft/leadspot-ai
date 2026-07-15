@@ -28,6 +28,21 @@ export function getDataDir(): string {
   return dataDir;
 }
 
+/**
+ * List every organization that has a database on disk.
+ * Used at startup to re-initialize per-org processing after a restart,
+ * since the in-memory init caches are empty on boot.
+ */
+export function listOrgIdsOnDisk(): string[] {
+  const orgsDir = path.join(dataDir, 'orgs');
+  if (!fs.existsSync(orgsDir)) return [];
+  return fs
+    .readdirSync(orgsDir, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => entry.name)
+    .filter((name) => /^[A-Za-z0-9_-]+$/.test(name));
+}
+
 // ============================================================================
 // Connection Cache
 // ============================================================================

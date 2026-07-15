@@ -327,6 +327,26 @@ export function removeGoal(db: Database.Database, goalId: string): void {
 // Enrollment
 // ============================================================================
 
+/**
+ * Ensure the recurring 'process_workflow_steps' cron job exists and is
+ * running for an org. addJob uses UNIQUE(org, name) so repeat calls are
+ * idempotent. Called both on enrollment and at startup for every org on
+ * disk, so drip processing resumes after a restart.
+ */
+export async function ensureWorkflowCron(orgId: string): Promise<void> {
+  const cronService = createCronService();
+  await cronService.addJob(
+    'process_workflow_steps',
+    { kind: 'every', everyMs: 5 * 60 * 1000 }, // every 5 minutes
+    { message: 'Process due workflow email steps', action: 'process_workflow_steps' },
+    orgId,
+    { enabled: true },
+  );
+  if (!cronService.isRunning()) {
+    await cronService.startForOrg(orgId);
+  }
+}
+
 export async function enrollContacts(
   db: Database.Database,
   workflowId: string,
@@ -367,21 +387,7 @@ export async function enrollContacts(
     );
   }
 
-  // Ensure a recurring cron job exists for this org to process workflow steps.
-  // addJob uses UNIQUE(org, name) — duplicate calls are silently ignored.
-  const cronService = createCronService();
-  await cronService.addJob(
-    'process_workflow_steps',
-    { kind: 'every', everyMs: 5 * 60 * 1000 }, // every 5 minutes
-    { message: 'Process due workflow email steps', action: 'process_workflow_steps' },
-    orgId,
-    { enabled: true },
-  );
-
-  // Ensure the cron service is running for this org
-  if (!cronService.isRunning()) {
-    await cronService.startForOrg(orgId);
-  }
+  await ensureWorkflowCron(orgId);
 }
 
 // ============================================================================

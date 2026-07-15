@@ -909,6 +909,24 @@ async function main(): Promise<void> {
   // Initialize the orchestrator singleton
   await createOrchestrator(config);
 
+  // Re-initialize per-org processing for every org that has data on disk.
+  // The in-memory init caches are empty on boot, so without this the
+  // action-plan loop and workflow cron would stay idle after a restart
+  // until an unrelated API call happened to touch each org.
+  const { listOrgIdsOnDisk } = await import('./db');
+  const { initializeOrg } = await import('./action-plans');
+  const { ensureWorkflowCron } = await import('./workflows');
+  const orgsOnDisk = listOrgIdsOnDisk();
+  for (const orgId of orgsOnDisk) {
+    try {
+      initializeOrg(orgId);
+      await ensureWorkflowCron(orgId);
+    } catch (err: unknown) {
+      console.error(`[AgentService] Failed to initialize org ${orgId} at startup:`, err);
+    }
+  }
+  console.log(`[AgentService] Initialized ${orgsOnDisk.length} organization(s) from disk`);
+
   // Create and start the Express server
   const app = createApp();
 
