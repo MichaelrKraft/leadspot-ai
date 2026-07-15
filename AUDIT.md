@@ -29,6 +29,29 @@ Approved scope: **P0 + quick wins** (findings 1–11, 14, 15, 19). All complete,
 
 ---
 
+## Fix Status — Hardening Pass 2 (2026-07-15, branch `fable5/hardening`)
+
+Approved scope: **remaining P1s**. Shipped 12–14, 16–18, 20–23, 26 (and #41 alongside #18). One logical commit per finding except where two findings share a file/flow (noted).
+
+- [x] #12 Password-reset email was a print() stub — `8d44353` (added Resend-backed transactional sender)
+- [x] #13 OAuth state never verified — `2dd0765` (Redis-backed state, both providers)
+- [x] #16 + #17 Drip engines stall after restart + double-send race — `c506867` (boot-time org scan; atomic enrollment claim)
+- [x] #18 + #41 Voice call ran unmetered / balance-check unauthenticated — `72bdf11` (fail-closed billing on all paths; API-key on balance-check; negative-balance overage)
+- [x] #20 JWT persisted in localStorage — `a0dec7a`
+- [x] #21 AuthGuard trusted stale localStorage — `40a63d9` (validates /auth/me on mount)
+- [x] #22 Demo login no-opped in prod — `1aa0020` (real backend session, flag-gated)
+- [x] #23 Dashboard permanently demo — `df336e8` (sends real org id to insights)
+- [x] #26 Dead API surface + orphaned sidebar — `0100b7e`
+
+**Deferred (needs its own session):**
+- [ ] #25 Email model has no organization_id — requires an Alembic migration with backfill (join through users) plus a query-semantics change (org-wide vs per-user email visibility, a product decision). Not safe to rush at the end of a batch; recommend a dedicated pass with up/down migration testing on a scratch DB.
+
+**Verification (pass 2):** `tsc --noEmit` clean across frontend, agent-service, dashboard (same two pre-existing errors untouched). Backend pytest: **189 passed**; the only failures remain the pre-existing `tests/test_gmail_integration.py` missing-module errors.
+
+**Additional deployment requirements from pass 2:** set `RESEND_API_KEY` (backend, for password-reset email — fails soft if unset); optionally `DEMO_LOGIN_ENABLED=true` + `NEXT_PUBLIC_DEMO_LOGIN_ENABLED=true` to expose the demo button; `VOICE_AGENT_API_KEY` must be set on the dashboard (balance-check now requires it) and match the voice-agent. OAuth login now hard-requires Redis (state store) — consistent with the workspace-token flow, which already did.
+
+---
+
 ## Summary
 
 LeadSpot is architecturally further along than its docs admit — the "one critical code gap" in CLAUDE.md (stubbed email send) is **stale: real Resend sending with suppression checks, CAN-SPAM footer, and record-send bridge now exists** in agent-service. But the system is nowhere near production-safe. The single biggest risk is a **cluster of unauthenticated write surfaces**: agent-service has *zero* auth (any caller can read/write any org's data, trigger real emails via your Resend domain, and exploit an orgId **path traversal** to write SQLite files anywhere on disk), and the backend exposes unauthenticated `record-send`, `suppressions`, `chat`, and an open proxy into agent-service. The highest-leverage win is tiny: two mechanical frontend sweeps (`|| 'http://localhost:8000'` → `??`, and routing raw `fetch` writes through the existing `apiClient`) un-break OAuth login, password reset, logout, integrations, and all deal/calendar writes in production.
