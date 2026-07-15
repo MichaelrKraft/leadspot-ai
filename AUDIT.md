@@ -5,6 +5,30 @@
 
 ---
 
+## Fix Status — Hardening Pass 1 (2026-07-15, branch `fable5/hardening`)
+
+Approved scope: **P0 + quick wins** (findings 1–11, 14, 15, 19). All complete, one commit per finding (2+3 and 5+7 share mechanisms and commits).
+
+- [x] #1 Forgeable JWT fallback auth path — `0f4a3a6`
+- [x] #2 + #3 Unauthenticated record-send + suppressions (internal API key) — `5748c94`
+- [x] #4 Unauthenticated /api/chat + cross-org mautic_url match — `9764f28`
+- [x] #5 agent-service auth boundary (middleware + proxy + rewrite + apiClient) — `d5df002`
+- [x] #6 orgId path traversal — `7cf34f0`
+- [x] #7 test-send open relay (frontend route auth; endpoints key-gated in #5) — `7258b14`
+- [x] #8 Stripe refund credited wallet — `894bcc6`
+- [x] #9 Deals/calendar CSRF 403s — `c5a90d2`
+- [x] #10 `||` localhost:8000 fallbacks (7 files) — `e476dc6`
+- [x] #11 Logout blocked by CSRF — `ff9a842`
+- [x] #14 Suppression check fail-closed (3-state, retry-safe) — `c419b68`
+- [x] #15 Workflows advancing on failed sends — `b4b3446`
+- [x] #19 Stripe webhook signature mandatory — `2f87d7e`
+
+**Verification:** `tsc --noEmit` clean for frontend, agent-service, and dashboard (two pre-existing errors untouched: `frontend/app/space/[[...path]]/route.ts` BodyInit, `dashboard/src/app/api/tasks/route.ts` prisma.contact). Backend pytest: **189 passed**; 8 pre-existing failures all in `tests/test_gmail_integration.py` (imports `app.services.connectors.gmail`, which doesn't exist in the repo).
+
+**Deployment requirement:** set `INTERNAL_API_KEY` (backend) = `LEADSPOT_INTERNAL_API_KEY` (agent-service + frontend server env) to the same generated secret, and `STRIPE_WEBHOOK_SECRET` (dashboard) — the new guards fail closed, so drip emails, agent UI, and Stripe crediting stop working until these are set. Legacy unauthenticated Mautic-plugin access to /api/chat no longer works (documented in `9764f28`).
+
+---
+
 ## Summary
 
 LeadSpot is architecturally further along than its docs admit — the "one critical code gap" in CLAUDE.md (stubbed email send) is **stale: real Resend sending with suppression checks, CAN-SPAM footer, and record-send bridge now exists** in agent-service. But the system is nowhere near production-safe. The single biggest risk is a **cluster of unauthenticated write surfaces**: agent-service has *zero* auth (any caller can read/write any org's data, trigger real emails via your Resend domain, and exploit an orgId **path traversal** to write SQLite files anywhere on disk), and the backend exposes unauthenticated `record-send`, `suppressions`, `chat`, and an open proxy into agent-service. The highest-leverage win is tiny: two mechanical frontend sweeps (`|| 'http://localhost:8000'` → `??`, and routing raw `fetch` writes through the existing `apiClient`) un-break OAuth login, password reset, logout, integrations, and all deal/calendar writes in production.
