@@ -388,7 +388,12 @@ export async function enrollContacts(
 // Execution
 // ============================================================================
 
-/** Send an email step — delegates to the email service. */
+/**
+ * Send an email step — delegates to the email service.
+ * Returns true when the enrollment should advance (sent, or suppressed —
+ * a suppressed contact must not be retried) and false on send failure so
+ * the step is retried on the next processing run.
+ */
 async function executeSendEmailStep(
   enrollment: WorkflowEnrollment,
   step: WorkflowStep,
@@ -396,7 +401,7 @@ async function executeSendEmailStep(
   vars: Record<string, string>,
 ): Promise<boolean> {
   const { sendEmail } = await import('../services/email');
-  await sendEmail({
+  const result = await sendEmail({
     to: enrollment.contact_email,
     subject: interpolateVariables(step.subject, vars),
     body: interpolateVariables(step.body, vars),
@@ -404,6 +409,14 @@ async function executeSendEmailStep(
     organizationId: orgId,
     enrollmentId: enrollment.id,
   });
+  if (result.suppressed) {
+    console.log(`[Workflows] Skipping suppressed contact ${enrollment.contact_email} (enrollment ${enrollment.id})`);
+    return true;
+  }
+  if (!result.success) {
+    console.error(`[Workflows] Email send failed for enrollment ${enrollment.id}: ${result.error}`);
+    return false;
+  }
   return true;
 }
 
@@ -573,7 +586,13 @@ export async function processWorkflowSteps(orgId: string): Promise<void> {
           .filter(Boolean).join(' '),
       };
 
-      await executeStep(db, enrollment, currentStep, orgId, vars);
+      const stepSucceeded = await executeStep(db, enrollment, currentStep, orgId, vars);
+      if (!stepSucceeded) {
+        // Leave current_step/next_send_at untouched so the step is retried
+        // on the next processing run instead of being silently marked done.
+        console.warn(`[Workflows] Step ${enrollment.current_step} failed for enrollment ${enrollment.id}; will retry`);
+        continue;
+      }
 
       // Determine the next step index, accounting for branch conditions
       let nextStepIndex = enrollment.current_step + 1;
