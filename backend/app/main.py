@@ -54,6 +54,7 @@ from app.routers import (
     daemon_cost,
     daemon_pause,
     daemon_unmatched,
+    deal_suggestions,
     deals,
     decisions,
     diagnostics,
@@ -215,6 +216,7 @@ app.include_router(conv_ai.router, prefix="/api/v2", tags=["conv-ai"])
 app.include_router(contacts_sync.router, prefix="/api", tags=["contacts-sync"])
 app.include_router(contacts_router.router, prefix="/api", tags=["contacts"])
 app.include_router(campaigns.router, prefix="/api", tags=["campaigns"])
+app.include_router(deal_suggestions.router, prefix="/api", tags=["deal-suggestions"])
 app.include_router(deals.router, prefix="/api", tags=["deals"])
 app.include_router(insights.router, prefix="/api", tags=["insights"])
 app.include_router(scoring.router, prefix="/api", tags=["scoring"])
