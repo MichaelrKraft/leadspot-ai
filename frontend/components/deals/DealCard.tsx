@@ -54,18 +54,25 @@ export default function DealCard({ deal, onDelete }: DealCardProps) {
       <div className="mb-2 flex items-start gap-2">
         <GripVertical className="mt-0.5 h-4 w-4 flex-shrink-0 text-gray-400 opacity-0 transition-opacity group-hover:opacity-100" />
         <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
-            <User className="h-3.5 w-3.5 flex-shrink-0 text-gray-400" />
-            <span className="truncate text-sm font-semibold text-gray-900 dark:text-white">
-              {deal.contactName}
-            </span>
-          </div>
-          <div className="mt-0.5 flex items-center gap-2">
-            <Building2 className="h-3.5 w-3.5 flex-shrink-0 text-gray-400" />
-            <span className="truncate text-xs text-gray-500 dark:text-gray-400">
-              {deal.company}
-            </span>
-          </div>
+          <span className="block truncate text-sm font-semibold text-gray-900 dark:text-white">
+            {deal.title || deal.contactName}
+          </span>
+          {deal.contactName && deal.contactName !== deal.title && (
+            <div className="mt-0.5 flex items-center gap-2">
+              <User className="h-3.5 w-3.5 flex-shrink-0 text-gray-400" />
+              <span className="truncate text-xs text-gray-500 dark:text-gray-400">
+                {deal.contactName}
+              </span>
+            </div>
+          )}
+          {deal.company && (
+            <div className="mt-0.5 flex items-center gap-2">
+              <Building2 className="h-3.5 w-3.5 flex-shrink-0 text-gray-400" />
+              <span className="truncate text-xs text-gray-500 dark:text-gray-400">
+                {deal.company}
+              </span>
+            </div>
+          )}
         </div>
       </div>
 

@@ -4,11 +4,17 @@ import { useState, useCallback } from 'react';
 import { Plus } from 'lucide-react';
 import PipelineKanban from '@/components/deals/PipelineKanban';
 import NewDealModal from '@/components/deals/NewDealModal';
-import type { Deal } from '@/types/deals';
+import type { Deal, Pipeline } from '@/types/deals';
 
 type NewDealData = Omit<Deal, 'id' | 'createdAt' | 'updatedAt' | 'stageChangedAt'>;
 
+const PIPELINE_TABS: { id: Pipeline; label: string }[] = [
+  { id: 'sales', label: 'Sales' },
+  { id: 'leasing', label: 'Leasing' },
+];
+
 export default function DealsPage() {
+  const [pipeline, setPipeline] = useState<Pipeline>('sales');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [pendingDeal, setPendingDeal] = useState<NewDealData | null>(null);
 
@@ -39,12 +45,30 @@ export default function DealsPage() {
         </button>
       </div>
 
+      {/* Pipeline Tabs */}
+      <div className="mb-4 flex gap-1 rounded-lg bg-gray-100 p-1 dark:bg-zinc-900 w-fit">
+        {PIPELINE_TABS.map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => setPipeline(tab.id)}
+            className={`rounded-md px-4 py-1.5 text-sm font-medium transition-colors ${
+              pipeline === tab.id
+                ? 'bg-white text-gray-900 shadow-sm dark:bg-zinc-700 dark:text-white'
+                : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
       {/* Kanban Board */}
-      <PipelineKanban pendingDeal={pendingDeal} onDealAdded={handleDealAdded} />
+      <PipelineKanban pipeline={pipeline} pendingDeal={pendingDeal} onDealAdded={handleDealAdded} />
 
       {/* New Deal Modal */}
       <NewDealModal
         isOpen={isModalOpen}
+        pipeline={pipeline}
         onClose={() => setIsModalOpen(false)}
         onSubmit={handleNewDeal}
       />

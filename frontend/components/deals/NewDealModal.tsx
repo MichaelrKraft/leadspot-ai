@@ -1,32 +1,41 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { X } from 'lucide-react';
-import type { Deal, DealStage } from '@/types/deals';
+import type { Deal, DealStage, Pipeline } from '@/types/deals';
+import { listStages, type ApiStageDefinition } from '@/lib/api/deals';
 
 interface NewDealModalProps {
   isOpen: boolean;
+  pipeline: Pipeline;
   onClose: () => void;
   onSubmit: (deal: Omit<Deal, 'id' | 'createdAt' | 'updatedAt' | 'stageChangedAt'>) => void;
 }
 
-const STAGE_OPTIONS: { value: DealStage; label: string }[] = [
-  { value: 'lead', label: 'Lead' },
-  { value: 'qualified', label: 'Qualified' },
-  { value: 'proposal', label: 'Proposal' },
-  { value: 'negotiation', label: 'Negotiation' },
-  { value: 'won', label: 'Won' },
-  { value: 'lost', label: 'Lost' },
-];
-
-export default function NewDealModal({ isOpen, onClose, onSubmit }: NewDealModalProps) {
+export default function NewDealModal({ isOpen, pipeline, onClose, onSubmit }: NewDealModalProps) {
+  const [title, setTitle] = useState('');
   const [contactName, setContactName] = useState('');
   const [email, setEmail] = useState('');
   const [company, setCompany] = useState('');
+  const [propertyName, setPropertyName] = useState('');
   const [value, setValue] = useState('');
-  const [stage, setStage] = useState<DealStage>('lead');
+  const [stageOptions, setStageOptions] = useState<ApiStageDefinition[]>([]);
+  const [stage, setStage] = useState<DealStage | ''>('');
   const [priority, setPriority] = useState<Deal['priority']>('warm');
   const [notes, setNotes] = useState('');
+
+  const isLeasing = pipeline === 'leasing';
+
+  // Load stage options for the active pipeline
+  useEffect(() => {
+    if (!isOpen) return;
+    listStages(pipeline)
+      .then((stages) => {
+        setStageOptions(stages);
+        setStage((prev) => (prev && stages.some((s) => s.id === prev) ? prev : (stages[0]?.id as DealStage)));
+      })
+      .catch((err) => console.error('[NewDealModal] failed to load stages:', err));
+  }, [isOpen, pipeline]);
 
   if (!isOpen) return null;
 
@@ -39,20 +48,25 @@ export default function NewDealModal({ isOpen, onClose, onSubmit }: NewDealModal
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     onSubmit({
+      title: title || contactName,
       contactName,
       email,
       company,
+      propertyName,
+      pipeline,
       value: Number(value) || 0,
-      stage,
+      stage: (stage || stageOptions[0]?.id) as DealStage,
       priority,
       notes,
     });
     // Reset form
+    setTitle('');
     setContactName('');
     setEmail('');
     setCompany('');
+    setPropertyName('');
     setValue('');
-    setStage('lead');
+    setStage('');
     setPriority('warm');
     setNotes('');
     onClose();
@@ -68,10 +82,12 @@ export default function NewDealModal({ isOpen, onClose, onSubmit }: NewDealModal
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
       onClick={handleBackdropClick}
     >
-      <div className="mx-4 w-full max-w-lg rounded-2xl border border-gray-200 bg-white p-6 shadow-2xl dark:border-zinc-800/50 dark:bg-zinc-900">
+      <div className="mx-4 max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl border border-gray-200 bg-white p-6 shadow-2xl dark:border-zinc-800/50 dark:bg-zinc-900">
         {/* Header */}
         <div className="mb-6 flex items-center justify-between">
-          <h2 className="text-xl font-bold text-gray-900 dark:text-white">New Deal</h2>
+          <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+            {isLeasing ? 'New Leasing Deal' : 'New Deal'}
+          </h2>
           <button
             onClick={onClose}
             className="rounded-lg p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-zinc-800 dark:hover:text-gray-200"
@@ -82,10 +98,46 @@ export default function NewDealModal({ isOpen, onClose, onSubmit }: NewDealModal
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Deal Title (leasing) */}
+          {isLeasing && (
+            <div>
+              <label htmlFor="deal-title" className={labelClasses}>
+                Deal Title
+              </label>
+              <input
+                id="deal-title"
+                type="text"
+                required
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="Suite 200 — Portsmouth Tech Park"
+                className={inputClasses}
+              />
+            </div>
+          )}
+
+          {/* Property (leasing) */}
+          {isLeasing && (
+            <div>
+              <label htmlFor="deal-property" className={labelClasses}>
+                Property
+              </label>
+              <input
+                id="deal-property"
+                type="text"
+                required
+                value={propertyName}
+                onChange={(e) => setPropertyName(e.target.value)}
+                placeholder="Portsmouth Tech Park"
+                className={inputClasses}
+              />
+            </div>
+          )}
+
           {/* Contact Name */}
           <div>
             <label htmlFor="deal-contact-name" className={labelClasses}>
-              Contact Name
+              {isLeasing ? 'Tenant / Broker Contact' : 'Contact Name'}
             </label>
             <input
               id="deal-contact-name"
@@ -114,27 +166,29 @@ export default function NewDealModal({ isOpen, onClose, onSubmit }: NewDealModal
             />
           </div>
 
-          {/* Company */}
-          <div>
-            <label htmlFor="deal-company" className={labelClasses}>
-              Company
-            </label>
-            <input
-              id="deal-company"
-              type="text"
-              required
-              value={company}
-              onChange={(e) => setCompany(e.target.value)}
-              placeholder="Acme Inc"
-              className={inputClasses}
-            />
-          </div>
+          {/* Company (sales only — leasing uses Property) */}
+          {!isLeasing && (
+            <div>
+              <label htmlFor="deal-company" className={labelClasses}>
+                Company
+              </label>
+              <input
+                id="deal-company"
+                type="text"
+                required
+                value={company}
+                onChange={(e) => setCompany(e.target.value)}
+                placeholder="Acme Inc"
+                className={inputClasses}
+              />
+            </div>
+          )}
 
           {/* Value + Stage row */}
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label htmlFor="deal-value" className={labelClasses}>
-                Deal Value ($)
+                {isLeasing ? 'Lease Value ($)' : 'Deal Value ($)'}
               </label>
               <input
                 id="deal-value"
@@ -143,7 +197,7 @@ export default function NewDealModal({ isOpen, onClose, onSubmit }: NewDealModal
                 required
                 value={value}
                 onChange={(e) => setValue(e.target.value)}
-                placeholder="10000"
+                placeholder={isLeasing ? '1200000' : '10000'}
                 className={inputClasses}
               />
             </div>
@@ -157,9 +211,9 @@ export default function NewDealModal({ isOpen, onClose, onSubmit }: NewDealModal
                 onChange={(e) => setStage(e.target.value as DealStage)}
                 className={inputClasses}
               >
-                {STAGE_OPTIONS.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.label}
+                {stageOptions.map((opt) => (
+                  <option key={opt.id} value={opt.id}>
+                    {opt.name}
                   </option>
                 ))}
               </select>
