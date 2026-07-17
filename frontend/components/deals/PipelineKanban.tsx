@@ -71,6 +71,7 @@ interface PipelineKanbanProps {
   pipeline: Pipeline;
   pendingDeal: Omit<Deal, 'id' | 'createdAt' | 'updatedAt' | 'stageChangedAt'> | null;
   onDealAdded: () => void;
+  onAddDeal?: (stage: DealStage) => void;
   refreshKey?: number;
 }
 
@@ -78,6 +79,7 @@ export default function PipelineKanban({
   pipeline,
   pendingDeal,
   onDealAdded,
+  onAddDeal,
   refreshKey = 0,
 }: PipelineKanbanProps) {
   const [deals, setDeals] = useState<Deal[]>([]);
@@ -260,9 +262,13 @@ export default function PipelineKanban({
                 <DealCard key={deal.id} deal={deal} onDelete={handleDeleteDeal} />
               ))}
               {stageDeals.length === 0 && (
-                <div className="flex h-20 items-center justify-center rounded-lg border-2 border-dashed border-gray-300 dark:border-zinc-700">
+                <button
+                  type="button"
+                  onClick={() => onAddDeal?.(stage.id)}
+                  className="flex h-20 w-full cursor-pointer items-center justify-center rounded-lg border-2 border-dashed border-gray-300 transition-colors hover:border-primary-500 hover:bg-primary-500/5 dark:border-zinc-700 dark:hover:border-primary-500"
+                >
                   <p className="text-xs text-gray-400">+ Add deal</p>
-                </div>
+                </button>
               )}
             </div>
           </div>

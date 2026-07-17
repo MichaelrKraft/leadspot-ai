@@ -8,11 +8,12 @@ import { listStages, type ApiStageDefinition } from '@/lib/api/deals';
 interface NewDealModalProps {
   isOpen: boolean;
   pipeline: Pipeline;
+  initialStage?: DealStage | null;
   onClose: () => void;
   onSubmit: (deal: Omit<Deal, 'id' | 'createdAt' | 'updatedAt' | 'stageChangedAt'>) => void;
 }
 
-export default function NewDealModal({ isOpen, pipeline, onClose, onSubmit }: NewDealModalProps) {
+export default function NewDealModal({ isOpen, pipeline, initialStage, onClose, onSubmit }: NewDealModalProps) {
   const [title, setTitle] = useState('');
   const [contactName, setContactName] = useState('');
   const [email, setEmail] = useState('');
@@ -26,16 +27,20 @@ export default function NewDealModal({ isOpen, pipeline, onClose, onSubmit }: Ne
 
   const isLeasing = pipeline === 'leasing';
 
-  // Load stage options for the active pipeline
+  // Load stage options for the active pipeline; honor a pre-selected stage
   useEffect(() => {
     if (!isOpen) return;
     listStages(pipeline)
       .then((stages) => {
         setStageOptions(stages);
-        setStage((prev) => (prev && stages.some((s) => s.id === prev) ? prev : (stages[0]?.id as DealStage)));
+        if (initialStage && stages.some((s) => s.id === initialStage)) {
+          setStage(initialStage);
+        } else {
+          setStage((prev) => (prev && stages.some((s) => s.id === prev) ? prev : (stages[0]?.id as DealStage)));
+        }
       })
       .catch((err) => console.error('[NewDealModal] failed to load stages:', err));
-  }, [isOpen, pipeline]);
+  }, [isOpen, pipeline, initialStage]);
 
   if (!isOpen) return null;
 

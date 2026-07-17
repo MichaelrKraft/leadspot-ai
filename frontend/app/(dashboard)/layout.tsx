@@ -326,7 +326,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         </aside>
 
         {/* Main Content Area */}
-        <div className="ml-[220px] flex flex-1 flex-col min-h-0">
+        <div className="ml-[220px] flex flex-1 flex-col min-h-0 min-w-0">
           {/* Header Bar */}
           <header className="flex items-center justify-between border-b border-slate-200 bg-[#f8fafc] px-6 py-4 dark:border-white/10 dark:bg-[#111118]">
             <h1 className="m-0 text-xl font-semibold text-slate-800 dark:text-white">

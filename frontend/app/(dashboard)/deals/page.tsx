@@ -6,7 +6,7 @@ import PipelineKanban from '@/components/deals/PipelineKanban';
 import NewDealModal from '@/components/deals/NewDealModal';
 import SuggestionsDrawer from '@/components/deals/SuggestionsDrawer';
 import { listSuggestions } from '@/lib/api/suggestions';
-import type { Deal, Pipeline } from '@/types/deals';
+import type { Deal, DealStage, Pipeline } from '@/types/deals';
 
 type NewDealData = Omit<Deal, 'id' | 'createdAt' | 'updatedAt' | 'stageChangedAt'>;
 
@@ -22,6 +22,12 @@ export default function DealsPage() {
   const [pendingDeal, setPendingDeal] = useState<NewDealData | null>(null);
   const [pendingCount, setPendingCount] = useState(0);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [initialStage, setInitialStage] = useState<DealStage | null>(null);
+
+  const handleAddDealAtStage = useCallback((stage: DealStage) => {
+    setInitialStage(stage);
+    setIsModalOpen(true);
+  }, []);
 
   const refreshBadge = useCallback(() => {
     listSuggestions()
@@ -101,6 +107,7 @@ export default function DealsPage() {
         pipeline={pipeline}
         pendingDeal={pendingDeal}
         onDealAdded={handleDealAdded}
+        onAddDeal={handleAddDealAtStage}
         refreshKey={refreshKey}
       />
 
@@ -108,7 +115,11 @@ export default function DealsPage() {
       <NewDealModal
         isOpen={isModalOpen}
         pipeline={pipeline}
-        onClose={() => setIsModalOpen(false)}
+        initialStage={initialStage}
+        onClose={() => {
+          setIsModalOpen(false);
+          setInitialStage(null);
+        }}
         onSubmit={handleNewDeal}
       />
 
