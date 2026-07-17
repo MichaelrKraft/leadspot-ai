@@ -102,7 +102,7 @@ class Settings(BaseSettings):
     EMBEDDING_DIMENSION: int = 1536
 
     # Synthesis settings
-    SYNTHESIS_MODEL: str = "claude-sonnet-4-6"
+    SYNTHESIS_MODEL: str = "claude-sonnet-5"
     MAX_SOURCES: int = 10
 
     # Query settings
