@@ -1,3 +1,58 @@
+# LeadSpot Production Deploy — 2026-07-15
+
+## Context (revised — services already existed on Render)
+Original assumption was wrong: this was NOT a from-scratch deploy. All 3 services already exist
+on Render, manually suspended ~6 months ago, fully configured with real secrets (Postgres via
+`DATABASE_URL`/`DIRECT_DATABASE_URL`, Stripe, LiveKit, Neo4j, Mautic OAuth, Resend). Mike is not
+sure they were ever fully verified end-to-end before suspension — treat as "configured, unverified,"
+not "known working."
+
+**Services (all deploy from `main`, all Free tier, Oregon):**
+- `leadspot-api` — root dir `backend`, https://leadspot-api.onrender.com (or similar)
+- `leadspot-frontend` — root dir `frontend`, https://leadspot-frontend.onrender.com
+- `leadspot-agent-service` (Render name shows as `leadspot` in list) — root dir `agent-service`
+
+**What happened this session:**
+1. Merged `origin/main`'s prior Render deploy fixes (port binding, OAuth middleware matcher,
+   Docker build args, CORS pydantic parsing, query-history stub) into `fable5/hardening` — that
+   branch had 6 months of security/stability hardening (AUDIT.md Pass 1 + Pass 2) that had never
+   been deployed. Resolved 2 conflicts (`frontend/next.config.js`, `frontend/Dockerfile`) keeping
+   HEAD's `/api/agent/*` routing-through-backend-proxy (security correct) + main's real deploy fixes.
+2. Merged `fable5/hardening` → `main` (clean, 49 ahead / 0 behind after the above) and pushed.
+3. Scope trimmed: `dashboard/` (Prisma, Stripe billing UI, voice-agent balance) explicitly OUT —
+   not needed for personal-CRM use, revisit later if voice/billing wanted.
+
+## Known-missing / needs verification (from Pass 1 + Pass 2 hardening requirements)
+- `INTERNAL_API_KEY` on `leadspot-api` — NOT seen in its env var list (screenshot showed
+  ANTHROPIC_API_KEY, CORS_ORIGINS, DATABASE_URL, ENCRYPTION_KEY, ENVIRONMENT, FROM_EMAIL,
+  FRONTEND_URL, JWT_SECRET, LIVEKIT_*, NEO4J_PASSWORD, OPENAI_API_KEY, PYTHONUNBUFFERED,
+  STRIPE_SECRET_KEY — no INTERNAL_API_KEY visible). This gates drip emails + agent UI closed
+  per Pass 1 fix #2/#3 until set.
+- `LEADSPOT_INTERNAL_API_KEY` on `leadspot-agent-service` — need to confirm it's set and matches
+  whatever gets generated for `INTERNAL_API_KEY` above (screenshot was cut off by "Show more").
+- Redis — no Redis-related env var seen on any of the 3 services yet; Pass 2 #13 (OAuth state)
+  and #16/#17 (drip engine boot-scan + enrollment claim) need it. Must provision + wire before
+  OAuth login or drips will work correctly on the new code.
+- `RESEND_WEBHOOK_SECRET` — confirm set on agent-service for bounce/complaint handling.
+
+## Todo
+- [x] Merge main's deploy fixes into fable5/hardening (resolved 2 conflicts)
+- [x] Merge fable5/hardening into main, push (d64317b..719cf0f)
+- [ ] Mike: click "Resume service" on all 3 suspended Render services
+- [ ] Confirm each service redeploys the new `main` commit (719cf0f) — may need manual "Deploy latest commit" after resuming
+- [ ] Add `INTERNAL_API_KEY` to leadspot-api + matching `LEADSPOT_INTERNAL_API_KEY` to leadspot-agent-service (generate fresh, don't reuse any dev value)
+- [ ] Provision Redis (Render Redis or Upstash) and wire `REDIS_URL` into leadspot-api
+- [ ] Verify `noreply@mail.leadspot.ai` SPF/DKIM/DMARC actually verified in Resend dashboard
+- [ ] Smoke test prod: signup → contact → sequence → send → confirm arrival in inbox
+- [ ] Confirm OAuth login works against Redis-backed state store (Pass 2 #13) now that Redis exists
+- [ ] Check Supabase project behind DATABASE_URL is still active/reachable (screenshot didn't reveal which Supabase project)
+- [ ] Document a short runbook: URLs, daily-use flow, where to check bounces/opens
+
+## Review
+(To be filled after deploy completes)
+
+---
+
 # Beta Launch - Production Readiness Plan
 
 ## Priority Order
@@ -152,3 +207,89 @@ Will launch 4 parallel sub-agents:
 3. A recurring CronService job `process_workflow_steps` (every 5 min) fires for the org
 4. Finds enrollments where `next_send_at <= now`, sends email via Resend, advances step
 5. Marks enrollment `completed` when all steps are sent
+
+---
+
+# CRE "Central Brain" Sprint — Kane Company Prototype (2-day Fable 5 sprint, 2026-07-16)
+
+## Context
+Kelsey Kraus (COO, The Kane Company — 28-person commercial RE firm, Microsoft 365 shop, 600+ units under construction) wants a "central workstation": leasing-pipeline visibility (LOI → construction pricing → lease draft → negotiation → signed) with status **inferred from email + SharePoint**, not manually updated. Follow-up call Tuesday 7/21, 1pm ET. This sprint turns LeadSpot into that prototype.
+
+## Verified starting assets (fresh audit 2026-07-16)
+- **Deals**: `backend/app/models/deal.py` + `routers/deals.py` — full CRUD, stage validation, org-scoped; Kanban UI wired (`frontend/app/(dashboard)/deals/page.tsx`, `PipelineKanban`, `NewDealModal`). Generic sales stages only.
+- **Microsoft OAuth**: `services/oauth/microsoft.py` — SharePoint scopes (`Sites.Read.All`, `Files.Read.All`, `User.Read`, `offline_access`); **no `Mail.Read`**. Encrypted token storage + refresh in `models/oauth_connection.py`. Callback flow live in `routers/oauth.py`.
+- **Sync patterns to mirror**: `services/sync/gmail_sync.py`, `google_drive_sync.py`, `salesforce_sync.py`.
+- **Extraction**: `services/ingestion/extractor.py` — PDF/DOCX/XLSX/HTML/text, working.
+- **Heavy pipeline exists but NOT needed for v1**: chunker/embedder/Pinecone/Neo4j (`ingestion/pipeline.py`) — skip for this sprint.
+- **`ANTHROPIC_API_KEY`** already in `config/settings.py` (and on Render).
+- **`models/document.py`** exists — verify shape before adding a synced-docs table.
+
+## Architecture decisions
+1. **`pipeline` column on deals** (`'sales' | 'leasing'`), leasing stages: `inquiry → loi_negotiation → construction_pricing → lease_drafting → lease_negotiation → signed → lost`. Sales pipeline untouched (Mike dogfoods it).
+2. **Light inference path**: extract text → Claude classify → suggestion. No embeddings/graph in v1.
+3. **Suggestion queue, never auto-apply**: AI proposes stage changes with confidence + evidence quote; human accepts/rejects in UI. (Matches ORBIT "Exception Condition" philosophy — also the demo money-shot for Kelsey.)
+4. **New lightweight tables** (`email_messages`, `deal_suggestions`, `deal_activity`) — do NOT reuse Ghostlog `signals` (CHECK constraints pin it to ambient_screen/dockable sources).
+
+## Phase 1 — Leasing pipeline (Day 1 AM)
+- [ ] `models/deal.py`: add `pipeline` (default `'sales'`), `property_name`, `stage_changed_at`, `source_meta` JSON
+- [ ] Alembic migration (with `downgrade()`)
+- [ ] `routers/deals.py`: per-pipeline stage definitions; `GET /deals?pipeline=`; validate stage against its pipeline's set
+- [ ] `frontend/types/deals.ts` + Deals page: pipeline tabs (Sales | Leasing); Kanban renders correct stage set; NewDealModal gets pipeline + property fields
+- [ ] Reconcile frontend `Deal` type mismatch (contactName/email/company vs backend contact_id/contact_name) while in there
+
+## Phase 2 — Outlook mail ingestion (Day 1 PM)
+- [ ] `oauth/microsoft.py`: add `Mail.Read` scope (existing connections must re-consent — surface in Settings UI)
+- [ ] **MIKE ACTION (do first, consent propagates while I build)**: Azure app registration → add delegated `Mail.Read` permission
+- [ ] NEW `services/sync/outlook_sync.py` (mirror `gmail_sync.py`): Graph `/me/messages` delta query since `last_sync_at`
+- [ ] NEW `models/email_message.py`: org_id, graph_message_id (unique), from/to, subject, body_preview, received_at, matched contact_id / deal_id (nullable)
+- [ ] Matching pass: sender/recipient ↔ contacts ↔ open leasing deals
+- [ ] Wire into the existing sync endpoint in `routers/oauth.py` (mirror the gmail branch ~line 386)
+
+## Phase 3 — SharePoint document watch (Day 2 AM)
+- [ ] NEW `services/sync/sharepoint_sync.py` (mirror `google_drive_sync.py`): reuse `list_sites/list_site_drives/list_drive_items` + Graph delta; download new/changed files
+- [ ] Run `ContentExtractor` (extract-only) on each new file
+- [ ] Verify `models/document.py` shape — reuse if fits, else add `synced_documents` (drive_item_id unique)
+- [ ] Watched site/drive selection stored in `oauth_connection.provider_metadata` (v1)
+
+## Phase 4 — Status-inference agent (Day 2 PM) — the differentiator
+- [ ] NEW `services/inference/deal_status_agent.py`: input = new email/doc text + open leasing deals (title, property, stage, parties); Claude (`claude-sonnet-5`, structured output) → match deal, propose stage or no-op, confidence 0-100, evidence quote
+- [ ] NEW `models/deal_suggestion.py` + migration: deal_id, suggested_stage, current_stage, confidence, evidence, source_type/source_id, status (pending/accepted/rejected), resolved_by/at
+- [ ] Router: list pending / accept (PATCH deal + activity row) / reject
+- [ ] Trigger at end of each sync run on new items only
+- [ ] Frontend: suggestion badge on Deals page + review drawer (Accept / Reject with evidence shown)
+
+## Phase 5 — Verification (Day 2 end)
+- [ ] Unit: per-pipeline stage validation; suggestion accept updates deal + writes activity; regression on sales pipeline
+- [ ] Playwright: login → create leasing deal → drag between stages → suggestion review flow
+- [ ] Sync smoke against Mike's own M365 (or mocked Graph fixtures if consent lags)
+
+## Demo prep for Tuesday (~1h, after Phase 5)
+- [ ] Seed script: Kane-flavored demo org — 6 leasing deals across stages, 3 pending AI suggestions with realistic evidence ("Re: Portsmouth LOI — redlines attached")
+
+## Out of scope (this sprint)
+Multi-tenancy hardening, Teams/calendar ingestion, auto-apply default-on, Pinecone/Neo4j enrichment, voice/billing dashboard.
+
+## Risks
+- Azure scope consent needs Mike's tenant — kick off first thing Day 1
+- Graph throttling → delta queries, modest page sizes
+- SQLite dev vs Postgres prod: migrations must apply cleanly to both
+
+## Review — CRE Central Brain Sprint (2026-07-16, Fable 5)
+
+Branch: `feature/cre-central-brain` (4 commits, NOT pushed)
+
+### Shipped & verified
+- **Phase 1 — Leasing pipeline**: Deal.pipeline/property_name/stage_changed_at/source_meta; per-pipeline stages + validation; ?pipeline= filtering; Sales|Leasing tabs; Kanban fetches stages from API; honest field mapping (real title/property/days-in-stage). Migrations 20260716_cre1 applied+verified on dev SQLite.
+- **Phase 2 — AI inference + suggestion queue**: deal_status_agent (Claude structured output), email_messages + deal_suggestions tables (cre2), list/accept/reject endpoints, AI Suggestions badge + review drawer (evidence quote, confidence pill, source email). 11 unit tests, mocked Anthropic.
+- **Phase 3 — Kane demo seed**: 6 Seacoast leasing deals ($12.7M), 5 emails, 3 pending suggestions; idempotent re-run. Playwright-verified: login → Leasing tab → suggestions drawer → accept → card moves. Screenshots delivered.
+- **Phase 4 — Outlook sync**: OutlookSyncService w/ refresh-on-expiry + 401 retry, contact/deal matching, inference on new messages; Mail.Read scope added; wired into /oauth/microsoft/sync. 6 tests. Fixed pre-existing broken sync package import (gmail connectors module missing).
+
+### Remaining
+- Phase 5 (stretch): SharePoint document watch — needs microsoft.py recursion/delta/download first
+- MIKE: check Azure app registration control for MICROSOFT_CLIENT_ID → add delegated Mail.Read → re-consent connection
+- Pre-existing (not mine): 4 gmail-integration test failures, /space route tsc error
+
+### Demo runbook (Tuesday)
+1. `bash start.sh` (all 3 services)
+2. `cd backend && .venv/bin/python -m scripts.seed_kane_demo --email <your-login-email>` (re-run anytime to reset)
+3. localhost:3006 → Deals → Leasing tab → AI Suggestions
