@@ -1,5 +1,7 @@
 import type { Metadata } from 'next';
 
+import PrintButton from './PrintButton';
+
 export const metadata: Metadata = {
   title: 'Data Processing Addendum — LeadSpot.ai',
   description:
@@ -166,15 +168,7 @@ export default function DPAPage() {
       </p>
 
       <div className="not-prose mt-8 flex flex-wrap gap-3">
-        <button
-          type="button"
-          onClick={() => {
-            if (typeof window !== 'undefined') window.print();
-          }}
-          className="rounded-lg border border-blue-500 bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-500"
-        >
-          Print / save as PDF
-        </button>
+        <PrintButton />
         <a
           href="mailto:support@leadspot.ai?subject=DPA%20signature%20request"
           className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-800 hover:bg-gray-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:hover:bg-zinc-700"
