@@ -16,8 +16,21 @@ from app.models.deal_suggestion import DealSuggestion
 from app.models.email_message import EmailMessage
 from app.models.user import User
 from app.services.auth_service import get_current_user
+from app.services.inference.manual_ingest import ingest_manual_email
 
 router = APIRouter()
+
+
+class AnalyzeEmailRequest(BaseModel):
+    body: str
+    subject: Optional[str] = None
+    from_address: Optional[str] = None
+
+
+class AnalyzeEmailResponse(BaseModel):
+    message_id: str
+    outcome: str  # suggestion_created | no_change
+    suggestion: Optional["SuggestionResponse"] = None
 
 
 class SuggestionSource(BaseModel):
@@ -40,6 +53,9 @@ class SuggestionResponse(BaseModel):
     source: Optional[SuggestionSource]
     status: str
     created_at: datetime
+
+
+AnalyzeEmailResponse.model_rebuild()
 
 
 async def _get_suggestion(
@@ -88,6 +104,39 @@ async def _to_response(s: DealSuggestion, db: AsyncSession) -> SuggestionRespons
         source=source,
         status=s.status,
         created_at=s.created_at,
+    )
+
+
+@router.post("/deals/suggestions/analyze", tags=["deal-suggestions"])
+async def analyze_email(
+    data: AnalyzeEmailRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> AnalyzeEmailResponse:
+    """Analyze a pasted/forwarded message against open leasing deals.
+
+    Stores it as a manual email_message, runs deal-status inference, and
+    returns the created suggestion (if any). The suggestion still requires
+    human accept/reject — this never moves a deal by itself.
+    """
+    if not data.body.strip():
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Email body is required",
+        )
+
+    message, suggestion = await ingest_manual_email(
+        db,
+        str(current_user.organization_id),
+        body=data.body,
+        subject=data.subject,
+        from_address=data.from_address,
+    )
+
+    return AnalyzeEmailResponse(
+        message_id=message.id,
+        outcome="suggestion_created" if suggestion else "no_change",
+        suggestion=await _to_response(suggestion, db) if suggestion else None,
     )
 
 

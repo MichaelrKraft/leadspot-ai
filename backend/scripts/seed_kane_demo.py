@@ -27,7 +27,14 @@ from app.models.decision import Decision  # noqa: E402,F401  (User relationship 
 from app.models.deal import Deal  # noqa: E402
 from app.models.deal_suggestion import DealSuggestion  # noqa: E402
 from app.models.email_message import EmailMessage  # noqa: E402
+from app.models.organization import DEFAULT_BRANDING, Organization  # noqa: E402
 from app.models.user import User  # noqa: E402
+
+KANE_BRANDING = {
+    **DEFAULT_BRANDING,
+    "app_name": "Kane Company Command Center",
+    "primary_color": "#0f2340",
+}
 
 
 def days_ago(n: int) -> datetime:
@@ -76,7 +83,7 @@ SUGGESTIONS = [
 ]
 
 
-async def main(email: str) -> None:
+async def main(email: str, brand: bool = True) -> None:
     async with async_session_maker() as db:
         user = (
             await db.execute(select(User).where(User.email == email))
@@ -201,14 +208,25 @@ async def main(email: str) -> None:
                 )
             )
 
+        # Branding: Kane white-label on, or restore default with --no-brand
+        org = (
+            await db.execute(
+                select(Organization).where(Organization.organization_id == org_id)
+            )
+        ).scalar_one_or_none()
+        if org:
+            org.branding = KANE_BRANDING if brand else dict(DEFAULT_BRANDING)
+
         await db.commit()
         total = sum(v for _, _, _, v, _, _, _ in DEALS)
         print(f"Seeded {len(contacts)} contacts, {len(deals)} leasing deals (${total/1e6:.1f}M), "
-              f"{len(emails)} emails, {len(SUGGESTIONS)} pending suggestions.")
+              f"{len(emails)} emails, {len(SUGGESTIONS)} pending suggestions. "
+              f"Branding: {'Kane Company Command Center' if brand else 'default (LeadSpot)'}")
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--email", required=True, help="Login email of the target account")
+    parser.add_argument("--no-brand", action="store_true", help="Restore default LeadSpot branding")
     args = parser.parse_args()
-    asyncio.run(main(args.email))
+    asyncio.run(main(args.email, brand=not args.no_brand))

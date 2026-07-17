@@ -42,3 +42,22 @@ export async function rejectSuggestion(id: string): Promise<DealSuggestion> {
   const res = await apiClient.post<DealSuggestion>(`/api/deals/suggestions/${id}/reject`);
   return res.data;
 }
+
+export interface AnalyzeEmailResult {
+  message_id: string;
+  outcome: 'suggestion_created' | 'no_change';
+  suggestion: DealSuggestion | null;
+}
+
+export async function analyzeEmail(input: {
+  body: string;
+  subject?: string;
+  fromAddress?: string;
+}): Promise<AnalyzeEmailResult> {
+  const res = await apiClient.post<AnalyzeEmailResult>('/api/deals/suggestions/analyze', {
+    body: input.body,
+    subject: input.subject || null,
+    from_address: input.fromAddress || null,
+  });
+  return res.data;
+}

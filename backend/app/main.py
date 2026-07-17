@@ -65,6 +65,7 @@ from app.routers import (
     integrations,
     knowledge_health_local,
     oauth,
+    org,
     query,
     query_local,
     reports,
@@ -223,6 +224,7 @@ app.include_router(scoring.router, prefix="/api", tags=["scoring"])
 app.include_router(agency.router, prefix="/api", tags=["agency"])
 app.include_router(query.router, prefix="/api", tags=["query"])
 app.include_router(oauth.router, prefix="/api", tags=["oauth"])
+app.include_router(org.router, prefix="/api", tags=["org"])
 app.include_router(documents_local.router, tags=["documents"])
 app.include_router(knowledge_health_local.router, tags=["knowledge-health"])
 app.include_router(query_local.router, tags=["query-local"])

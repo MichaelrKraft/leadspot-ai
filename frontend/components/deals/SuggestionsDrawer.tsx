@@ -1,11 +1,12 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { X, Sparkles, Mail, FileText, Check, ArrowRight } from 'lucide-react';
+import { X, Sparkles, Mail, FileText, Check, ArrowRight, ScanSearch } from 'lucide-react';
 import {
   listSuggestions,
   acceptSuggestion,
   rejectSuggestion,
+  analyzeEmail,
   type DealSuggestion,
 } from '@/lib/api/suggestions';
 
@@ -36,6 +37,13 @@ export default function SuggestionsDrawer({ isOpen, onClose, onResolved }: Sugge
   const [suggestions, setSuggestions] = useState<DealSuggestion[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [showAnalyze, setShowAnalyze] = useState(false);
+  const [analyzeFrom, setAnalyzeFrom] = useState('');
+  const [analyzeSubject, setAnalyzeSubject] = useState('');
+  const [analyzeBody, setAnalyzeBody] = useState('');
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analyzeNote, setAnalyzeNote] = useState<string | null>(null);
+  const [highlightId, setHighlightId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -47,6 +55,35 @@ export default function SuggestionsDrawer({ isOpen, onClose, onResolved }: Sugge
   }, [isOpen]);
 
   if (!isOpen) return null;
+
+  async function handleAnalyze() {
+    if (!analyzeBody.trim() || isAnalyzing) return;
+    setIsAnalyzing(true);
+    setAnalyzeNote(null);
+    try {
+      const result = await analyzeEmail({
+        body: analyzeBody,
+        subject: analyzeSubject || undefined,
+        fromAddress: analyzeFrom || undefined,
+      });
+      if (result.outcome === 'suggestion_created' && result.suggestion) {
+        setSuggestions((prev) => [result.suggestion!, ...prev]);
+        setHighlightId(result.suggestion.id);
+        setShowAnalyze(false);
+        setAnalyzeFrom('');
+        setAnalyzeSubject('');
+        setAnalyzeBody('');
+        onResolved(); // refresh badge count on the Deals page
+      } else {
+        setAnalyzeNote('No stage change detected for any open deal.');
+      }
+    } catch (err) {
+      console.error('[SuggestionsDrawer] analyze failed:', err);
+      setAnalyzeNote('Analysis failed — please try again.');
+    } finally {
+      setIsAnalyzing(false);
+    }
+  }
 
   async function resolve(id: string, action: 'accept' | 'reject') {
     setBusyId(id);
@@ -79,13 +116,72 @@ export default function SuggestionsDrawer({ isOpen, onClose, onResolved }: Sugge
               </span>
             )}
           </div>
-          <button
-            onClick={onClose}
-            className="rounded-lg p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-zinc-800 dark:hover:text-gray-200"
-          >
-            <X className="h-5 w-5" />
-          </button>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setShowAnalyze((v) => !v)}
+              className="flex items-center gap-1.5 rounded-lg border border-gray-300 px-2.5 py-1.5 text-xs font-semibold text-gray-700 transition-colors hover:bg-gray-100 dark:border-zinc-700 dark:text-gray-200 dark:hover:bg-zinc-800"
+            >
+              <ScanSearch className="h-3.5 w-3.5 text-primary-500" />
+              Analyze Email
+            </button>
+            <button
+              onClick={onClose}
+              className="rounded-lg p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-zinc-800 dark:hover:text-gray-200"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
         </div>
+
+        {/* Analyze Email panel */}
+        {showAnalyze && (
+          <div className="space-y-2 border-b border-gray-200 bg-gray-50 p-4 dark:border-zinc-800 dark:bg-[#0f0f12]">
+            <p className="text-xs text-gray-500 dark:text-gray-400">
+              Paste an email, voicemail transcript, or meeting note — the AI checks it against your open leasing deals.
+            </p>
+            <input
+              type="text"
+              value={analyzeFrom}
+              onChange={(e) => setAnalyzeFrom(e.target.value)}
+              placeholder="From (optional) — e.g. mwebb@cbre.com"
+              className="w-full rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs text-gray-900 placeholder-gray-400 focus:border-primary-500 focus:outline-none dark:border-zinc-700 dark:bg-zinc-900 dark:text-white"
+            />
+            <input
+              type="text"
+              value={analyzeSubject}
+              onChange={(e) => setAnalyzeSubject(e.target.value)}
+              placeholder="Subject (optional)"
+              className="w-full rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs text-gray-900 placeholder-gray-400 focus:border-primary-500 focus:outline-none dark:border-zinc-700 dark:bg-zinc-900 dark:text-white"
+            />
+            <textarea
+              rows={4}
+              value={analyzeBody}
+              onChange={(e) => setAnalyzeBody(e.target.value)}
+              placeholder="Paste the message text here..."
+              className="w-full rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs text-gray-900 placeholder-gray-400 focus:border-primary-500 focus:outline-none dark:border-zinc-700 dark:bg-zinc-900 dark:text-white"
+            />
+            {analyzeNote && (
+              <p className="text-xs font-medium text-amber-600 dark:text-amber-400">{analyzeNote}</p>
+            )}
+            <button
+              onClick={handleAnalyze}
+              disabled={isAnalyzing || !analyzeBody.trim()}
+              className="flex w-full items-center justify-center gap-1.5 rounded-lg bg-primary-500 px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-primary-600 disabled:opacity-50"
+            >
+              {isAnalyzing ? (
+                <>
+                  <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white/40 border-t-white" />
+                  Analyzing...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="h-3.5 w-3.5" />
+                  Analyze
+                </>
+              )}
+            </button>
+          </div>
+        )}
 
         {/* Body */}
         <div className="flex-1 space-y-3 overflow-y-auto p-4">
@@ -112,7 +208,11 @@ export default function SuggestionsDrawer({ isOpen, onClose, onResolved }: Sugge
             return (
               <div
                 key={s.id}
-                className="rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-zinc-800 dark:bg-[#0f0f12]"
+                className={`rounded-xl border p-4 transition-colors ${
+                  highlightId === s.id
+                    ? 'border-primary-500 bg-primary-500/10 ring-2 ring-primary-500/30'
+                    : 'border-gray-200 bg-gray-50 dark:border-zinc-800 dark:bg-[#0f0f12]'
+                }`}
               >
                 {/* Deal + stages */}
                 <div className="mb-2">

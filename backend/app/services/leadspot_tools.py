@@ -103,6 +103,19 @@ LEADSPOT_READ_TOOLS: list[dict] = [
         "input_schema": {"type": "object", "properties": {}},
     },
     {
+        "name": "analyze_email",
+        "description": "Analyze the text of an email (or voicemail transcript / meeting note) the user pastes in, against their open leasing deals. If it implies a deal-stage change, this creates a PENDING suggestion for human review — it never moves a deal directly. Use when the user shares message content and asks what it means for their pipeline, or asks you to analyze/process an email.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "body": {"type": "string", "description": "The message text"},
+                "subject": {"type": "string", "description": "Subject line if known"},
+                "from_address": {"type": "string", "description": "Sender address if known"},
+            },
+            "required": ["body"],
+        },
+    },
+    {
         "name": "list_calendar_events",
         "description": "List upcoming calendar events (calls, meetings, demos, tasks).",
         "input_schema": {
@@ -416,6 +429,34 @@ async def execute_leadspot_tool(
             result = await _list_campaigns(db, user_id)
         elif tool_name == "list_segments":
             result = await _list_segments(db, user_id)
+        elif tool_name == "analyze_email":
+            from app.services.inference.manual_ingest import ingest_manual_email
+
+            message, suggestion = await ingest_manual_email(
+                db,
+                org_id,
+                body=tool_input.get("body", ""),
+                subject=tool_input.get("subject"),
+                from_address=tool_input.get("from_address"),
+            )
+            if suggestion:
+                deal = (
+                    await db.execute(select(Deal).where(Deal.id == suggestion.deal_id))
+                ).scalars().first()
+                result = {
+                    "outcome": "suggestion_created",
+                    "deal": deal.title if deal else suggestion.deal_id,
+                    "from_stage": suggestion.current_stage,
+                    "to_stage": suggestion.suggested_stage,
+                    "confidence": suggestion.confidence,
+                    "evidence": suggestion.evidence,
+                    "note": "Pending human review in the AI Suggestions drawer on the Deals page.",
+                }
+            else:
+                result = {
+                    "outcome": "no_change",
+                    "note": "No open leasing deal matched, or the message implies no stage change.",
+                }
         elif tool_name == "list_calendar_events":
             result = await _list_calendar_events(db, org_id, tool_input)
         else:
