@@ -97,7 +97,7 @@ async function proxy(req: NextRequest, ctx: { params: { path?: string[] } }) {
   const hasBody = method !== 'GET' && method !== 'HEAD';
 
   let upstreamRes: Response;
-  const bodyForUpstream: BodyInit | undefined = hasBody ? req.body : undefined;
+  const bodyForUpstream: BodyInit | undefined = hasBody ? req.body ?? undefined : undefined;
 
   try {
     upstreamRes = await fetch(upstream.toString(), {
