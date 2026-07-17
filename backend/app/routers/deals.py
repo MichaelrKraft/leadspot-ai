@@ -27,8 +27,10 @@ class DealCreate(BaseModel):
     contact_id: Optional[str] = None
     contact_name: Optional[str] = None
     value: float = 0.0
-    stage: str = "lead"
+    pipeline: str = "sales"
+    stage: Optional[str] = None  # defaults to the pipeline's first stage
     priority: str = "medium"
+    property_name: Optional[str] = None
     notes: Optional[str] = None
 
 
@@ -39,6 +41,7 @@ class DealUpdate(BaseModel):
     value: Optional[float] = None
     stage: Optional[str] = None
     priority: Optional[str] = None
+    property_name: Optional[str] = None
     notes: Optional[str] = None
 
 
@@ -48,8 +51,11 @@ class DealResponse(BaseModel):
     contact_id: Optional[str]
     contact_name: Optional[str]
     value: float
+    pipeline: str
     stage: str
     priority: str
+    property_name: Optional[str]
+    stage_changed_at: Optional[datetime]
     notes: Optional[str]
     org_id: str
     created_at: datetime
@@ -68,27 +74,51 @@ class StageDefinition(BaseModel):
 # Endpoints
 # ---------------------------------------------------------------------------
 
-STAGE_DEFINITIONS: List[StageDefinition] = [
-    StageDefinition(id="lead", name="Lead", color="blue"),
-    StageDefinition(id="qualified", name="Qualified", color="indigo"),
-    StageDefinition(id="proposal", name="Proposal", color="purple"),
-    StageDefinition(id="negotiation", name="Negotiation", color="amber"),
-    StageDefinition(id="won", name="Won", color="green"),
-    StageDefinition(id="lost", name="Lost", color="red"),
-]
+PIPELINE_STAGES: dict[str, List[StageDefinition]] = {
+    "sales": [
+        StageDefinition(id="lead", name="Lead", color="blue"),
+        StageDefinition(id="qualified", name="Qualified", color="indigo"),
+        StageDefinition(id="proposal", name="Proposal", color="purple"),
+        StageDefinition(id="negotiation", name="Negotiation", color="amber"),
+        StageDefinition(id="won", name="Won", color="green"),
+        StageDefinition(id="lost", name="Lost", color="red"),
+    ],
+    "leasing": [
+        StageDefinition(id="inquiry", name="Inquiry", color="blue"),
+        StageDefinition(id="loi_negotiation", name="LOI Negotiation", color="indigo"),
+        StageDefinition(id="construction_pricing", name="Construction Pricing", color="purple"),
+        StageDefinition(id="lease_drafting", name="Lease Drafting", color="cyan"),
+        StageDefinition(id="lease_negotiation", name="Lease Negotiation", color="amber"),
+        StageDefinition(id="signed", name="Signed", color="green"),
+        StageDefinition(id="lost", name="Lost", color="red"),
+    ],
+}
 
-VALID_STAGES = {s.id for s in STAGE_DEFINITIONS}
+VALID_PIPELINES = set(PIPELINE_STAGES)
 VALID_PRIORITIES = {"low", "medium", "high"}
+
+
+def _valid_stages(pipeline: str) -> set:
+    return {s.id for s in PIPELINE_STAGES[pipeline]}
 
 
 @router.get("/deals", tags=["deals"])
 async def list_deals(
+    pipeline: str = "sales",
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> dict:
-    """List all deals for the authenticated user's organisation."""
+    """List deals for the authenticated user's organisation, filtered by pipeline."""
+    if pipeline not in VALID_PIPELINES:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"Invalid pipeline. Must be one of: {', '.join(sorted(VALID_PIPELINES))}",
+        )
     result = await db.execute(
-        select(Deal).where(Deal.org_id == str(current_user.organization_id))
+        select(Deal).where(
+            Deal.org_id == str(current_user.organization_id),
+            Deal.pipeline == pipeline,
+        )
     )
     deals = result.scalars().all()
     return {"deals": [DealResponse.model_validate(d) for d in deals]}
@@ -96,10 +126,16 @@ async def list_deals(
 
 @router.get("/deals/stages", tags=["deals"])
 async def list_stages(
+    pipeline: str = "sales",
     current_user: User = Depends(get_current_user),
 ) -> List[StageDefinition]:
-    """Return stage definitions with colours."""
-    return STAGE_DEFINITIONS
+    """Return stage definitions with colours for the given pipeline."""
+    if pipeline not in VALID_PIPELINES:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"Invalid pipeline. Must be one of: {', '.join(sorted(VALID_PIPELINES))}",
+        )
+    return PIPELINE_STAGES[pipeline]
 
 
 @router.post("/deals", status_code=status.HTTP_201_CREATED, tags=["deals"])
@@ -109,10 +145,16 @@ async def create_deal(
     db: AsyncSession = Depends(get_db),
 ) -> DealResponse:
     """Create a new deal."""
-    if data.stage not in VALID_STAGES:
+    if data.pipeline not in VALID_PIPELINES:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=f"Invalid stage. Must be one of: {', '.join(VALID_STAGES)}",
+            detail=f"Invalid pipeline. Must be one of: {', '.join(sorted(VALID_PIPELINES))}",
+        )
+    stage = data.stage or PIPELINE_STAGES[data.pipeline][0].id
+    if stage not in _valid_stages(data.pipeline):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"Invalid stage for {data.pipeline} pipeline. Must be one of: {', '.join(sorted(_valid_stages(data.pipeline)))}",
         )
     if data.priority not in VALID_PRIORITIES:
         raise HTTPException(
@@ -125,8 +167,11 @@ async def create_deal(
         contact_id=data.contact_id,
         contact_name=data.contact_name,
         value=data.value,
-        stage=data.stage,
+        pipeline=data.pipeline,
+        stage=stage,
         priority=data.priority,
+        property_name=data.property_name,
+        stage_changed_at=datetime.utcnow(),
         notes=data.notes,
         org_id=str(current_user.organization_id),
     )
@@ -156,16 +201,19 @@ async def update_deal(
 
     update_data = data.model_dump(exclude_unset=True)
 
-    if "stage" in update_data and update_data["stage"] not in VALID_STAGES:
+    if "stage" in update_data and update_data["stage"] not in _valid_stages(deal.pipeline):
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=f"Invalid stage. Must be one of: {', '.join(VALID_STAGES)}",
+            detail=f"Invalid stage for {deal.pipeline} pipeline. Must be one of: {', '.join(sorted(_valid_stages(deal.pipeline)))}",
         )
     if "priority" in update_data and update_data["priority"] not in VALID_PRIORITIES:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail=f"Invalid priority. Must be one of: {', '.join(VALID_PRIORITIES)}",
         )
+
+    if "stage" in update_data and update_data["stage"] != deal.stage:
+        deal.stage_changed_at = datetime.utcnow()
 
     for field, value in update_data.items():
         setattr(deal, field, value)

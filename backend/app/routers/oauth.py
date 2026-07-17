@@ -387,6 +387,10 @@ async def sync_connection(
         from app.services.sync import GmailSyncService
         sync_service = GmailSyncService()
         results = await sync_service.sync_connection(connection, db, max_emails=max_files)
+    elif provider == "microsoft":
+        from app.services.sync import OutlookSyncService
+        sync_service = OutlookSyncService()
+        results = await sync_service.sync_connection(connection, db, max_messages=max_files)
     elif provider == "salesforce":
         from app.services.sync import SalesforceSyncService
         sync_service = SalesforceSyncService()

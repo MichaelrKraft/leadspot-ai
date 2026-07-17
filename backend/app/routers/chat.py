@@ -23,6 +23,12 @@ AGENT_SERVICE_URL = os.environ.get("AGENT_SERVICE_URL", "http://localhost:3008")
 from app.database import get_db
 from app.models.user import User
 from app.services.auth_service import get_current_user
+from app.services.leadspot_tools import (
+    LEADSPOT_READ_TOOLS,
+    LEADSPOT_TOOL_NAMES,
+    execute_leadspot_tool,
+    format_leadspot_result_for_display,
+)
 from app.services.mautic_client import MauticClient, MauticAuthError
 from app.services.mautic_tools import (
     MAUTIC_READ_TOOLS,
@@ -199,7 +205,10 @@ async def run_tool_loop(
     client: AsyncAnthropic,
     messages: list[dict],
     tools: list[dict],
-    mautic_client: MauticClient,
+    mautic_client: Optional[MauticClient],
+    org_id: str,
+    session: AsyncSession,
+    user_id: str = "",
     system_prompt: str = SYSTEM_PROMPT,
     max_iterations: int = 10,
 ) -> tuple[str, list[str], list[dict]]:
@@ -253,13 +262,22 @@ async def run_tool_loop(
                 logger.info(f"Executing tool: {tool_name} with input: {tool_input}")
                 tools_used.append(tool_name)
 
-                # Execute the tool
-                result = await execute_tool(tool_name, tool_input, mautic_client)
+                # Execute the tool — native LeadSpot tools query the local DB;
+                # anything else routes to the Mautic integration
+                if tool_name in LEADSPOT_TOOL_NAMES:
+                    result = await execute_leadspot_tool(tool_name, tool_input, org_id, session, user_id)
+                    display = format_leadspot_result_for_display(tool_name, result)
+                elif mautic_client:
+                    result = await execute_tool(tool_name, tool_input, mautic_client)
+                    display = format_tool_result_for_display(tool_name, result)
+                else:
+                    result = {"success": False, "error": f"Tool {tool_name} is not available"}
+                    display = f"{tool_name}: unavailable"
                 tool_results.append({
                     "tool": tool_name,
                     "input": tool_input,
                     "success": result.get("success"),
-                    "display": format_tool_result_for_display(tool_name, result),
+                    "display": display,
                 })
 
                 # Format result for Claude
@@ -329,17 +347,18 @@ async def process_chat(
         tools = []
 
         if request.enable_tools:
+            # Native LeadSpot tools are always available — they query the local DB
+            tools = list(LEADSPOT_READ_TOOLS)
+
             mautic_client = await get_mautic_client_for_org(
                 org_id,
                 session,
             )
-
             if mautic_client:
-                # Enable all Mautic tools
-                tools = MAUTIC_READ_TOOLS + MAUTIC_WRITE_TOOLS
+                tools += MAUTIC_READ_TOOLS + MAUTIC_WRITE_TOOLS
                 logger.info(f"Mautic tools enabled for org {org_id}")
             else:
-                logger.info(f"No Mautic connection for org {org_id}")
+                logger.info(f"No Mautic connection for org {org_id}; native tools only")
 
         # Fetch agent memory context
         agent_context = await fetch_agent_context(
@@ -364,18 +383,18 @@ async def process_chat(
         if mautic_client:
             context_note = f"\n\n[System: Mautic is connected at {mautic_client.mautic_url}. You have full API access.]"
             messages[0]["content"] += context_note
-        elif request.mautic_url:
-            context_note = f"\n\n[System: User is in Mautic at {request.mautic_url}, but API access is not configured. You can only provide advice, not execute actions.]"
-            messages[0]["content"] += context_note
 
         # Run the conversation (with or without tools)
-        if mautic_client and tools:
+        if tools:
             # Full tool calling mode
             response_text, tools_used, tool_results = await run_tool_loop(
                 client=client,
                 messages=messages,
                 tools=tools,
                 mautic_client=mautic_client,
+                org_id=org_id,
+                session=session,
+                user_id=str(current_user.user_id),
                 system_prompt=enriched_system_prompt,
             )
 

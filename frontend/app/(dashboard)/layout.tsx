@@ -1,8 +1,9 @@
 'use client';
 
-import React, { ReactNode } from 'react';
+import React, { ReactNode, useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { apiClient } from '@/lib/api';
 import { usePathname, useRouter } from 'next/navigation';
 import AuthGuard from '@/components/auth/AuthGuard';
 import { useAuthStore } from '@/stores/useAuthStore';
@@ -222,10 +223,27 @@ function getPageTitle(pathname: string): string {
   return 'Dashboard';
 }
 
+const DEFAULT_APP_NAME = 'LeadSpot.ai';
+
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const pathname = usePathname();
   const router = useRouter();
   const { user, logout } = useAuthStore();
+  const [brandName, setBrandName] = useState<string | null>(null);
+
+  // White-label: show the org's app_name instead of the LeadSpot logo when customized
+  useEffect(() => {
+    apiClient
+      .get<{ app_name?: string }>('/api/org/branding')
+      .then((res) => {
+        const name = res.data?.app_name;
+        if (name && name !== DEFAULT_APP_NAME) {
+          setBrandName(name);
+          document.title = name;
+        }
+      })
+      .catch(() => {}); // default branding on any failure
+  }, []);
 
   const handleLogout = async () => {
     await logout();
@@ -242,24 +260,32 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           {/* Logo */}
           <div className="flex items-center justify-center border-b border-slate-200 px-3 py-4 dark:border-white/10">
             <Link href="/dashboard">
-              {/* Light theme logo */}
-              <Image
-                src="/leadspot-logo.png"
-                alt="LeadSpot.ai"
-                width={180}
-                height={62}
-                className="h-[62px] w-auto dark:hidden"
-                priority
-              />
-              {/* Dark theme logo */}
-              <Image
-                src="/leadspot-logo-light.png"
-                alt="LeadSpot.ai"
-                width={180}
-                height={62}
-                className="hidden h-[62px] w-auto dark:block"
-                priority
-              />
+              {brandName ? (
+                <span className="block px-1 py-3 text-center text-lg font-bold leading-tight text-slate-900 dark:text-white">
+                  {brandName}
+                </span>
+              ) : (
+                <>
+                  {/* Light theme logo */}
+                  <Image
+                    src="/leadspot-logo.png"
+                    alt="LeadSpot.ai"
+                    width={180}
+                    height={62}
+                    className="h-[62px] w-auto dark:hidden"
+                    priority
+                  />
+                  {/* Dark theme logo */}
+                  <Image
+                    src="/leadspot-logo-light.png"
+                    alt="LeadSpot.ai"
+                    width={180}
+                    height={62}
+                    className="hidden h-[62px] w-auto dark:block"
+                    priority
+                  />
+                </>
+              )}
             </Link>
           </div>
 
@@ -326,7 +352,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         </aside>
 
         {/* Main Content Area */}
-        <div className="ml-[220px] flex flex-1 flex-col min-h-0">
+        <div className="ml-[220px] flex flex-1 flex-col min-h-0 min-w-0">
           {/* Header Bar */}
           <header className="flex items-center justify-between border-b border-slate-200 bg-[#f8fafc] px-6 py-4 dark:border-white/10 dark:bg-[#111118]">
             <h1 className="m-0 text-xl font-semibold text-slate-800 dark:text-white">

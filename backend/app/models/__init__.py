@@ -9,7 +9,9 @@ from app.models.contact import Contact
 from app.models.daemon_credential import DaemonCredential
 from app.models.daemon_token_usage import DaemonTokenUsage
 from app.models.deal import Deal
+from app.models.deal_suggestion import DealSuggestion
 from app.models.digest_unmatched_sample import DigestUnmatchedSample
+from app.models.email_message import EmailMessage
 from app.models.document import Document
 from app.models.email_alias import EmailAlias
 from app.models.merge_redirect import MergeRedirect
@@ -29,6 +31,8 @@ __all__ = [
     "DaemonCredential",
     "DaemonTokenUsage",
     "Deal",
+    "DealSuggestion",
+    "EmailMessage",
     "DigestUnmatchedSample",
     "Document",
     "EmailAlias",

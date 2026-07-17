@@ -5,7 +5,7 @@ Deal database model
 import uuid
 from datetime import datetime
 
-from sqlalchemy import Boolean, Column, DateTime, Float, String
+from sqlalchemy import JSON, Boolean, Column, DateTime, Float, String
 
 from app.database import Base
 
@@ -29,8 +29,12 @@ class Deal(Base):
     contact_id = Column(String(36), nullable=True)
     contact_name = Column(String(255), nullable=True)
     value = Column(Float, default=0.0, nullable=False)
-    stage = Column(String(50), default="lead", nullable=False)  # lead, qualified, proposal, negotiation, won, lost
+    pipeline = Column(String(20), default="sales", nullable=False, index=True)  # sales, leasing
+    stage = Column(String(50), default="lead", nullable=False)  # validated per-pipeline in the router
     priority = Column(String(20), default="medium", nullable=False)  # low, medium, high
+    property_name = Column(String(255), nullable=True)  # leasing pipeline: the property/space
+    stage_changed_at = Column(DateTime, nullable=True)
+    source_meta = Column(JSON, nullable=True)  # provenance for AI-created/updated deals
     notes = Column(String(2000), nullable=True)
     org_id = Column(String(36), nullable=False, index=True)
     is_demo = Column(Boolean, nullable=False, default=False)

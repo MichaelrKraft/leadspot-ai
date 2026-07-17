@@ -22,6 +22,7 @@ class MicrosoftOAuthProvider(BaseOAuthProvider):
         return [
             "https://graph.microsoft.com/Sites.Read.All",
             "https://graph.microsoft.com/Files.Read.All",
+            "https://graph.microsoft.com/Mail.Read",
             "https://graph.microsoft.com/User.Read",
             "offline_access",  # Required for refresh tokens
         ]
