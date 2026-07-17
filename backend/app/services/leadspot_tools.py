@@ -13,10 +13,13 @@ from typing import Any
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.models.calendar_event import CalendarEvent
+from app.models.campaign import Campaign
 from app.models.contact import Contact
 from app.models.deal import Deal
 from app.models.deal_suggestion import DealSuggestion
 from app.models.email_message import EmailMessage
+from app.models.segment import Segment
 
 logger = logging.getLogger(__name__)
 
@@ -55,8 +58,59 @@ LEADSPOT_READ_TOOLS: list[dict] = [
     },
     {
         "name": "list_pending_suggestions",
-        "description": "List pending AI deal-stage suggestions awaiting human review (deal, proposed stage move, confidence, evidence).",
+        "description": "List AI deal-stage suggestions (deal, proposed stage move, confidence, evidence). Defaults to pending; can also show accepted/rejected history.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "status": {
+                    "type": "string",
+                    "enum": ["pending", "accepted", "rejected"],
+                    "description": "Which suggestions to list (default pending)",
+                },
+            },
+        },
+    },
+    {
+        "name": "get_deal_details",
+        "description": "Deep-dive on one deal found by (partial) title or property name: full deal record plus its AI suggestion history and any linked inbound emails.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "search": {"type": "string", "description": "Deal title or property name (partial match)"},
+            },
+            "required": ["search"],
+        },
+    },
+    {
+        "name": "list_recent_emails",
+        "description": "List recent inbound emails synced into the CRM (subject, sender, date, matched deal), newest first.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "days": {"type": "integer", "description": "Look-back window in days (default 14)"},
+                "limit": {"type": "integer", "description": "Max emails (default 15)"},
+            },
+        },
+    },
+    {
+        "name": "list_campaigns",
+        "description": "List marketing campaigns with status, type, and lead/open/reply counts.",
         "input_schema": {"type": "object", "properties": {}},
+    },
+    {
+        "name": "list_segments",
+        "description": "List contact segments with their contact counts.",
+        "input_schema": {"type": "object", "properties": {}},
+    },
+    {
+        "name": "list_calendar_events",
+        "description": "List upcoming calendar events (calls, meetings, demos, tasks).",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "days": {"type": "integer", "description": "How many days ahead (default 14)"},
+            },
+        },
     },
 ]
 
@@ -158,12 +212,13 @@ async def _list_deals(db: AsyncSession, org_id: str, tool_input: dict) -> list[d
     ]
 
 
-async def _list_pending_suggestions(db: AsyncSession, org_id: str) -> list[dict]:
+async def _list_suggestions(db: AsyncSession, org_id: str, tool_input: dict) -> list[dict]:
+    status = tool_input.get("status") or "pending"
     suggestions = (
         await db.execute(
             select(DealSuggestion, Deal.title)
             .join(Deal, Deal.id == DealSuggestion.deal_id, isouter=True)
-            .where(DealSuggestion.org_id == org_id, DealSuggestion.status == "pending")
+            .where(DealSuggestion.org_id == org_id, DealSuggestion.status == status)
             .order_by(DealSuggestion.created_at.desc())
             .limit(25)
         )
@@ -175,8 +230,162 @@ async def _list_pending_suggestions(db: AsyncSession, org_id: str) -> list[dict]
             "to_stage": s.suggested_stage,
             "confidence": s.confidence,
             "evidence": s.evidence,
+            "status": s.status,
         }
         for s, title in suggestions
+    ]
+
+
+async def _get_deal_details(db: AsyncSession, org_id: str, tool_input: dict) -> dict | None:
+    like = f"%{(tool_input.get('search') or '').strip()}%"
+    deal = (
+        await db.execute(
+            select(Deal).where(
+                Deal.org_id == org_id,
+                (Deal.title.ilike(like)) | (Deal.property_name.ilike(like)),
+            ).limit(1)
+        )
+    ).scalars().first()
+    if not deal:
+        return None
+
+    suggestions = (
+        await db.execute(
+            select(DealSuggestion)
+            .where(DealSuggestion.deal_id == deal.id)
+            .order_by(DealSuggestion.created_at.desc())
+        )
+    ).scalars().all()
+    emails = (
+        await db.execute(
+            select(EmailMessage)
+            .where(EmailMessage.org_id == org_id, EmailMessage.deal_id == deal.id)
+            .order_by(EmailMessage.received_at.desc())
+            .limit(10)
+        )
+    ).scalars().all()
+
+    return {
+        "deal": {
+            "title": deal.title,
+            "pipeline": deal.pipeline,
+            "stage": deal.stage,
+            "value": deal.value,
+            "property": deal.property_name,
+            "contact": deal.contact_name,
+            "priority": deal.priority,
+            "notes": deal.notes,
+            "stage_changed_at": deal.stage_changed_at,
+            "created_at": deal.created_at,
+        },
+        "suggestion_history": [
+            {
+                "from_stage": s.current_stage,
+                "to_stage": s.suggested_stage,
+                "confidence": s.confidence,
+                "evidence": s.evidence,
+                "status": s.status,
+            }
+            for s in suggestions
+        ],
+        "linked_emails": [
+            {
+                "subject": m.subject,
+                "from": m.from_address,
+                "received_at": m.received_at,
+                "preview": (m.body_preview or "")[:300],
+            }
+            for m in emails
+        ],
+    }
+
+
+async def _list_recent_emails(db: AsyncSession, org_id: str, tool_input: dict) -> list[dict]:
+    days = min(int(tool_input.get("days") or 14), 90)
+    limit = min(int(tool_input.get("limit") or 15), 50)
+    since = datetime.utcnow() - timedelta(days=days)
+    rows = (
+        await db.execute(
+            select(EmailMessage, Deal.title)
+            .join(Deal, Deal.id == EmailMessage.deal_id, isouter=True)
+            .where(EmailMessage.org_id == org_id, EmailMessage.received_at >= since)
+            .order_by(EmailMessage.received_at.desc())
+            .limit(limit)
+        )
+    ).all()
+    return [
+        {
+            "subject": m.subject,
+            "from": m.from_address,
+            "received_at": m.received_at,
+            "matched_deal": deal_title,
+            "preview": (m.body_preview or "")[:200],
+        }
+        for m, deal_title in rows
+    ]
+
+
+async def _list_campaigns(db: AsyncSession, user_id: str) -> list[dict]:
+    campaigns = (
+        await db.execute(
+            select(Campaign).where(Campaign.user_id == user_id).limit(50)
+        )
+    ).scalars().all()
+    return [
+        {
+            "name": c.name,
+            "status": c.status,
+            "type": c.type,
+            "leads": c.leads,
+            "opened": c.opened,
+            "replied": c.replied,
+        }
+        for c in campaigns
+    ]
+
+
+async def _list_segments(db: AsyncSession, user_id: str) -> list[dict]:
+    segments = (
+        await db.execute(
+            select(Segment).where(Segment.user_id == user_id).limit(50)
+        )
+    ).scalars().all()
+    return [
+        {
+            "name": s.name,
+            "description": s.description,
+            "contact_count": s.contact_count,
+            "filter_type": s.filter_type,
+        }
+        for s in segments
+    ]
+
+
+async def _list_calendar_events(db: AsyncSession, org_id: str, tool_input: dict) -> list[dict]:
+    days = min(int(tool_input.get("days") or 14), 90)
+    now = datetime.utcnow()
+    events = (
+        await db.execute(
+            select(CalendarEvent)
+            .where(
+                CalendarEvent.org_id == org_id,
+                CalendarEvent.start >= now,
+                CalendarEvent.start <= now + timedelta(days=days),
+            )
+            .order_by(CalendarEvent.start.asc())
+            .limit(50)
+        )
+    ).scalars().all()
+    return [
+        {
+            "title": e.title,
+            "start": e.start,
+            "end": e.end,
+            "type": e.type,
+            "contact": e.contact_name,
+            "notes": e.notes,
+        }
+        for e in events
     ]
 
 
@@ -185,6 +394,7 @@ async def execute_leadspot_tool(
     tool_input: dict,
     org_id: str,
     db: AsyncSession,
+    user_id: str = "",
 ) -> dict[str, Any]:
     """Execute a native LeadSpot tool. Result shape mirrors mautic execute_tool."""
     try:
@@ -195,7 +405,19 @@ async def execute_leadspot_tool(
         elif tool_name == "list_deals":
             result = await _list_deals(db, org_id, tool_input)
         elif tool_name == "list_pending_suggestions":
-            result = await _list_pending_suggestions(db, org_id)
+            result = await _list_suggestions(db, org_id, tool_input)
+        elif tool_name == "get_deal_details":
+            result = await _get_deal_details(db, org_id, tool_input)
+            if result is None:
+                return {"success": False, "error": f"No deal matched '{tool_input.get('search')}'", "error_type": "not_found"}
+        elif tool_name == "list_recent_emails":
+            result = await _list_recent_emails(db, org_id, tool_input)
+        elif tool_name == "list_campaigns":
+            result = await _list_campaigns(db, user_id)
+        elif tool_name == "list_segments":
+            result = await _list_segments(db, user_id)
+        elif tool_name == "list_calendar_events":
+            result = await _list_calendar_events(db, org_id, tool_input)
         else:
             return {"success": False, "error": f"Unknown tool: {tool_name}", "error_type": "unknown"}
         return {"success": True, "result": result}

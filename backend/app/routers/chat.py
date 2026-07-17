@@ -208,6 +208,7 @@ async def run_tool_loop(
     mautic_client: Optional[MauticClient],
     org_id: str,
     session: AsyncSession,
+    user_id: str = "",
     system_prompt: str = SYSTEM_PROMPT,
     max_iterations: int = 10,
 ) -> tuple[str, list[str], list[dict]]:
@@ -264,7 +265,7 @@ async def run_tool_loop(
                 # Execute the tool — native LeadSpot tools query the local DB;
                 # anything else routes to the Mautic integration
                 if tool_name in LEADSPOT_TOOL_NAMES:
-                    result = await execute_leadspot_tool(tool_name, tool_input, org_id, session)
+                    result = await execute_leadspot_tool(tool_name, tool_input, org_id, session, user_id)
                     display = format_leadspot_result_for_display(tool_name, result)
                 elif mautic_client:
                     result = await execute_tool(tool_name, tool_input, mautic_client)
@@ -393,6 +394,7 @@ async def process_chat(
                 mautic_client=mautic_client,
                 org_id=org_id,
                 session=session,
+                user_id=str(current_user.user_id),
                 system_prompt=enriched_system_prompt,
             )
 

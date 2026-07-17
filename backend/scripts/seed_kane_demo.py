@@ -22,6 +22,7 @@ from sqlalchemy import delete, select, text
 sys.path.insert(0, ".")
 
 from app.database import async_session_maker  # noqa: E402
+from app.models.contact import Contact  # noqa: E402
 from app.models.decision import Decision  # noqa: E402,F401  (User relationship needs the mapper registered)
 from app.models.deal import Deal  # noqa: E402
 from app.models.deal_suggestion import DealSuggestion  # noqa: E402
@@ -32,6 +33,16 @@ from app.models.user import User  # noqa: E402
 def days_ago(n: int) -> datetime:
     return datetime.utcnow() - timedelta(days=n)
 
+
+# (first, last, email, company) — brokers/tenants matching the deals below
+CONTACTS = [
+    ("Laura", "Chen", "lchen@colliers.com", "Colliers"),
+    ("Marcus", "Webb", "mwebb@cbre.com", "CBRE"),
+    ("Dana", "Ortiz", "dortiz@novahealth.com", "NovaHealth"),
+    ("Peter", "Kim", "pkim@boulos.com", "Boulos Company"),
+    ("Rachel", "Foster", "rfoster@granitelogistics.com", "GraniteLogistics"),
+    ("Tom", "Alvarez", "talvarez@kwcommercial.com", "KW Commercial"),
+]
 
 DEALS = [
     # (title, property, contact, value, stage, days_in_stage, priority)
@@ -103,12 +114,41 @@ async def main(email: str) -> None:
                 await db.delete(d)
         await db.flush()
 
-        # Create deals
+        # Wipe + recreate broker/tenant contacts (matched by seeded email addresses)
+        seed_emails = [c[2] for c in CONTACTS]
+        old_contacts = (
+            await db.execute(
+                select(Contact).where(
+                    Contact.organization_id == org_id,
+                    Contact.email.in_(seed_emails),
+                )
+            )
+        ).scalars().all()
+        for c in old_contacts:
+            await db.delete(c)
+        await db.flush()
+
+        contacts: list[Contact] = []
+        for first, last, email_addr, company in CONTACTS:
+            contact = Contact(
+                first_name=first,
+                last_name=last,
+                email=email_addr,
+                company=company,
+                organization_id=org_id,
+                is_demo=True,
+            )
+            db.add(contact)
+            contacts.append(contact)
+        await db.flush()
+
+        # Create deals, linked to their contact
         deals: list[Deal] = []
-        for title, prop, contact, value, stage, days_in_stage, priority in DEALS:
+        for i, (title, prop, contact_label, value, stage, days_in_stage, priority) in enumerate(DEALS):
             deal = Deal(
                 title=title,
-                contact_name=contact,
+                contact_id=contacts[i].id,
+                contact_name=contact_label,
                 value=value,
                 pipeline="leasing",
                 stage=stage,
@@ -123,7 +163,7 @@ async def main(email: str) -> None:
             deals.append(deal)
         await db.flush()
 
-        # Create inbound emails
+        # Create inbound emails (linked to contact + deal)
         emails: list[EmailMessage] = []
         for key, from_addr, subject, preview, d_ago, deal_idx in EMAILS:
             msg = EmailMessage(
@@ -135,6 +175,7 @@ async def main(email: str) -> None:
                 subject=subject,
                 body_preview=preview,
                 received_at=days_ago(d_ago),
+                contact_id=contacts[deal_idx].id if deal_idx is not None else None,
                 deal_id=deals[deal_idx].id if deal_idx is not None else None,
                 analyzed_at=datetime.utcnow(),
             )
@@ -162,7 +203,7 @@ async def main(email: str) -> None:
 
         await db.commit()
         total = sum(v for _, _, _, v, _, _, _ in DEALS)
-        print(f"Seeded {len(deals)} leasing deals (${total/1e6:.1f}M), "
+        print(f"Seeded {len(contacts)} contacts, {len(deals)} leasing deals (${total/1e6:.1f}M), "
               f"{len(emails)} emails, {len(SUGGESTIONS)} pending suggestions.")
 
 
