@@ -374,3 +374,152 @@ Investigated + fixed the four gaps keeping the /api/v2 conversational AI from fu
 Tests: 212 passed (3 new: thread memory e2e, send_email executor, unknown-contact error).
 Not done: queue_email dispatch worker; UI Playwright pass (needs Mike's login; API-level e2e done
 instead); retire legacy /api/chat + frontend lib/api/chat.ts fully.
+
+---
+
+# CI Green Sprint — 2026-07-17
+
+CI on main is red (3 of 4 jobs) after PR #5 (Unified Inbox) merged with failing checks.
+Branch: `fix/ci-green`. Goal: all 4 CI jobs green on a PR to main.
+
+## Todos
+- [ ] Create branch `fix/ci-green` from main
+- [ ] Docker Build: name frontend Dockerfile stage `production` (CI targets it; stage was unnamed)
+- [ ] Frontend lint: `eslint --fix` pass, then hand-fix remaining `any` types, `@ts-ignore`→`@ts-expect-error`, unescaped entities, unused vars
+- [ ] Frontend: `npx tsc --noEmit` clean (CI runs it after lint)
+- [ ] Backend lint: `ruff check app/` clean (contextlib.suppress, asyncio.TimeoutError→TimeoutError)
+- [ ] Push branch, open PR to main, confirm all 4 CI jobs green
+
+## Constraints
+- Docker bind-mount project: NO npm install/rebuild on host (existing node_modules is fine to use)
+- Lint fixes only — no behavior changes
+
+---
+
+# AI Insights Dashboard Card — Rewire off Mautic (2026-07-17)
+
+## Context
+Dashboard's "AI Insights" card always shows "Connect your Mautic CRM to see personalized
+insights" because `GET /insights/daily` (`backend/app/routers/insights.py`) is 100% Mautic-shaped
+(requires `mautic_url` query param, `InsightsService(mautic_client)`) and no org has Mautic
+connected — the real, working data source is the Unified Inbox's `email_messages` table (see
+"Unified Inbox" review above). Mike confirmed: rebuild on email activity.
+
+Also fixed same session: **AI Morning Brief** card was broken by a response-shape mismatch
+(backend `res.json({brief})` nested + camelCase vs frontend snake_case) — done, verified via
+`npx tsc --noEmit` clean. Not part of this plan.
+
+## Research findings (general-purpose agent, 2026-07-17)
+- `EmailMessage` model (`models/email_message.py`): `org_id`, `thread_id`, `direction`
+  (inbound/outbound), `category`, `from_address`, `to_addresses`, `subject`, `body_preview`,
+  `received_at`, `contact_id` (nullable, indexed, no FK constraint), `deal_id` (same pattern).
+- `Contact` model uses `organization_id` (not `org_id` — same value, different column name).
+  `Deal` uses `org_id`, has `contact_id`, `stage`, `pipeline`, `value`, `priority`.
+- Conversation grouping pattern to reuse: `routers/conversations.py` lines 195–267 —
+  `_thread_key()` (line 151) groups in-memory by `thread_id or provider_message_id`
+  (explicit SQLite/Postgres portability note — don't use window functions).
+- `insights_service.py` (265 lines) is entirely Mautic-shaped; `generate_ai_insights()`
+  (line 159) calls Claude **directly** via `AsyncAnthropic(api_key=settings.ANTHROPIC_API_KEY)`
+  — bypasses org BYOK key. Must replace with `get_anthropic_client(db, org_id)` pattern instead
+  (canonical call site: `routers/conv_ai.py` lines 640–701).
+- `DailyInsightsResponse` (routers/insights.py lines 62–70) shape to preserve:
+  `hot_leads`, `recent_contacts`, `stats`, `campaigns`, `ai_insights`, `generated_at`,
+  `mautic_connected`. Frontend (`dashboard/page.tsx`) only actually renders `ai_insights` and
+  `stats` today — `hot_leads`/`campaigns` feed the separate Hot Leads card via the same call.
+- `organization_id` currently NOT reliable on this route (optional query param, no
+  `get_current_user` dependency, plus a separate unauthenticated Space Agent header path).
+  Should switch to `current_user: User = Depends(get_current_user)` like `conversations.py`.
+
+## Plan
+- [ ] Add `EmailInsightsService` (new file, `backend/app/services/email_insights_service.py`)
+      replacing Mautic-based `InsightsService` for the daily-insights use case:
+  - [ ] `get_recent_activity(org_id, db)` — query `email_messages` for the org, group by
+        `contact_id` (fallback `from_address` when null) using the same in-memory thread-key
+        pattern as `conversations.py`, compute per-contact: last inbound `received_at`, last
+        outbound `received_at`, message count (last 14 days)
+  - [ ] `get_hot_leads(org_id, db)` — contacts with most recent inbound activity + reply velocity
+        (inbound followed by quick outbound = engaged); replaces Mautic "points" ranking
+  - [ ] `get_recent_contacts(org_id, db)` — most recently active contacts by `received_at`
+  - [ ] `get_summary_stats(org_id, db)` — total contacts, emails (last 30d), active threads,
+        replaces Mautic campaign/segment counts (drop campaigns count or repoint at real
+        `Campaign`/`Deal` models if that reads better — decide during implementation)
+  - [ ] `generate_ai_insights(org_id, db)` — build prompt from the above (e.g. "contact X went
+        quiet after Y days", "contact Z replied fast, follow up while hot"), call via
+        `get_anthropic_client(db, org_id)` (org BYOK first) — NOT direct `AsyncAnthropic`,
+        `claude-haiku-4-5-20251001` per existing email_classifier.py convention, max_tokens ~300
+- [ ] Rewrite `GET /insights/daily` in `routers/insights.py`:
+  - [ ] Drop `mautic_url` required param; switch to `current_user: User = Depends(get_current_user)`
+  - [ ] Keep the Space Agent header auth branch if it's still live (confirm with Mike — unclear
+        if Space Agent integration is still used per memory `project_leadspot_space_agent.md`)
+  - [ ] Call `EmailInsightsService` instead of Mautic `InsightsService`; keep Redis cache logic
+        (keyed by org_id + date) as-is
+  - [ ] Rename/repurpose `mautic_connected` response field — likely drop it or repoint to
+        whether the org has any Gmail/email connection at all (`oauth_connection` table),
+        since that's now the real prerequisite for insights to have data
+- [ ] Frontend: `lib/api/dashboard.ts` `fetchDailyInsights()` — confirm no query params needed
+      anymore (drop any `mautic_url` param if present); dashboard page's `demoMode` flag should
+      key off "no email connection" instead of "no mautic"
+- [ ] Leave `/insights/hot-leads` (separate Mautic-only endpoint, line 231) alone unless it turns
+      out to be dead code — check for any caller before touching it
+- [ ] Tests: unit tests for `EmailInsightsService` methods (empty org, single contact, multi-thread
+      grouping) mirroring the pattern in the CRE sprint's 11 unit tests for `deal_status_agent`
+- [ ] Manual verify: seed/use an org with real synced email_messages (Mike's own Gmail connection
+      per Unified Inbox review), reload /dashboard, confirm AI Insights shows real synthesized
+      text instead of the Mautic fallback message
+
+## Out of scope
+- Campaigns/segments-based insights (no real campaign-sending activity exists yet to insight on)
+- `/insights/hot-leads` endpoint rewrite (separate from the dashboard's daily insights call)
+- Removing Mautic integration code entirely (leave `MauticClient`/`mautic.py` in place — other
+  Mautic-dependent routes are out of scope for this change)
+
+## Review
+(To be filled after implementation)
+
+---
+
+# Voice AI Outbound Calling — Revive (queued, 2026-07-17)
+
+## Context
+Mike previously had a Claude Code agent build conversational AI outbound phone calling into
+LeadSpot. Currently off/not showing. Goal (confirmed by Mike): get it working again as-is first
+— NOT scoping monetization/billing yet, just functional for his own use.
+
+## Surface findings (not yet deep-researched)
+- Frontend: `/voice-agents` list/new/edit pages fully built, in nav
+  (`frontend/app/(dashboard)/layout.tsx`), but hidden behind `NEXT_PUBLIC_VOICE_ENABLED`
+  (currently unset — that's the immediate "why don't I see it" answer, but likely not the only gap).
+- `voice-agent/` — separate Python/LiveKit service. Its README is STALE (describes old
+  "Ploink CRM" naming + Mautic-only contact save) and doesn't match what `leadspot/CLAUDE.md`'s
+  architecture table describes (Deepgram STT + GPT-4 + ElevenLabs TTS, Google Calendar booking,
+  Twilio SMS). Need to read `voice-agent/src/agent.py` directly to find out which stack is
+  actually implemented — the README cannot be trusted.
+- `dashboard/` — separate Prisma+Stripe billing service for prepaid voice minutes
+  ($0.10/min). Explicitly scoped OUT of the July 15 Render deploy ("not needed for personal-CRM
+  use"). Per Mike's answer this session, billing/gating stays out for this pass too — but the
+  webhook route work from "Voice AI Production Plan — Phase 1 & 2" (this file, ~line 103) lives
+  in `dashboard/src/app/api/voice/calls/from-sip/route.ts` and may be load-bearing for the call
+  flow itself (balance hold on call start), not just billing — needs verification before assuming
+  it can stay disabled.
+- `backend/app/routers/twilio_webhook.py` exists (signature validation, call status logging,
+  empty TwiML response) — part of the call flow, backend-side.
+- No env files checked yet for what's actually configured vs. stubbed (voice-agent/.env exists
+  but unknown contents — do not read/print secrets, just check which keys are present vs blank).
+
+## Next steps (start of next session on this)
+- [ ] Read `voice-agent/src/agent.py` in full to determine actual STT/LLM/TTS stack in use
+- [ ] Check `voice-agent/.env` for which provider keys are present (key names only, not values)
+- [ ] Determine whether `dashboard/` (from-sip balance hold) is required for basic outbound
+      calling to function, or whether it's purely a billing gate that can be bypassed for
+      personal use
+- [ ] Check LiveKit Cloud account / API keys status — `voice-agent/README.md` implies LiveKit
+      Cloud deploy is required for `start` mode (not local-only)
+- [ ] Trace `/voice-agents` frontend pages → what backend/agent-service endpoints they call,
+      confirm those routes exist and work
+- [ ] Once stack is understood, write a proper plan (this todo file) before making changes
+- [ ] Flip `NEXT_PUBLIC_VOICE_ENABLED=true` locally only after the above is verified working,
+      not before (avoid exposing a broken nav item)
+
+## Out of scope (this pass, per Mike)
+- Billing/Stripe wiring, prepaid minute balance UI, monetization/pricing as an "upgrade tier"
+  — functional revival only for now
