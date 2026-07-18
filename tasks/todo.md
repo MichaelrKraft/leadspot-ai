@@ -474,7 +474,47 @@ Also fixed same session: **AI Morning Brief** card was broken by a response-shap
   Mautic-dependent routes are out of scope for this change)
 
 ## Review
-(To be filled after implementation)
+
+Shipped 2026-07-17. Also folded in Mike's decision: hid the unauthenticated Space Agent header
+path from `/insights/daily` (it doesn't work right now).
+
+- NEW `backend/app/services/email_insights_service.py` — `EmailInsightsService(db, org_id)`
+  replaces `InsightsService(mautic_client)` for the daily-insights use case. Groups
+  `email_messages` into threads in-memory (same `_thread_key` pattern as `conversations.py`),
+  computes hot leads = threads whose latest message is unreplied inbound within 14 days, recent
+  contacts = most recent activity of any direction, stats = contact/email/thread counts over 30
+  days. `generate_ai_insights()` uses `get_anthropic_client(db, org_id)` (org BYOK key first) via
+  `claude-haiku-4-5-20251001` — fixes the pre-existing bug where the Mautic version bypassed BYOK
+  and called `AsyncAnthropic(api_key=settings.ANTHROPIC_API_KEY)` directly.
+- `backend/app/routers/insights.py` — `/insights/daily` now uses
+  `current_user: User = Depends(get_current_user)` instead of required `mautic_url` query param
+  + unauthenticated `X-Space-Agent-Key`/`X-Space-Org-Id` header path (removed per Mike — Space
+  Agent isn't working right now). `/insights/hot-leads` and `/insights/stats` left untouched
+  (Mautic-only, confirmed zero frontend callers — out of scope per plan).
+- `frontend/lib/api/dashboard.ts` — `fetchDailyInsights()` no longer sends `mautic_url`/
+  `organization_id` params (backend derives org from the session now). Removed `fetchHotLeads`/
+  `fetchCRMStats` — dead exports, no callers anywhere in the frontend.
+- NEW `backend/tests/test_email_insights_service.py` — 10 tests: empty-org, unreplied-inbound
+  hot lead, already-replied thread excluded, stale (>14d) messages excluded, cross-org isolation,
+  recent-contacts ordering, stats counting, and 3 AI-insights tests (no API key, no activity
+  empty-state, Claude called correctly with mocked client).
+- Verified: `npx tsc --noEmit` clean (frontend), `ruff check` clean, full backend suite
+  242 passed / 4 pre-existing gmail-integration failures (confirmed identical via `git stash`,
+  unrelated to this change — documented dead legacy code per project session learnings).
+  Backend dev server (was running stale code, no `--reload`) restarted with Mike's OK; confirmed
+  live: `GET /insights/daily` now 401s ("Could not validate credentials") instead of the old
+  422 "mautic_url required" — auth-gated on the real session as intended.
+
+### Not done / follow-up
+- Manual end-to-end check with a real logged-in browser session + real synced email data
+  wasn't done this session (would need Mike's live Gmail-connected org) — the AI Insights card
+  should now show either real synthesized insights or the new "No recent email activity yet.
+  Connect your inbox in Settings..." empty state, never the old Mautic message. Worth a quick
+  look next time Mike's on `/dashboard`.
+- `mautic_connected` field on the response is currently hardcoded `true` in the success path
+  (kept for response-shape compatibility) — doesn't mean anything anymore now that Mautic isn't
+  the gate; nothing in the frontend reads it today (`demoMode` is keyed off a different check),
+  so left as-is rather than over-engineering an unused field.
 
 ---
 
