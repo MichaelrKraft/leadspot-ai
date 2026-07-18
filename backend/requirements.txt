@@ -84,3 +84,4 @@ stripe>=7.0.0
 
 # Twilio (status webhook signature validation)
 twilio>=8.0.0
+itsdangerous==2.2.0

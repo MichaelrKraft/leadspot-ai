@@ -11,6 +11,9 @@ from app.models.daemon_token_usage import DaemonTokenUsage
 from app.models.deal import Deal
 from app.models.deal_suggestion import DealSuggestion
 from app.models.digest_unmatched_sample import DigestUnmatchedSample
+from app.models.email_category import EmailCategory, SenderRule
+from app.models.email_event import EmailEvent
+from app.models.style_profile import StyleProfile
 from app.models.email_message import EmailMessage
 from app.models.document import Document
 from app.models.email_alias import EmailAlias
@@ -32,6 +35,10 @@ __all__ = [
     "DaemonTokenUsage",
     "Deal",
     "DealSuggestion",
+    "EmailCategory",
+    "SenderRule",
+    "EmailEvent",
+    "StyleProfile",
     "EmailMessage",
     "DigestUnmatchedSample",
     "Document",

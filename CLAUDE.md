@@ -188,3 +188,20 @@ STRIPE_WEBHOOK_SECRET=
 - Tailwind CSS for styling
 - Dark mode support via CSS variables
 - Component co-location with pages
+
+
+<!-- coder1-mem:start -->
+<!-- Auto-updated by coder1-mem on 2026-07-15 — do not edit this block manually -->
+## Recent Session Context
+
+**Project:** leadspot | **Sessions:** 74 | **Last active:** 2min ago
+
+Session topic: ...
+
+<!-- coder1-mem:end -->
+
+## Session Learnings
+
+- `services/sync/gmail_sync.py` (GmailSyncService/GmailConnector) was ALWAYS dead code — its import fails and is swallowed in `services/sync/__init__.py`; `tests/test_gmail_integration.py` fails for this reason, pre-existing. The working Gmail stack (2026-07-17) is `services/connectors/gmail.py` (GmailClient) + `services/sync/gmail_inbox_sync.py`; `outlook_sync.py` is the structural template for any new mailbox sync (it's the one with token refresh-on-expiry).
+- Unified Inbox: email conversations are DERIVED from `email_messages` grouped by thread (conversation ids prefixed `em:` in `routers/conversations.py`); the `conversations`/`conversation_messages` tables only back SMS/manual compose. Don't add a second email store.
+- Org BYOK Anthropic keys (`organization.anthropic_api_key`) are only wired into inference via `services/inference/llm_client.py` — anything calling Claude directly with `_get_api_key()` silently ignores the org's own key.

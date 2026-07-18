@@ -39,7 +39,9 @@ oauth_providers = {
     "gmail": lambda: GmailOAuthProvider(
         client_id=settings.GOOGLE_CLIENT_ID,  # Reuses Google OAuth credentials
         client_secret=settings.GOOGLE_CLIENT_SECRET,
-        redirect_uri=f"{settings.API_BASE_URL}/oauth/gmail/callback",
+        # Router is mounted under /api (main.py) — without that prefix the
+        # callback 404s. Must match an Authorized redirect URI in GCP.
+        redirect_uri=f"{settings.API_BASE_URL}/api/oauth/gmail/callback",
     ),
     "microsoft": lambda: MicrosoftOAuthProvider(
         client_id=settings.MICROSOFT_CLIENT_ID,
@@ -384,9 +386,9 @@ async def sync_connection(
         sync_service = GoogleDriveSyncService()
         results = await sync_service.sync_connection(connection, db, max_files)
     elif provider == "gmail":
-        from app.services.sync import GmailSyncService
-        sync_service = GmailSyncService()
-        results = await sync_service.sync_connection(connection, db, max_emails=max_files)
+        from app.services.sync.gmail_inbox_sync import GmailInboxSyncService
+        sync_service = GmailInboxSyncService()
+        results = await sync_service.sync_connection(connection, db)
     elif provider == "microsoft":
         from app.services.sync import OutlookSyncService
         sync_service = OutlookSyncService()
@@ -397,5 +399,75 @@ async def sync_connection(
         results = await sync_service.sync_connection(connection, db, max_files)
     else:
         raise HTTPException(status_code=400, detail=f"Sync not implemented for {provider}")
+
+    return results
+
+
+@router.post("/gmail/backfill")
+async def backfill_gmail(
+    connection_id: str = Query(..., description="Connection ID to backfill"),
+    days: int = Query(7, ge=1, le=30, description="How many days back to ingest"),
+    max_messages: int = Query(200, ge=1, le=500),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """One-time backfill so the inbox isn't empty on day 1.
+
+    The poller's cursor bootstraps from "now"; this pulls the recent backlog
+    through the same pipeline (dedupe + terminal events make it idempotent).
+    """
+    org_id = str(current_user.organization_id)
+    connection = (
+        await db.execute(
+            select(OAuthConnection).where(
+                OAuthConnection.connection_id == connection_id,
+                OAuthConnection.provider == "gmail",
+                OAuthConnection.organization_id == org_id,
+            )
+        )
+    ).scalar_one_or_none()
+    if not connection:
+        raise HTTPException(status_code=404, detail="Connection not found")
+    if connection.status != ConnectionStatus.ACTIVE:
+        raise HTTPException(status_code=400, detail="Connection is not active")
+
+    from app.services.connectors.gmail import GmailClient
+    from app.services.inference.llm_client import get_anthropic_client
+    from app.services.inference.reply_drafter import (
+        build_style_profile,
+        index_sent_exemplar,
+    )
+    from app.services.sync.gmail_inbox_sync import GmailInboxSyncService
+
+    sync_service = GmailInboxSyncService()
+    access_token = await sync_service._ensure_access_token(connection, db)
+    client = GmailClient(access_token)
+
+    ids = await client.list_message_ids_since_days(days, max_messages)
+    results = await sync_service.sync_connection(connection, db, backfill_ids=ids)
+
+    # Voice layer: index sent mail as exemplars + build the style profile
+    # (90 days of sent mail; bodies used in memory, only capped snippets and
+    # the distilled profile persist).
+    sent_ids = await client.list_message_ids_since_days(90, 100, extra_query="in:sent")
+    sent_bodies: list[str] = []
+    for sent_id in sent_ids:
+        try:
+            msg = await client.get_message(sent_id)
+        except Exception:
+            continue
+        if msg and msg.body:
+            sent_bodies.append(msg.body)
+            index_sent_exemplar(org_id, sent_id, msg.subject, msg.body)
+    results["sent_exemplars_indexed"] = len(sent_bodies)
+
+    llm = await get_anthropic_client(db, org_id)
+    if llm and sent_bodies:
+        profile = await build_style_profile(
+            db, org_id, connection.connected_user_email or "", sent_bodies, llm
+        )
+        results["style_profile_built"] = profile is not None
+    else:
+        results["style_profile_built"] = False
 
     return results

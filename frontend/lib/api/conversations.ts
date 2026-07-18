@@ -4,7 +4,7 @@
  */
 
 import { apiClient } from '@/lib/api';
-import { Conversation, InboxMessage } from '@/types/inbox';
+import { Conversation, EmailCategory, InboxMessage } from '@/types/inbox';
 
 // ── Backend shapes ──────────────────────────────────────────────────────────
 
@@ -20,6 +20,7 @@ interface ApiConversation {
   unread_count: number;
   org_id: string;
   created_at: string;
+  category?: string | null;
 }
 
 interface ApiMessage {
@@ -91,6 +92,7 @@ function adaptConversation(c: ApiConversation, messages: ApiMessage[] = []): Con
     timestamp: formatRelativeTime(c.last_message_at),
     unread: c.unread_count > 0,
     messages: messages.map(adaptMessage),
+    category: c.category ?? null,
   };
 }
 
@@ -119,4 +121,22 @@ export async function createConversation(data: CreateConversationData): Promise<
 export async function replyToConversation(id: string, body: string): Promise<InboxMessage> {
   const res = await apiClient.post<{ message: ApiMessage }>(`/api/conversations/${id}/reply`, { body });
   return adaptMessage(res.data.message);
+}
+
+export async function listCategories(): Promise<EmailCategory[]> {
+  const res = await apiClient.get<{ categories: EmailCategory[] }>(
+    '/api/conversations/meta/categories'
+  );
+  return res.data.categories;
+}
+
+export async function correctCategory(
+  id: string,
+  category: string,
+  alwaysForSender = false
+): Promise<void> {
+  await apiClient.patch(`/api/conversations/${id}/category`, {
+    category,
+    always_for_sender: alwaysForSender,
+  });
 }

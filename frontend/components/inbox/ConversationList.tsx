@@ -156,6 +156,11 @@ export default function ConversationList({
                   </div>
                   <div className="flex items-center gap-1.5 mt-0.5">
                     <TypeIcon type={conv.type} />
+                    {conv.category && (
+                      <span className="flex-shrink-0 rounded-full bg-indigo-500/10 px-1.5 py-0.5 text-[10px] font-medium text-indigo-400">
+                        {conv.category}
+                      </span>
+                    )}
                     <p className="text-xs dark:text-zinc-400 text-slate-500 truncate">
                       {conv.lastMessage}
                     </p>

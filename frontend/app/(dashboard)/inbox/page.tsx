@@ -1,26 +1,32 @@
 'use client';
 
-// TODO: Wire to backend inbox API
-// Required endpoints (not yet implemented in backend):
-//   GET  /api/conversations           — list conversations with pagination
-//   GET  /api/conversations/:id       — get single conversation with messages
-//   POST /api/conversations/:id/reply — send a reply (email or SMS)
-//   POST /api/conversations           — compose new message
-// Until these exist, mock data (DEMO_CONVERSATIONS) is used below.
-// Empty state placeholder: "No messages yet. Your email and SMS conversations will appear here."
+// Unified Inbox — email conversations are derived server-side from ingested
+// Gmail threads (email_messages); SMS/manual conversations come from the
+// legacy conversations table. Replying to an email thread saves a Draft
+// (never sends). Backend: app/routers/conversations.py.
 
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { PenSquare, X, Send } from 'lucide-react';
+import { PenSquare, X, Send, AlertTriangle, Check, Sparkles } from 'lucide-react';
+import Link from 'next/link';
 import ConversationList from '@/components/inbox/ConversationList';
 import MessageThread from '@/components/inbox/MessageThread';
 import ContactSidebar from '@/components/inbox/ContactSidebar';
-import { Conversation, FilterType } from '@/types/inbox';
+import { Conversation, EmailCategory, FilterType } from '@/types/inbox';
 import {
   listConversations,
   getConversation,
   replyToConversation,
   createConversation,
+  listCategories,
+  correctCategory,
 } from '@/lib/api/conversations';
+import {
+  DealSuggestion,
+  listSuggestions,
+  acceptSuggestion,
+  rejectSuggestion,
+} from '@/lib/api/suggestions';
+import { apiClient } from '@/lib/api';
 
 function DragHandle({
   onDrag,
@@ -80,17 +86,34 @@ export default function InboxPage() {
   const containerRef = useRef<HTMLDivElement>(null);
   const [showCompose, setShowCompose] = useState(false);
   const [composeForm, setComposeForm] = useState({ to: '', subject: '', body: '', type: 'email' as 'email' | 'sms' });
+  const [categories, setCategories] = useState<EmailCategory[]>([]);
+  const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
+  const [suggestions, setSuggestions] = useState<DealSuggestion[]>([]);
+  const [rememberSender, setRememberSender] = useState(false);
+  const [gmailBroken, setGmailBroken] = useState(false);
+
   useEffect(() => {
     listConversations()
       .then((data) => setConversations(data))
       .catch(() => setError('Failed to load conversations'))
       .finally(() => setIsLoading(false));
+    listCategories().then(setCategories).catch(() => {});
+    listSuggestions('pending').then(setSuggestions).catch(() => {});
+    apiClient
+      .get<{ connections: { provider: string; status: string }[] }>('/oauth/connections')
+      .then((res) =>
+        setGmailBroken(
+          res.data.connections.some(
+            (c) => c.provider === 'gmail' && c.status === 'error'
+          )
+        )
+      )
+      .catch(() => {});
   }, []);
 
-  const filteredConversations =
-    filter === 'all'
-      ? conversations
-      : conversations.filter((c) => c.type === filter);
+  const filteredConversations = conversations
+    .filter((c) => (filter === 'all' ? true : c.type === filter))
+    .filter((c) => (categoryFilter ? c.category === categoryFilter : true));
 
   const selectedConversation =
     conversations.find((c) => c.id === selectedId) || null;
@@ -139,6 +162,37 @@ export default function InboxPage() {
     }
   };
 
+  const handleCategoryChange = async (conversationId: string, category: string) => {
+    try {
+      await correctCategory(conversationId, category, rememberSender);
+      setConversations((prev) =>
+        prev.map((c) => (c.id === conversationId ? { ...c, category } : c))
+      );
+    } catch {
+      // non-fatal
+    }
+  };
+
+  const handleSuggestion = async (id: string, accept: boolean) => {
+    try {
+      if (accept) await acceptSuggestion(id);
+      else await rejectSuggestion(id);
+      setSuggestions((prev) => prev.filter((s) => s.id !== id));
+    } catch {
+      // non-fatal
+    }
+  };
+
+  // Pending deal suggestions sourced from the selected contact's email
+  const selectedSuggestions = selectedConversation
+    ? suggestions.filter(
+        (s) =>
+          s.source?.from_address &&
+          s.source.from_address.toLowerCase() ===
+            selectedConversation.contact.email.toLowerCase()
+      )
+    : [];
+
   if (isLoading) {
     return (
       <div className="flex h-[calc(100vh-120px)] items-center justify-center">
@@ -156,7 +210,55 @@ export default function InboxPage() {
   }
 
   return (
-    <div ref={containerRef} className="flex h-[calc(100vh-120px)] relative">
+    <div className="flex h-[calc(100vh-120px)] flex-col">
+      {/* Gmail connection broken — reconnect banner */}
+      {gmailBroken && (
+        <div className="mb-2 flex items-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-2 text-sm text-amber-600 dark:text-amber-400">
+          <AlertTriangle className="h-4 w-4 flex-shrink-0" />
+          <span>
+            A Gmail connection stopped working — new email is not syncing.
+          </span>
+          <Link href="/settings/integrations" className="font-medium underline">
+            Reconnect
+          </Link>
+        </div>
+      )}
+
+      {/* Category filter chips */}
+      {categories.length > 0 && (
+        <div className="mb-2 flex flex-wrap gap-1.5">
+          <button
+            onClick={() => setCategoryFilter(null)}
+            className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+              categoryFilter === null
+                ? 'bg-indigo-500 text-white'
+                : 'border border-slate-200 text-slate-500 hover:bg-slate-50 dark:border-zinc-700 dark:text-zinc-400 dark:hover:bg-zinc-800'
+            }`}
+          >
+            All categories
+          </button>
+          {categories
+            .filter((c) => c.enabled)
+            .map((c) => (
+              <button
+                key={c.name}
+                onClick={() =>
+                  setCategoryFilter(categoryFilter === c.name ? null : c.name)
+                }
+                title={c.description ?? undefined}
+                className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+                  categoryFilter === c.name
+                    ? 'bg-indigo-500 text-white'
+                    : 'border border-slate-200 text-slate-500 hover:bg-slate-50 dark:border-zinc-700 dark:text-zinc-400 dark:hover:bg-zinc-800'
+                }`}
+              >
+                {c.name}
+              </button>
+            ))}
+        </div>
+      )}
+
+    <div ref={containerRef} className="flex flex-1 min-h-0 relative">
       {/* Compose FAB */}
       <button
         onClick={() => setShowCompose(true)}
@@ -259,20 +361,99 @@ export default function InboxPage() {
         />
       </div>
       <DragHandle onDrag={handleLeftDrag} />
-      <div className="flex-1 min-w-[300px]">
+      <div className="flex-1 min-w-[300px] flex flex-col">
+        {/* Deal suggestions from this sender */}
+        {selectedSuggestions.map((s) => (
+          <div
+            key={s.id}
+            className="m-2 mb-0 flex items-center gap-3 rounded-lg border border-indigo-500/30 bg-indigo-500/10 px-4 py-2.5 text-sm"
+          >
+            <Sparkles className="h-4 w-4 flex-shrink-0 text-indigo-400" />
+            <div className="flex-1 min-w-0">
+              <span className="font-medium text-slate-800 dark:text-zinc-100">
+                {s.deal_title || s.property_name || 'Deal'}:
+              </span>{' '}
+              <span className="text-slate-600 dark:text-zinc-300">
+                move {s.current_stage} → {s.suggested_stage} ({s.confidence}%)
+              </span>
+              {s.evidence && (
+                <p className="truncate text-xs text-slate-500 dark:text-zinc-400">
+                  “{s.evidence}”
+                </p>
+              )}
+            </div>
+            <button
+              onClick={() => handleSuggestion(s.id, true)}
+              className="flex items-center gap-1 rounded-lg bg-indigo-500 px-3 py-1.5 text-xs font-medium text-white hover:bg-indigo-600"
+            >
+              <Check className="h-3 w-3" /> Accept
+            </button>
+            <button
+              onClick={() => handleSuggestion(s.id, false)}
+              className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50 dark:border-zinc-700 dark:text-zinc-400 dark:hover:bg-zinc-800"
+            >
+              Dismiss
+            </button>
+          </div>
+        ))}
+
+        {/* Category correction toolbar (email threads only) */}
+        {selectedConversation?.type === 'email' && categories.length > 0 && (
+          <div className="flex items-center gap-2 border-b border-slate-200 px-4 py-2 text-xs dark:border-zinc-800/50">
+            <span className="text-slate-500 dark:text-zinc-400">Category:</span>
+            <select
+              value={selectedConversation.category ?? ''}
+              onChange={(e) =>
+                e.target.value &&
+                handleCategoryChange(selectedConversation.id, e.target.value)
+              }
+              className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs text-slate-700 focus:outline-none dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200"
+            >
+              <option value="" disabled>
+                Uncategorized
+              </option>
+              {categories
+                .filter((c) => c.enabled)
+                .map((c) => (
+                  <option key={c.name} value={c.name}>
+                    {c.name}
+                  </option>
+                ))}
+            </select>
+            <label className="flex cursor-pointer items-center gap-1.5 text-slate-500 dark:text-zinc-400">
+              <input
+                type="checkbox"
+                checked={rememberSender}
+                onChange={(e) => setRememberSender(e.target.checked)}
+                className="h-3 w-3 accent-indigo-500"
+              />
+              Always for this sender
+            </label>
+          </div>
+        )}
+
         {filteredConversations.length === 0 ? (
           <div className="flex h-full flex-col items-center justify-center gap-3 text-center px-8">
             <p className="text-base font-medium text-gray-300">No messages yet.</p>
-            <p className="text-sm text-gray-500">Your email and SMS conversations will appear here.</p>
+            <p className="text-sm text-gray-500">
+              Connect a Gmail account in{' '}
+              <Link href="/settings/integrations" className="text-indigo-400 underline">
+                Settings → Integrations
+              </Link>{' '}
+              and your email will start syncing here automatically.
+            </p>
           </div>
         ) : (
-          <MessageThread conversation={selectedConversation} onReply={handleReply} />
+          <div className="flex-1 min-h-0">
+            <MessageThread conversation={selectedConversation} onReply={handleReply} />
+          </div>
         )}
       </div>
       <DragHandle onDrag={handleRightDrag} />
       <div style={{ width: rightWidth, minWidth: 200, maxWidth: 500 }} className="flex-shrink-0">
         <ContactSidebar contact={selectedConversation?.contact || null} />
       </div>
+    </div>
     </div>
   );
 }
