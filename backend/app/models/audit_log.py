@@ -8,7 +8,7 @@ for compliance and security monitoring.
 import uuid
 from datetime import datetime
 
-from sqlalchemy import Enum, JSON, Column, DateTime, ForeignKey, String, Text
+from sqlalchemy import JSON, Column, DateTime, ForeignKey, String, Text
 from sqlalchemy.orm import relationship
 
 from app.database import Base

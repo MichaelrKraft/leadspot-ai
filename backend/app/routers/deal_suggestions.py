@@ -3,7 +3,7 @@ Deal suggestions router — list / accept / reject AI-proposed stage changes.
 """
 
 from datetime import datetime
-from typing import List, Optional
+from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
@@ -23,8 +23,8 @@ router = APIRouter()
 
 class AnalyzeEmailRequest(BaseModel):
     body: str
-    subject: Optional[str] = None
-    from_address: Optional[str] = None
+    subject: str | None = None
+    from_address: str | None = None
 
 
 class AnalyzeEmailResponse(BaseModel):
@@ -34,23 +34,23 @@ class AnalyzeEmailResponse(BaseModel):
 
 
 class SuggestionSource(BaseModel):
-    subject: Optional[str] = None
-    from_address: Optional[str] = None
-    body_preview: Optional[str] = None
-    received_at: Optional[datetime] = None
+    subject: str | None = None
+    from_address: str | None = None
+    body_preview: str | None = None
+    received_at: datetime | None = None
 
 
 class SuggestionResponse(BaseModel):
     id: str
     deal_id: str
-    deal_title: Optional[str]
-    property_name: Optional[str]
+    deal_title: str | None
+    property_name: str | None
     current_stage: str
     suggested_stage: str
     confidence: int
-    evidence: Optional[str]
+    evidence: str | None
     source_type: str
-    source: Optional[SuggestionSource]
+    source: SuggestionSource | None
     status: str
     created_at: datetime
 
@@ -155,7 +155,7 @@ async def list_suggestions(
         )
         .order_by(DealSuggestion.created_at.desc())
     )
-    suggestions: List[DealSuggestion] = result.scalars().all()
+    suggestions: list[DealSuggestion] = result.scalars().all()
     return {"suggestions": [await _to_response(s, db) for s in suggestions]}
 
 

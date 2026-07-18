@@ -13,7 +13,6 @@ See plan §2.2 (cloud rejection handling) and §11 (RTBF).
 
 import logging
 from datetime import datetime
-from typing import Optional
 
 from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel
@@ -36,15 +35,15 @@ router = APIRouter()
 class TombstoneEntry(BaseModel):
     id: str
     tombstone_type: str
-    signal_id: Optional[str] = None
-    contact_id: Optional[str] = None
-    email_hash: Optional[str] = None
+    signal_id: str | None = None
+    contact_id: str | None = None
+    email_hash: str | None = None
     issued_at: str
 
 
 class TombstonesListResponse(BaseModel):
     tombstones: list[TombstoneEntry]
-    next_since: Optional[str] = None
+    next_since: str | None = None
 
 
 # =============================================================================
@@ -53,7 +52,7 @@ class TombstonesListResponse(BaseModel):
 
 @router.get("/tombstones", response_model=TombstonesListResponse)
 async def list_tombstones(
-    since: Optional[datetime] = Query(None),
+    since: datetime | None = Query(None),
     limit: int = Query(500, ge=1, le=2000),
     db: AsyncSession = Depends(get_db),
     daemon: DaemonCredential = Depends(get_current_daemon),

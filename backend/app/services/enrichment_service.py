@@ -10,7 +10,6 @@ Provides contact data enrichment features:
 
 import logging
 import re
-from typing import Optional
 
 from anthropic import AsyncAnthropic
 
@@ -150,7 +149,7 @@ class EnrichmentService:
             "contact_ids": contact_ids,
             "merged_values": merged,
             "combined_tags": list(all_tags),
-            "recommendation": f"Keep contact with most complete data, transfer tags and points",
+            "recommendation": "Keep contact with most complete data, transfer tags and points",
         }
 
     # =========================================================================

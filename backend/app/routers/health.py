@@ -113,8 +113,9 @@ async def liveness_check():
 @router.get("/health/full")
 async def full_health():
     """Aggregated health: backend + Space Agent."""
-    from app.config import settings
     import httpx
+
+    from app.config import settings
 
     space_agent_status = "not_configured"
     if settings.SPACE_AGENT_URL:

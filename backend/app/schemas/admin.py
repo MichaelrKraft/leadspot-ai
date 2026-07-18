@@ -9,7 +9,7 @@ Schemas for admin panel operations:
 """
 
 from datetime import datetime
-from typing import Optional, Any
+from typing import Any
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
@@ -26,9 +26,9 @@ class UserCreate(BaseModel):
 
 class UserUpdate(BaseModel):
     """Schema for updating user details"""
-    name: Optional[str] = Field(None, min_length=1, max_length=255)
-    email: Optional[EmailStr] = None
-    role: Optional[str] = Field(None, pattern="^(admin|user|viewer|inactive)$")
+    name: str | None = Field(None, min_length=1, max_length=255)
+    email: EmailStr | None = None
+    role: str | None = Field(None, pattern="^(admin|user|viewer|inactive)$")
 
 
 class UserResponse(BaseModel):
@@ -39,7 +39,7 @@ class UserResponse(BaseModel):
     organization_id: UUID
     role: str
     created_at: datetime
-    last_login: Optional[datetime] = None
+    last_login: datetime | None = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -61,9 +61,9 @@ class PasswordReset(BaseModel):
 
 class OrganizationUpdate(BaseModel):
     """Schema for updating organization settings"""
-    name: Optional[str] = Field(None, min_length=1, max_length=255)
-    domain: Optional[str] = Field(None, min_length=1, max_length=255)
-    subscription_tier: Optional[str] = Field(
+    name: str | None = Field(None, min_length=1, max_length=255)
+    domain: str | None = Field(None, min_length=1, max_length=255)
+    subscription_tier: str | None = Field(
         None,
         pattern="^(pilot|growth|enterprise)$"
     )
@@ -76,8 +76,8 @@ class OrganizationResponse(BaseModel):
     domain: str
     subscription_tier: str
     created_at: datetime
-    total_users: Optional[int] = None
-    total_documents: Optional[int] = None
+    total_users: int | None = None
+    total_documents: int | None = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -96,15 +96,15 @@ class AuditLogResponse(BaseModel):
     """Schema for audit log entry"""
     log_id: UUID
     organization_id: UUID
-    user_id: Optional[UUID]
+    user_id: UUID | None
     action: str
     resource_type: str
-    resource_id: Optional[str]
-    details: Optional[dict[str, Any]]
-    ip_address: Optional[str]
-    user_agent: Optional[str]
+    resource_id: str | None
+    details: dict[str, Any] | None
+    ip_address: str | None
+    user_agent: str | None
     status: str
-    error_message: Optional[str]
+    error_message: str | None
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
@@ -120,13 +120,13 @@ class AuditLogListResponse(BaseModel):
 
 class AuditLogFilters(BaseModel):
     """Schema for audit log filtering"""
-    user_id: Optional[UUID] = None
-    action: Optional[str] = None
-    resource_type: Optional[str] = None
-    status: Optional[str] = Field(None, pattern="^(success|failure|error)$")
-    start_date: Optional[datetime] = None
-    end_date: Optional[datetime] = None
-    search: Optional[str] = None
+    user_id: UUID | None = None
+    action: str | None = None
+    resource_type: str | None = None
+    status: str | None = Field(None, pattern="^(success|failure|error)$")
+    start_date: datetime | None = None
+    end_date: datetime | None = None
+    search: str | None = None
 
 
 class AuditStatistics(BaseModel):
@@ -160,7 +160,7 @@ class UserActivitySummary(BaseModel):
     """Schema for user activity summary"""
     user_id: UUID
     total_actions: int
-    last_activity: Optional[datetime]
+    last_activity: datetime | None
     actions_by_type: dict[str, int]
 
 

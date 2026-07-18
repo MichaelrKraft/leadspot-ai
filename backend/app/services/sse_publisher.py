@@ -16,7 +16,7 @@ import asyncio
 import json
 import logging
 from collections import defaultdict
-from typing import AsyncIterator, Optional
+from collections.abc import AsyncIterator
 
 from app.database import engine
 
@@ -74,7 +74,7 @@ def _is_postgres() -> bool:
 
 async def publish_signal_inserted(
     signal_id: str,
-    contact_id: Optional[str],
+    contact_id: str | None,
     organization_id: str,
 ) -> None:
     """Notify subscribers that a new signal was inserted.
@@ -136,7 +136,7 @@ async def subscribe_to_contact(
                             raw.notifies.get(),  # asyncpg.Connection.notifies is a Queue
                             timeout=1.0,
                         )
-                    except asyncio.TimeoutError:
+                    except TimeoutError:
                         continue
                     except AttributeError:
                         # Driver doesn't expose notifies the way we expect —
@@ -162,7 +162,7 @@ async def subscribe_to_contact(
         while True:
             try:
                 payload = await asyncio.wait_for(q.get(), timeout=1.0)
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 continue
             if payload.get("organization_id") != organization_id:
                 continue

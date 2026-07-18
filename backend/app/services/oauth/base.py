@@ -1,4 +1,4 @@
-from typing import Optional
+
 """Base OAuth provider class for all OAuth integrations"""
 
 import secrets
@@ -87,7 +87,7 @@ class BaseOAuthProvider(ABC):
 
     async def exchange_code_for_tokens(
         self, code: str
-    ) -> tuple[str, Optional[str], datetime]:
+    ) -> tuple[str, str | None, datetime]:
         """
         Exchange authorization code for access and refresh tokens.
 

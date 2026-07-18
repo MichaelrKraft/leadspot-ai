@@ -4,7 +4,6 @@ Campaigns router — CRUD for campaign persistence
 
 import logging
 from datetime import datetime
-from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel
@@ -35,12 +34,12 @@ class CampaignCreate(BaseModel):
 
 
 class CampaignUpdate(BaseModel):
-    name: Optional[str] = None
-    status: Optional[str] = None
-    type: Optional[str] = None
-    leads: Optional[int] = None
-    opened: Optional[int] = None
-    replied: Optional[int] = None
+    name: str | None = None
+    status: str | None = None
+    type: str | None = None
+    leads: int | None = None
+    opened: int | None = None
+    replied: int | None = None
 
 
 class CampaignResponse(BaseModel):
@@ -59,7 +58,7 @@ class CampaignResponse(BaseModel):
 
 
 class CampaignsListResponse(BaseModel):
-    campaigns: List[CampaignResponse]
+    campaigns: list[CampaignResponse]
     total: int
     page: int
     limit: int

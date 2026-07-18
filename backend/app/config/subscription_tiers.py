@@ -6,7 +6,6 @@ Three tiers: Free, Pro ($39/mo, 5k contacts), Business ($79/mo, 25k contacts)
 
 from decimal import Decimal
 
-
 # Subscription tier configuration
 SUBSCRIPTION_TIERS = {
     "free": {

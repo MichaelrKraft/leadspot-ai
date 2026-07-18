@@ -2,7 +2,7 @@
 
 from datetime import datetime
 from enum import Enum
-from typing import Optional, Any
+from typing import Any
 
 from pydantic import BaseModel, Field, validator
 
@@ -56,9 +56,9 @@ class DecisionCreate(BaseModel):
     """Schema for creating a new decision."""
     title: str = Field(..., min_length=3, max_length=255)
     description: str = Field(..., min_length=10)
-    category: Optional[DecisionCategory] = None
-    decision_date: Optional[datetime] = None
-    context: Optional[dict[str, Any]] = None
+    category: DecisionCategory | None = None
+    decision_date: datetime | None = None
+    context: dict[str, Any] | None = None
 
     @validator('title')
     def title_not_empty(cls, v):
@@ -69,12 +69,12 @@ class DecisionCreate(BaseModel):
 
 class DecisionUpdate(BaseModel):
     """Schema for updating a decision."""
-    title: Optional[str] = Field(None, min_length=3, max_length=255)
-    description: Optional[str] = Field(None, min_length=10)
-    category: Optional[DecisionCategory] = None
-    status: Optional[DecisionStatus] = None
-    decision_date: Optional[datetime] = None
-    context: Optional[dict[str, Any]] = None
+    title: str | None = Field(None, min_length=3, max_length=255)
+    description: str | None = Field(None, min_length=10)
+    category: DecisionCategory | None = None
+    status: DecisionStatus | None = None
+    decision_date: datetime | None = None
+    context: dict[str, Any] | None = None
 
 
 class DecisionQuery(BaseModel):
@@ -94,7 +94,7 @@ class FactorResponse(BaseModel):
     name: str
     category: FactorCategory
     impact_score: int = Field(..., ge=1, le=10)
-    explanation: Optional[str] = None
+    explanation: str | None = None
     created_at: datetime
 
     class Config:
@@ -107,9 +107,9 @@ class OutcomeResponse(BaseModel):
     decision_id: str
     description: str
     outcome_type: str
-    likelihood: Optional[int] = Field(None, ge=0, le=100)
-    impact: Optional[ImpactLevel] = None
-    timeframe: Optional[Timeframe] = None
+    likelihood: int | None = Field(None, ge=0, le=100)
+    impact: ImpactLevel | None = None
+    timeframe: Timeframe | None = None
     status: str
     created_at: datetime
     updated_at: datetime
@@ -124,13 +124,13 @@ class DecisionResponse(BaseModel):
     user_id: str
     title: str
     description: str
-    category: Optional[str] = None
+    category: str | None = None
     status: str
-    context: Optional[dict[str, Any]] = None
-    graph_node_id: Optional[str] = None
+    context: dict[str, Any] | None = None
+    graph_node_id: str | None = None
     created_at: datetime
     updated_at: datetime
-    decision_date: Optional[datetime] = None
+    decision_date: datetime | None = None
     factors: list[FactorResponse] = []
     outcomes: list[OutcomeResponse] = []
 
@@ -144,7 +144,7 @@ class TimelineEvent(BaseModel):
     type: str
     title: str
     is_main: bool = False
-    relationship: Optional[str] = None
+    relationship: str | None = None
 
 
 class TimelineResponse(BaseModel):
@@ -248,10 +248,10 @@ class AnalysisRequest(BaseModel):
 class AnalysisResponse(BaseModel):
     """Schema for complete decision analysis."""
     decision: DecisionResponse
-    timeline: Optional[TimelineResponse] = None
-    factors: Optional[list[FactorAnalysis]] = None
-    predictions: Optional[OutcomePrediction] = None
-    related_decisions: Optional[list[RelatedDecision]] = None
+    timeline: TimelineResponse | None = None
+    factors: list[FactorAnalysis] | None = None
+    predictions: OutcomePrediction | None = None
+    related_decisions: list[RelatedDecision] | None = None
 
 
 # Phase 6: Pattern Analysis Schemas
@@ -273,8 +273,8 @@ class DecisionPattern(BaseModel):
 
 class PatternAnalysisRequest(BaseModel):
     """Schema for pattern analysis request."""
-    start_date: Optional[datetime] = None
-    end_date: Optional[datetime] = None
+    start_date: datetime | None = None
+    end_date: datetime | None = None
 
 
 class PatternAnalysisResponse(BaseModel):
@@ -300,7 +300,7 @@ class AIInsight(BaseModel):
     title: str
     description: str
     confidence: float = Field(..., ge=0.0, le=1.0)
-    related_factors: Optional[list[str]] = None
+    related_factors: list[str] | None = None
 
 
 class AIInsightsResponse(BaseModel):

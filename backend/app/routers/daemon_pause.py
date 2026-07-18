@@ -16,7 +16,7 @@ See plan §11 (Compliance) and Phase 2 part A.2 of the build plan.
 
 import logging
 from datetime import datetime, timedelta
-from typing import Optional, Literal
+from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
@@ -53,24 +53,24 @@ class PauseRequest(BaseModel):
     duration: PauseDuration
     # Optional daemon_id — when omitted, the action applies to ALL daemons
     # owned by the requesting user.
-    daemon_id: Optional[str] = Field(default=None, max_length=36)
+    daemon_id: str | None = Field(default=None, max_length=36)
 
 
 class PauseResponse(BaseModel):
     affected: int
-    paused_until: Optional[str] = None
+    paused_until: str | None = None
 
 
 class PauseStatusResponse(BaseModel):
     paused: bool
-    paused_until: Optional[str] = None
+    paused_until: str | None = None
 
 
 # =============================================================================
 # Helpers
 # =============================================================================
 
-def _resolve_paused_until(duration: PauseDuration) -> Optional[datetime]:
+def _resolve_paused_until(duration: PauseDuration) -> datetime | None:
     """Translate a duration string into a `paused_until` datetime.
 
     Returns None for "resume" (clear the pause). All other values produce a

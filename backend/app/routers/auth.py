@@ -478,8 +478,9 @@ async def verify_reset_token(
 # =============================================================================
 
 import secrets
-import httpx
 from urllib.parse import urlencode
+
+import httpx
 
 
 async def _store_oauth_state(state: str) -> None:
@@ -846,6 +847,7 @@ async def issue_workspace_token(
     Enforces single active session per user via Redis.
     """
     import json
+
     from app.services.cache_service import get_cache_service
 
     user_id = str(current_user.user_id)
@@ -905,6 +907,7 @@ async def verify_workspace_token(
     One-time use: token is deleted after successful verification.
     """
     import json
+
     from app.services.cache_service import get_cache_service
 
     # Verify caller is Space Agent

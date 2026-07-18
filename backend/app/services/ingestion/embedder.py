@@ -10,8 +10,9 @@ Generates embeddings using OpenAI's API:
 
 import hashlib
 import logging
+from collections.abc import Callable
 from datetime import datetime, timedelta
-from typing import Optional, Any, Callable
+from typing import Any
 
 import openai
 from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
@@ -30,7 +31,7 @@ class EmbeddingCache:
         """Create hash of text for cache key."""
         return hashlib.sha256(text.encode()).hexdigest()
 
-    def get(self, text: str) -> Optional[list[float]]:
+    def get(self, text: str) -> list[float] | None:
         """Get embedding from cache if exists and not expired."""
         key = self._hash_text(text)
         if key in self.cache:

@@ -2,8 +2,9 @@
 Health check service for monitoring system dependencies.
 """
 import asyncio
+from collections.abc import Callable
 from datetime import datetime
-from typing import Any, Callable
+from typing import Any
 
 import httpx
 

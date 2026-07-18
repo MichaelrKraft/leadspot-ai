@@ -12,7 +12,7 @@ Extracts text content from various document formats:
 import io
 import logging
 from pathlib import Path
-from typing import Optional, Any
+from typing import Any
 
 import aiofiles
 import fitz  # PyMuPDF
@@ -42,10 +42,10 @@ class ContentExtractor:
 
     async def extract(
         self,
-        file_path: Optional[str] = None,
-        file_content: Optional[bytes] = None,
-        mime_type: Optional[str] = None,
-        source_url: Optional[str] = None
+        file_path: str | None = None,
+        file_content: bytes | None = None,
+        mime_type: str | None = None,
+        source_url: str | None = None
     ) -> dict[str, Any]:
         """
         Extract content from a document.
@@ -124,7 +124,7 @@ class ContentExtractor:
 
     def _detect_mime_type(
         self,
-        file_path: Optional[str],
+        file_path: str | None,
         file_content: bytes
     ) -> str:
         """Detect MIME type from file extension or content."""

@@ -6,8 +6,7 @@ This is the core service for the Daily AI Dashboard feature.
 """
 
 import logging
-from datetime import datetime, timedelta
-from typing import Optional
+from datetime import datetime
 
 from anthropic import AsyncAnthropic
 

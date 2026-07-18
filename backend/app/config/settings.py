@@ -1,4 +1,3 @@
-from typing import Optional
 """
 Application configuration using Pydantic settings
 
@@ -9,7 +8,7 @@ All secrets should be provided via environment variables in production.
 import secrets
 import sys
 
-from pydantic import computed_field, field_validator
+from pydantic import computed_field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 

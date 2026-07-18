@@ -20,7 +20,6 @@ from sqlalchemy import CheckConstraint, Column, DateTime, Index, String
 
 from app.database import Base
 
-
 TOMBSTONE_TYPES = ("signal", "contact", "email_hash", "subscription")
 
 

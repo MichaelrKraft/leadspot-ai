@@ -15,7 +15,7 @@ import json
 import logging
 import uuid
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from fastapi.responses import StreamingResponse
@@ -53,37 +53,37 @@ class SignalIngestRequest(BaseModel):
     idempotency_key: str = Field(..., max_length=64)
     contact_match_key: str = Field(..., max_length=255)
     source: str
-    source_app: Optional[str] = None
+    source_app: str | None = None
     extractor: str
     summary: str = Field(default="", max_length=512)
     confidence: int = Field(..., ge=0, le=100)
     observed_at: datetime
-    ocr_snippet_hash: Optional[str] = Field(default=None, max_length=64)
-    extras: Optional[dict[str, Any]] = None
+    ocr_snippet_hash: str | None = Field(default=None, max_length=64)
+    extras: dict[str, Any] | None = None
     daemon_id: str
     schema_version: int = 1
 
 
 class SignalIngestResponse(BaseModel):
     signal_id: str
-    contact_id: Optional[str]
+    contact_id: str | None
     state: str
 
 
 class SignalTimelineEntry(BaseModel):
     id: str
     summary: str
-    source_app: Optional[str] = None
+    source_app: str | None = None
     extractor: str
     observed_at: str
     confidence: int
     state: str
-    ocr_snippet_hash: Optional[str] = None
+    ocr_snippet_hash: str | None = None
 
 
 class SignalTimelineResponse(BaseModel):
     signals: list[SignalTimelineEntry]
-    next_before: Optional[str] = None
+    next_before: str | None = None
 
 
 # =============================================================================
@@ -94,7 +94,7 @@ async def _resolve_contact_id(
     db: AsyncSession,
     organization_id: str,
     contact_match_key: str,
-) -> Optional[str]:
+) -> str | None:
     """Resolve contact_match_key -> contact_id, applying merge redirects.
 
     contact_match_key is opaque to us (could be an email_hash, "linkedin:slug",
@@ -244,7 +244,7 @@ async def ingest_signal(
 async def list_contact_signals(
     contact_id: str,
     limit: int = Query(50, ge=1, le=200),
-    before: Optional[datetime] = Query(None, description="ISO timestamp; returns rows with observed_at < before"),
+    before: datetime | None = Query(None, description="ISO timestamp; returns rows with observed_at < before"),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -296,7 +296,7 @@ async def list_contact_signals(
 
 async def _resolve_user_from_query_token(
     token: str,
-) -> Optional[User]:
+) -> User | None:
     """Validate a JWT passed via ?token= for SSE auth (EventSource can't set
     Authorization headers, and cookie auth is fine when same-origin but we
     accept token= for cross-origin cases too).
@@ -319,7 +319,7 @@ async def _resolve_user_from_query_token(
 async def stream_contact_signals(
     contact_id: str,
     request: Request,
-    token: Optional[str] = Query(default=None),
+    token: str | None = Query(default=None),
 ):
     """Server-Sent Events stream of new signals for a contact.
 
@@ -329,7 +329,7 @@ async def stream_contact_signals(
 
     Heartbeat every 30s (`event: ping`) so proxies don't time out idle conns.
     """
-    user: Optional[User] = None
+    user: User | None = None
     if token:
         user = await _resolve_user_from_query_token(token)
 

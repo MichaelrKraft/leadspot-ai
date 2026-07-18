@@ -4,7 +4,7 @@ Redis caching service for query results and embeddings
 
 import hashlib
 import json
-from typing import Optional, Any
+from typing import Any
 
 import redis.asyncio as redis
 
@@ -21,7 +21,7 @@ class CacheService:
     SESSION_TTL = 3600  # 1 hour
 
     def __init__(self):
-        self.redis_client: Optional[redis.Redis] = None
+        self.redis_client: redis.Redis | None = None
         self._initialized = False
 
     async def initialize(self):
@@ -72,7 +72,7 @@ class CacheService:
         query: str,
         organization_id: str,
         max_sources: int
-    ) -> Optional[dict]:
+    ) -> dict | None:
         """
         Get cached query result
 
@@ -140,7 +140,7 @@ class CacheService:
             print(f"Cache set error: {e}")
             return False
 
-    async def get_embedding(self, text: str) -> Optional[list[float]]:
+    async def get_embedding(self, text: str) -> list[float] | None:
         """
         Get cached embedding for text
 
@@ -346,7 +346,7 @@ class CacheService:
             print(f"Cache set value error: {e}")
             return False
 
-    async def get_value(self, key: str) -> Optional[Any]:
+    async def get_value(self, key: str) -> Any | None:
         """
         Generic get value
 

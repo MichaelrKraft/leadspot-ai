@@ -17,7 +17,6 @@ See plan §11.2 (right-to-be-forgotten flow) and §11.5 (CCPA parallels).
 import logging
 import uuid
 from datetime import datetime
-from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, EmailStr, Field
@@ -41,7 +40,7 @@ router = APIRouter()
 class ForgetRequest(BaseModel):
     email: EmailStr
     # Mirror SignalTombstone.reason column (max 120 chars).
-    reason: Optional[str] = Field(default=None, max_length=120)
+    reason: str | None = Field(default=None, max_length=120)
 
 
 class ForgetResponse(BaseModel):

@@ -24,7 +24,6 @@ from sqlalchemy import (
 
 from app.database import Base
 
-
 SIGNAL_STATES = (
     "captured", "enriched", "matched", "queued",
     "promoted", "held", "dropped", "redacted",

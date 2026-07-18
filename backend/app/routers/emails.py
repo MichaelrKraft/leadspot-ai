@@ -4,7 +4,6 @@ Emails router — CRUD for email persistence
 
 import logging
 from datetime import datetime
-from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel
@@ -30,24 +29,24 @@ class EmailCreate(BaseModel):
     subject: str
     from_addr: str
     to_addr: str
-    body: Optional[str] = None
+    body: str | None = None
     status: str = "Draft"
     email_type: str = "Outbound"
     opened: bool = False
     replied: bool = False
-    sent_at: Optional[datetime] = None
+    sent_at: datetime | None = None
 
 
 class EmailUpdate(BaseModel):
-    subject: Optional[str] = None
-    from_addr: Optional[str] = None
-    to_addr: Optional[str] = None
-    body: Optional[str] = None
-    status: Optional[str] = None
-    email_type: Optional[str] = None
-    opened: Optional[bool] = None
-    replied: Optional[bool] = None
-    sent_at: Optional[datetime] = None
+    subject: str | None = None
+    from_addr: str | None = None
+    to_addr: str | None = None
+    body: str | None = None
+    status: str | None = None
+    email_type: str | None = None
+    opened: bool | None = None
+    replied: bool | None = None
+    sent_at: datetime | None = None
 
 
 class EmailResponse(BaseModel):
@@ -56,11 +55,11 @@ class EmailResponse(BaseModel):
     status: str
     from_addr: str
     to_addr: str
-    body: Optional[str]
+    body: str | None
     email_type: str
     opened: bool
     replied: bool
-    sent_at: Optional[datetime]
+    sent_at: datetime | None
     user_id: str
     created_at: datetime
     updated_at: datetime
@@ -69,7 +68,7 @@ class EmailResponse(BaseModel):
 
 
 class EmailsListResponse(BaseModel):
-    emails: List[EmailResponse]
+    emails: list[EmailResponse]
     total: int
     page: int
     limit: int
@@ -87,7 +86,7 @@ VALID_TYPES = {"Outbound", "Inbound"}
 async def list_emails(
     page: int = Query(1, ge=1),
     limit: int = Query(25, ge=1, le=100),
-    status: Optional[str] = Query(None),
+    status: str | None = Query(None),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
@@ -209,12 +208,12 @@ async def update_email(
 
 class RecordSendRequest(BaseModel):
     contact_id: str
-    campaign_id: Optional[str] = None
+    campaign_id: str | None = None
     subject: str
     to_addr: str
     from_addr: str
-    body: Optional[str] = None
-    message_id: Optional[str] = None  # Resend message ID
+    body: str | None = None
+    message_id: str | None = None  # Resend message ID
     user_id: str = "agent-service"
 
 

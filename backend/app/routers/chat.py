@@ -11,11 +11,10 @@ import json
 import logging
 import os
 from datetime import datetime
-from typing import Any, Optional
 
 import httpx
 from anthropic import AsyncAnthropic
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -31,7 +30,7 @@ from app.services.leadspot_tools import (
     execute_leadspot_tool,
     format_leadspot_result_for_display,
 )
-from app.services.mautic_client import MauticClient, MauticAuthError
+from app.services.mautic_client import MauticAuthError, MauticClient
 from app.services.mautic_tools import (
     MAUTIC_READ_TOOLS,
     MAUTIC_WRITE_TOOLS,
@@ -47,8 +46,8 @@ router = APIRouter()
 class ChatRequest(BaseModel):
     """Request model for chat messages"""
     message: str = Field(..., min_length=1, max_length=4000, description="User's message/command")
-    mautic_url: Optional[str] = Field(None, description="Mautic instance URL for context")
-    organization_id: Optional[str] = Field(None, description="Ignored — org is derived from the auth token (kept for API compatibility)")
+    mautic_url: str | None = Field(None, description="Mautic instance URL for context")
+    organization_id: str | None = Field(None, description="Ignored — org is derived from the auth token (kept for API compatibility)")
     enable_tools: bool = Field(True, description="Enable Mautic tool calling")
 
 
@@ -56,17 +55,17 @@ class ToolCall(BaseModel):
     """Represents a tool call made by the AI"""
     tool_name: str
     tool_input: dict
-    result: Optional[dict] = None
+    result: dict | None = None
 
 
 class ChatResponse(BaseModel):
     """Response model for chat messages"""
     response: str = Field(..., description="AI agent's response")
-    message: Optional[str] = Field(None, description="Alternative response field for compatibility")
+    message: str | None = Field(None, description="Alternative response field for compatibility")
     timestamp: str = Field(default_factory=lambda: datetime.utcnow().isoformat())
     status: str = Field(default="success")
     tools_used: list[str] = Field(default_factory=list, description="List of tools that were used")
-    tool_results: Optional[list[dict]] = Field(None, description="Results from tool calls")
+    tool_results: list[dict] | None = Field(None, description="Results from tool calls")
 
 
 # System prompt for the AI agent with tool calling
@@ -195,7 +194,7 @@ async def fetch_agent_context(
 async def get_mautic_client_for_org(
     organization_id: str,
     session: AsyncSession,
-) -> Optional[MauticClient]:
+) -> MauticClient | None:
     """Get a MauticClient for the organization if Mautic is connected."""
     try:
         return await MauticClient.from_organization(organization_id, session)
@@ -207,7 +206,7 @@ async def run_tool_loop(
     client: AsyncAnthropic,
     messages: list[dict],
     tools: list[dict],
-    mautic_client: Optional[MauticClient],
+    mautic_client: MauticClient | None,
     org_id: str,
     session: AsyncSession,
     user_id: str = "",
@@ -430,7 +429,7 @@ async def process_chat(
             )
 
     except Exception as e:
-        logger.exception(f"Error processing chat: {str(e)}")
+        logger.exception(f"Error processing chat: {e!s}")
 
         # Return user-friendly error
         error_message = "I encountered an issue processing your request. Please try again."

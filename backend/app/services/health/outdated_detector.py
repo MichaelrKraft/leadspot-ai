@@ -1,4 +1,4 @@
-from typing import Optional
+
 """Detect outdated and stale documents in knowledge base."""
 
 import logging
@@ -115,7 +115,7 @@ class OutdatedDetector:
             logger.error(f"Error detecting outdated documents for org {org_id}: {e}", exc_info=True)
             return outdated_docs
 
-    def _parse_datetime(self, date_str: Optional[str]) -> Optional[datetime]:
+    def _parse_datetime(self, date_str: str | None) -> datetime | None:
         """Parse datetime string safely."""
         if not date_str:
             return None

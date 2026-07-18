@@ -14,7 +14,6 @@ synced via GET /contacts/sync").
 
 import logging
 from datetime import datetime
-from typing import Optional
 
 from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel
@@ -44,7 +43,7 @@ class ContactSyncRow(BaseModel):
     contact_id: str
     email_hash: str
     aliases: list[ContactSyncAlias]
-    linkedin_slug: Optional[str] = None
+    linkedin_slug: str | None = None
     name_norm: str
     company_norm: str
     updated_at: str
@@ -53,7 +52,7 @@ class ContactSyncRow(BaseModel):
 
 class ContactSyncResponse(BaseModel):
     contacts: list[ContactSyncRow]
-    next_since: Optional[str] = None
+    next_since: str | None = None
 
 
 # =============================================================================
@@ -66,7 +65,7 @@ def _name_norm(first: str, last: str) -> str:
     return " ".join(parts)
 
 
-def _company_norm(company: Optional[str]) -> str:
+def _company_norm(company: str | None) -> str:
     if not company:
         return ""
     return company.strip().lower()
@@ -78,7 +77,7 @@ def _company_norm(company: Optional[str]) -> str:
 
 @router.get("/contacts/sync", response_model=ContactSyncResponse)
 async def sync_contacts(
-    since: Optional[datetime] = Query(None, description="ISO timestamp; returns rows with updated_at >= since"),
+    since: datetime | None = Query(None, description="ISO timestamp; returns rows with updated_at >= since"),
     limit: int = Query(500, ge=1, le=2000),
     db: AsyncSession = Depends(get_db),
     daemon: DaemonCredential = Depends(get_current_daemon),

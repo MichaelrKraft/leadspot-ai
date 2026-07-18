@@ -20,12 +20,10 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from datetime import datetime, time
-from typing import Optional
+from datetime import datetime
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import async_session_maker
 from app.models import User
@@ -49,14 +47,14 @@ LOOP_INTERVAL_SECONDS = 300
 # the production replacement (APScheduler with Postgres jobstore) will dedupe
 # at the schedule layer.
 _SENT_TODAY: set[tuple[str, str]] = set()
-_SENT_TODAY_DATE: Optional[str] = None
+_SENT_TODAY_DATE: str | None = None
 
 
 # =============================================================================
 # Helpers
 # =============================================================================
 
-def _safe_zoneinfo(tz_name: Optional[str]) -> ZoneInfo:
+def _safe_zoneinfo(tz_name: str | None) -> ZoneInfo:
     """Fall back to UTC if tz_name is None/invalid. Bad TZ shouldn't crash the
     scheduler — it should silently default and we log a warning.
     """
@@ -69,7 +67,7 @@ def _safe_zoneinfo(tz_name: Optional[str]) -> ZoneInfo:
         return ZoneInfo("UTC")
 
 
-def _is_in_digest_window(tz_name: Optional[str], now_utc: Optional[datetime] = None) -> bool:
+def _is_in_digest_window(tz_name: str | None, now_utc: datetime | None = None) -> bool:
     """Return True if `now` in the user's local TZ is within +/-DIGEST_WINDOW_MINUTES of 7am."""
     tz = _safe_zoneinfo(tz_name)
     now_utc = now_utc or datetime.utcnow().replace(tzinfo=ZoneInfo("UTC"))
@@ -81,7 +79,7 @@ def _is_in_digest_window(tz_name: Optional[str], now_utc: Optional[datetime] = N
     return delta_min <= DIGEST_WINDOW_MINUTES
 
 
-def _today_local(tz_name: Optional[str]) -> str:
+def _today_local(tz_name: str | None) -> str:
     tz = _safe_zoneinfo(tz_name)
     return datetime.now(tz).date().isoformat()
 
@@ -90,7 +88,7 @@ def _gc_sent_today() -> None:
     """If the day rolled over, clear the dedupe set."""
     global _SENT_TODAY, _SENT_TODAY_DATE
     today = datetime.utcnow().date().isoformat()
-    if _SENT_TODAY_DATE != today:
+    if today != _SENT_TODAY_DATE:
         _SENT_TODAY.clear()
         _SENT_TODAY_DATE = today
 
@@ -146,7 +144,7 @@ async def _loop_forever() -> None:
 # Public start/stop
 # =============================================================================
 
-_task: Optional[asyncio.Task] = None
+_task: asyncio.Task | None = None
 
 
 def start_digest_scheduler() -> None:

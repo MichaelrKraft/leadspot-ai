@@ -7,7 +7,6 @@ Handles organization settings including API keys and CRM connection settings.
 import logging
 import secrets
 from datetime import datetime, timedelta
-from typing import Optional
 from urllib.parse import urlencode
 
 import httpx
@@ -16,10 +15,10 @@ from fastapi.responses import RedirectResponse
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.services.auth_service import get_current_user
 from app.config import settings
 from app.database import get_db
 from app.models.user import User
+from app.services.auth_service import get_current_user
 
 logger = logging.getLogger(__name__)
 
@@ -46,8 +45,8 @@ class UpdateAnthropicKey(BaseModel):
 class MauticConnectionStatus(BaseModel):
     """Response model for Mautic connection status"""
     connected: bool
-    mautic_url: Optional[str] = None
-    last_sync_at: Optional[str] = None
+    mautic_url: str | None = None
+    last_sync_at: str | None = None
 
 
 class UpdateMauticConnection(BaseModel):
@@ -68,6 +67,7 @@ async def get_api_key_status(
 ):
     """Get status of API keys (whether they are set, not the actual values)"""
     from sqlalchemy import select
+
     from app.models.organization import Organization
 
     result = await session.execute(
@@ -93,6 +93,7 @@ async def update_anthropic_api_key(
 ):
     """Update the Anthropic API key for the organization"""
     from sqlalchemy import select
+
     from app.models.organization import Organization
 
     # Validate key format
@@ -128,6 +129,7 @@ async def remove_anthropic_api_key(
 ):
     """Remove the Anthropic API key for the organization"""
     from sqlalchemy import select
+
     from app.models.organization import Organization
 
     result = await session.execute(
@@ -160,6 +162,7 @@ async def get_mautic_status(
 ):
     """Get Mautic connection status"""
     from sqlalchemy import select
+
     from app.models.organization import Organization
 
     result = await session.execute(
@@ -186,6 +189,7 @@ async def update_mautic_connection(
 ):
     """Update Mautic connection settings (URL, client ID, secret)"""
     from sqlalchemy import select
+
     from app.models.organization import Organization
 
     result = await session.execute(
@@ -217,6 +221,7 @@ async def disconnect_mautic(
 ):
     """Disconnect Mautic integration"""
     from sqlalchemy import select
+
     from app.models.organization import Organization
 
     result = await session.execute(
@@ -268,6 +273,7 @@ async def start_mautic_oauth(
     to redirect the user to.
     """
     from sqlalchemy import select
+
     from app.models.organization import Organization
 
     result = await session.execute(
@@ -332,6 +338,7 @@ async def mautic_oauth_callback(
     Exchanges the authorization code for access and refresh tokens.
     """
     from sqlalchemy import select
+
     from app.models.organization import Organization
 
     # Validate state
@@ -447,6 +454,7 @@ async def plugin_mautic_setup(
     It finds or creates an organization by mautic_url.
     """
     from sqlalchemy import select
+
     from app.models.organization import Organization
 
     mautic_url = data.mautic_url.rstrip("/")
@@ -519,6 +527,7 @@ async def plugin_mautic_status(
     Used by the plugin to check if OAuth is set up.
     """
     from sqlalchemy import select
+
     from app.models.organization import Organization
 
     mautic_url = mautic_url.rstrip("/")

@@ -12,8 +12,8 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import async_session_maker
-from app.models.campaign import Campaign
 from app.models.calendar_event import CalendarEvent
+from app.models.campaign import Campaign
 from app.models.contact import Contact
 from app.models.deal import Deal
 from app.models.email import Email

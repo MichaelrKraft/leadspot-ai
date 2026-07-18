@@ -60,7 +60,7 @@ async def batch_fetch(
             continue
 
         # Deduplicate: skip if already fetched with same params
-        cache_key = f"{req.resource}:{str(sorted(req.params.items()))}"
+        cache_key = f"{req.resource}:{sorted(req.params.items())!s}"
         if cache_key in results:
             continue
 
@@ -77,6 +77,7 @@ async def batch_fetch(
 async def _fetch_resource(resource: str, params: dict, organization_id: str, db: AsyncSession) -> Any:
     """Dispatch to appropriate data fetcher based on resource name."""
     from sqlalchemy import select
+
     from app.models.contact import Contact
     from app.models.deal import Deal
 

@@ -19,11 +19,9 @@ See `tasks/ghostlog-integration-plan.md` §3 Phase 1 week 3.
 from __future__ import annotations
 
 import logging
-import os
-from collections import Counter
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 from sqlalchemy import desc, func, select
 from sqlalchemy.ext.asyncio import AsyncSession

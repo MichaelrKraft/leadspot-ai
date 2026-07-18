@@ -1,4 +1,4 @@
-from typing import Optional
+
 """
 Authentication service with secure token handling.
 
@@ -55,7 +55,7 @@ def create_access_token(
     email: str,
     organization_id: UUID,
     role: str,
-    expires_delta: Optional[timedelta] = None
+    expires_delta: timedelta | None = None
 ) -> str:
     """
     Create a short-lived JWT access token.
@@ -94,7 +94,7 @@ def create_access_token(
 
 def create_refresh_token(
     user_id: UUID,
-    expires_delta: Optional[timedelta] = None
+    expires_delta: timedelta | None = None
 ) -> str:
     """
     Create a long-lived refresh token.
@@ -127,7 +127,7 @@ def create_refresh_token(
     return encoded_jwt
 
 
-def verify_refresh_token(token: str) -> Optional[UUID]:
+def verify_refresh_token(token: str) -> UUID | None:
     """
     Verify a refresh token and return the user_id.
 
@@ -158,7 +158,7 @@ def verify_refresh_token(token: str) -> Optional[UUID]:
         return None
 
 
-def extract_token_from_request(request: Request, credentials: Optional[HTTPAuthorizationCredentials]) -> Optional[str]:
+def extract_token_from_request(request: Request, credentials: HTTPAuthorizationCredentials | None) -> str | None:
     """
     Extract JWT token from request.
 
@@ -187,7 +187,7 @@ def extract_token_from_request(request: Request, credentials: Optional[HTTPAutho
 
 async def get_current_user(
     request: Request,
-    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
+    credentials: HTTPAuthorizationCredentials | None = Depends(security),
     db: AsyncSession = Depends(get_db)
 ) -> User:
     """

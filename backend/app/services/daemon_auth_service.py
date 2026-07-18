@@ -22,7 +22,6 @@ import hashlib
 import hmac
 import secrets
 from datetime import datetime, timedelta
-from typing import Optional
 
 from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
@@ -33,7 +32,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.config import settings
 from app.database import get_db
 from app.models import DaemonCredential
-
 
 # Audience claim — distinguishes daemon tokens from user tokens.
 # A user-session JWT will be rejected by the daemon dependency, and vice versa.
@@ -123,7 +121,7 @@ def issue_auth_code(
     return code
 
 
-def consume_auth_code(code: str, state: str) -> Optional[dict]:
+def consume_auth_code(code: str, state: str) -> dict | None:
     """Daemon-side: exchange the auth code for tokens.
 
     Returns the auth payload on success, None on:
@@ -161,7 +159,7 @@ def _gc_auth_codes() -> None:
 async def rotate_refresh_token(
     db: AsyncSession,
     presented_token: str,
-) -> Optional[tuple[DaemonCredential, str, str]]:
+) -> tuple[DaemonCredential, str, str] | None:
     """Atomically rotate a refresh token.
 
     Race-safe rules (plan §2.4):
@@ -294,7 +292,7 @@ _security = HTTPBearer(auto_error=False)
 
 async def get_current_daemon(
     request: Request,
-    credentials: Optional[HTTPAuthorizationCredentials] = Depends(_security),
+    credentials: HTTPAuthorizationCredentials | None = Depends(_security),
     db: AsyncSession = Depends(get_db),
 ) -> DaemonCredential:
     """FastAPI dependency for daemon-authenticated routes.

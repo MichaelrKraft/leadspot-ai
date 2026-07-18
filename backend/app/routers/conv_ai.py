@@ -29,8 +29,9 @@ import json
 import logging
 import re
 import uuid
+from collections.abc import AsyncIterator
 from datetime import datetime, timedelta
-from typing import Any, AsyncIterator, Optional
+from typing import Any
 
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -70,9 +71,9 @@ MAX_CITATION_RETRIES = 1
 
 class ChatRequest(BaseModel):
     message: str = Field(..., min_length=1, max_length=4000)
-    thread_id: Optional[str] = Field(default=None, description="Existing thread or null to start new")
+    thread_id: str | None = Field(default=None, description="Existing thread or null to start new")
     deep: bool = Field(default=False, description="Use Sonnet for deep analysis instead of default Haiku")
-    confirmed_action: Optional[str] = Field(
+    confirmed_action: str | None = Field(
         default=None,
         description="The confirm phrase the user typed back ('send', 'queue', 'yes') for a pending write action",
     )
@@ -783,7 +784,7 @@ async def conv_ai_chat(
                         else:
                             try:
                                 tool_result = await executor(db, org_id, tool_input or {})
-                            except Exception as exc:  # noqa: BLE001
+                            except Exception as exc:
                                 logger.exception("Tool %s failed", tool_name)
                                 tool_result = {"error": str(exc)}
 
@@ -876,7 +877,7 @@ async def conv_ai_chat(
             )
         except asyncio.CancelledError:
             raise
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             logger.exception("conv_ai stream errored")
             yield _sse("assistant", {"text": f"Internal error: {exc}", "citations": []})
             yield _sse("done", {"thread_id": thread_id, "total_tokens": 0})
@@ -1003,6 +1004,6 @@ async def _log_telemetry(
     db.add(row)
     try:
         await db.flush()
-    except Exception:  # noqa: BLE001
+    except Exception:
         # Telemetry must never break the request path.
         logger.exception("Failed to flush chat_telemetry row")

@@ -10,7 +10,6 @@ import logging
 import re
 import uuid
 from datetime import datetime
-from typing import Optional
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
 from pydantic import BaseModel
@@ -50,7 +49,7 @@ class ContactResponse(BaseModel):
     phone: str = ""
     tags: list[str] = []
     points: int = 0
-    lastActive: Optional[str] = None
+    lastActive: str | None = None
 
 
 class ContactsListResponse(BaseModel):
@@ -64,19 +63,19 @@ class ContactCreate(BaseModel):
     firstName: str
     lastName: str
     email: str
-    company: Optional[str] = None
-    phone: Optional[str] = None
-    tags: Optional[list[str]] = None
+    company: str | None = None
+    phone: str | None = None
+    tags: list[str] | None = None
 
 
 class ContactUpdate(BaseModel):
-    firstName: Optional[str] = None
-    lastName: Optional[str] = None
-    email: Optional[str] = None
-    company: Optional[str] = None
-    phone: Optional[str] = None
-    tags: Optional[list[str]] = None
-    points: Optional[int] = None
+    firstName: str | None = None
+    lastName: str | None = None
+    email: str | None = None
+    company: str | None = None
+    phone: str | None = None
+    tags: list[str] | None = None
+    points: int | None = None
 
 
 # =============================================================================
@@ -108,7 +107,7 @@ def _to_response(c: Contact) -> ContactResponse:
 async def list_contacts(
     page: int = Query(1, ge=1),
     limit: int = Query(25, ge=1, le=100),
-    search: Optional[str] = Query(None),
+    search: str | None = Query(None),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -119,7 +118,7 @@ async def list_contacts(
 
     if search:
         q = f"%{search.lower()}%"
-        from sqlalchemy import or_, func
+        from sqlalchemy import func, or_
         query = query.where(
             or_(
                 func.lower(Contact.first_name).like(q),
@@ -280,6 +279,7 @@ async def clear_demo_data(
 ):
     """Delete all is_demo=True rows for this org across contacts, deals, and campaigns."""
     from sqlalchemy import delete as sql_delete
+
     from app.models.campaign import Campaign
     from app.models.deal import Deal
     from app.models.organization import Organization
