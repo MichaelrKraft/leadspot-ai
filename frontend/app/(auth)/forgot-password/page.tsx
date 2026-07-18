@@ -59,10 +59,10 @@ export default function ForgotPasswordPage() {
         </div>
         <h2 className="mb-2 text-2xl font-bold text-white">Check Your Email</h2>
         <p className="mb-6 text-gray-400">
-          We've sent password reset instructions to <strong className="text-white">{email}</strong>
+          We&apos;ve sent password reset instructions to <strong className="text-white">{email}</strong>
         </p>
         <p className="mb-6 text-sm text-gray-500">
-          Didn't receive the email? Check your spam folder or try again.
+          Didn&apos;t receive the email? Check your spam folder or try again.
         </p>
         <div className="space-y-3">
           <button
@@ -89,7 +89,7 @@ export default function ForgotPasswordPage() {
     <div>
       <div className="mb-8 text-center">
         <h2 className="mb-2 text-2xl font-bold text-white">Forgot Password?</h2>
-        <p className="text-sm text-gray-400">No worries, we'll send you reset instructions.</p>
+        <p className="text-sm text-gray-400">No worries, we&apos;ll send you reset instructions.</p>
       </div>
 
       {error && (

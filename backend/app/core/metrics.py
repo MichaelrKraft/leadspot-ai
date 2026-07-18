@@ -1,4 +1,4 @@
-from typing import Optional
+
 """
 Prometheus metrics configuration for monitoring application performance.
 """
@@ -217,7 +217,7 @@ def record_request(method: str, endpoint: str, status: int, duration: float) -> 
     http_request_duration_seconds.labels(method=method, endpoint=endpoint).observe(duration)
 
 
-def record_error(error_type: str, endpoint: Optional[str] = None) -> None:
+def record_error(error_type: str, endpoint: str | None = None) -> None:
     """
     Record error metric.
 

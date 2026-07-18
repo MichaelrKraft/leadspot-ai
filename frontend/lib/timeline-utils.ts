@@ -181,7 +181,7 @@ export function calculateFactorPercentages(factors: { weight: number }[]): numbe
  * Generate D3 arc for pie chart
  */
 export function createArcGenerator(innerRadius: number, outerRadius: number) {
-  return d3.arc<d3.PieArcDatum<any>>()
+  return d3.arc<d3.PieArcDatum<unknown>>()
     .innerRadius(innerRadius)
     .outerRadius(outerRadius)
     .padAngle(0.02);

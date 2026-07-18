@@ -8,7 +8,6 @@ Command Center's analyze_email tool.
 import logging
 import uuid
 from datetime import datetime
-from typing import Optional
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -23,10 +22,10 @@ async def ingest_manual_email(
     db: AsyncSession,
     org_id: str,
     body: str,
-    subject: Optional[str] = None,
-    from_address: Optional[str] = None,
+    subject: str | None = None,
+    from_address: str | None = None,
     client=None,
-) -> tuple[EmailMessage, Optional[DealSuggestion]]:
+) -> tuple[EmailMessage, DealSuggestion | None]:
     """Store a manually provided message and run deal-status inference on it.
 
     Returns (message, suggestion). suggestion is None when no open leasing

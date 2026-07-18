@@ -10,11 +10,10 @@ GoHighLevel-style wallet system for usage-based billing:
 import logging
 from datetime import datetime
 from decimal import Decimal
-from typing import Optional
 
 from pydantic import BaseModel
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.organization import Organization
 
@@ -60,7 +59,7 @@ class WalletService:
     def __init__(self, db: AsyncSession):
         self.db = db
 
-    async def get_organization(self, org_id: str) -> Optional[Organization]:
+    async def get_organization(self, org_id: str) -> Organization | None:
         """Get organization by ID."""
         result = await self.db.execute(
             select(Organization).where(Organization.organization_id == org_id)
@@ -213,8 +212,8 @@ class WalletService:
         self,
         org_id: str,
         enabled: bool,
-        recharge_amount: Optional[Decimal] = None,
-        recharge_threshold: Optional[Decimal] = None
+        recharge_amount: Decimal | None = None,
+        recharge_threshold: Decimal | None = None
     ) -> WalletSummary:
         """
         Configure auto-recharge settings.
@@ -291,7 +290,7 @@ class RebillingService:
         self.db = db
         self.wallet_service = wallet_service
 
-    async def get_organization(self, org_id: str) -> Optional[Organization]:
+    async def get_organization(self, org_id: str) -> Organization | None:
         """Get organization by ID."""
         result = await self.db.execute(
             select(Organization).where(Organization.organization_id == org_id)

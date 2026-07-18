@@ -1,11 +1,12 @@
 """Email suppression list API endpoints"""
 import logging
 from datetime import datetime
+
 from fastapi import APIRouter, Depends, HTTPException
-from typing import Optional
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.database import get_db
 from app.dependencies import require_internal_key
 from app.models.suppression import EmailSuppression
@@ -17,7 +18,7 @@ router = APIRouter()
 class SuppressionCreate(BaseModel):
     email: str
     reason: str  # 'hard_bounce', 'spam_complaint', 'unsubscribed', 'manual'
-    source: Optional[str] = None
+    source: str | None = None
 
 
 @router.get("/suppressions/{email}", dependencies=[Depends(require_internal_key)])

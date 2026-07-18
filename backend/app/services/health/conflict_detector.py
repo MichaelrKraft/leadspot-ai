@@ -2,7 +2,7 @@
 
 import logging
 from datetime import datetime
-from typing import Optional, Any
+from typing import Any
 
 from app.services.synthesis_service import SynthesisService
 from app.services.vector_service import VectorService
@@ -123,8 +123,8 @@ class ConflictDetector:
         self,
         doc1_content: str,
         doc2_content: str,
-        doc1_metadata: Optional[dict] = None,
-        doc2_metadata: Optional[dict] = None
+        doc1_metadata: dict | None = None,
+        doc2_metadata: dict | None = None
     ) -> dict:
         """
         Use Claude to analyze if two documents contain conflicting information.

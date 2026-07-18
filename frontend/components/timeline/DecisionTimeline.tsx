@@ -111,7 +111,10 @@ export function DecisionTimeline({ events, onEventClick }: DecisionTimelineProps
     if (svgRef.current) {
       const svg = d3.select(svgRef.current);
       svg.transition().duration(500).call(
-        d3.zoom<SVGSVGElement, unknown>().transform as any,
+        d3.zoom<SVGSVGElement, unknown>().transform as unknown as (
+          transition: d3.Transition<SVGSVGElement, unknown, null, undefined>,
+          ...args: unknown[]
+        ) => void,
         d3.zoomIdentity
       );
     }

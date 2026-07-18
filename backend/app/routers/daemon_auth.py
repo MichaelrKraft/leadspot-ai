@@ -22,7 +22,6 @@ import json
 import logging
 import uuid
 from datetime import datetime
-from typing import Optional
 
 from fastapi import APIRouter, Depends, Header, HTTPException, status
 from fastapi.responses import HTMLResponse
@@ -95,7 +94,7 @@ class DaemonRefreshResponse(BaseModel):
 class DaemonDeviceResponse(BaseModel):
     daemon_id: str
     device_label: str
-    last_seen_at: Optional[str] = None
+    last_seen_at: str | None = None
     created_at: str
 
 
@@ -407,7 +406,7 @@ version_router = APIRouter()
 
 @version_router.get("/version", response_model=DaemonVersionResponse)
 async def daemon_version(
-    x_daemon_version: Optional[str] = Header(default=None, alias="X-Daemon-Version"),
+    x_daemon_version: str | None = Header(default=None, alias="X-Daemon-Version"),
 ):
     """Public version-check.
 

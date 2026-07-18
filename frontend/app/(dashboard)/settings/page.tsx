@@ -534,7 +534,7 @@ function DemoDataSection() {
     <section className="bg-yellow-500/5 backdrop-blur-xl border border-yellow-500/20 rounded-2xl p-5 flex items-start justify-between gap-4">
       <div>
         <p className="text-sm font-semibold text-yellow-300 mb-1">Sample data active</p>
-        <p className="text-xs text-yellow-300/70">Your account contains demo contacts and deals. Remove them when you're ready to use real data.</p>
+        <p className="text-xs text-yellow-300/70">Your account contains demo contacts and deals. Remove them when you&apos;re ready to use real data.</p>
       </div>
       <button
         onClick={handleClear}

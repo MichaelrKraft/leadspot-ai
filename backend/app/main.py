@@ -39,8 +39,8 @@ from app.routers import (
     admin,
     admin_cost_dashboard,
     admin_purge,
-    agent_proxy,
     agency,
+    agent_proxy,
     auth,
     billing,
     calendar,
@@ -199,7 +199,7 @@ if not settings.DEBUG:
 # Session cookies for the OAuth connect flow — /oauth/{provider}/authorize
 # stores CSRF state + user/org ids that /oauth/{provider}/callback validates.
 # Without this middleware the callback always fails "Invalid state parameter".
-from starlette.middleware.sessions import SessionMiddleware  # noqa: E402
+from starlette.middleware.sessions import SessionMiddleware
 
 app.add_middleware(
     SessionMiddleware,

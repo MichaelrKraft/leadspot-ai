@@ -8,9 +8,7 @@ GoHighLevel-style agency management:
 """
 
 import logging
-from datetime import datetime
 from decimal import Decimal
-from typing import Optional
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -19,9 +17,9 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
-from app.models.organization import Organization, DEFAULT_BRANDING, DEFAULT_FEATURES
+from app.models.organization import DEFAULT_FEATURES, Organization
 from app.services.branding_service import BrandingConfig, BrandingService
-from app.services.wallet_service import WalletService, WalletSummary, RebillingService
+from app.services.wallet_service import RebillingService, WalletService, WalletSummary
 
 logger = logging.getLogger(__name__)
 
@@ -37,7 +35,7 @@ class CreateSubAccountRequest(BaseModel):
     name: str = Field(..., min_length=1, max_length=255)
     domain: str = Field(..., min_length=3, max_length=255)
     subscription_tier: str = Field(default="pilot")
-    features_override: Optional[dict] = None
+    features_override: dict | None = None
 
 
 class SubAccountResponse(BaseModel):
@@ -78,12 +76,12 @@ class UsageReport(BaseModel):
 
 class FeatureUpdate(BaseModel):
     """Feature flags update request"""
-    white_label_enabled: Optional[bool] = None
-    voice_agents_enabled: Optional[bool] = None
-    ai_insights_enabled: Optional[bool] = None
-    lead_scoring_enabled: Optional[bool] = None
-    max_contacts: Optional[int] = None
-    max_users: Optional[int] = None
+    white_label_enabled: bool | None = None
+    voice_agents_enabled: bool | None = None
+    ai_insights_enabled: bool | None = None
+    lead_scoring_enabled: bool | None = None
+    max_contacts: int | None = None
+    max_users: int | None = None
 
 
 class RebillingConfig(BaseModel):
@@ -102,26 +100,26 @@ class WalletRechargeRequest(BaseModel):
 class AutoRechargeConfig(BaseModel):
     """Auto-recharge configuration"""
     enabled: bool
-    recharge_amount: Optional[Decimal] = None
-    recharge_threshold: Optional[Decimal] = None
+    recharge_amount: Decimal | None = None
+    recharge_threshold: Decimal | None = None
 
 
 class BrandingUpdateRequest(BaseModel):
     """Branding update request"""
-    app_name: Optional[str] = None
-    logo_url: Optional[str] = None
-    favicon_url: Optional[str] = None
-    primary_color: Optional[str] = None
-    secondary_color: Optional[str] = None
-    accent_color: Optional[str] = None
-    custom_css: Optional[str] = None
+    app_name: str | None = None
+    logo_url: str | None = None
+    favicon_url: str | None = None
+    primary_color: str | None = None
+    secondary_color: str | None = None
+    accent_color: str | None = None
+    custom_css: str | None = None
 
 
 # =============================================================================
 # Helper Functions
 # =============================================================================
 
-async def get_organization(org_id: str, session: AsyncSession) -> Optional[Organization]:
+async def get_organization(org_id: str, session: AsyncSession) -> Organization | None:
     """Get organization by ID."""
     result = await session.execute(
         select(Organization).where(Organization.organization_id == org_id)

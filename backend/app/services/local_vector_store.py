@@ -12,7 +12,7 @@ import logging
 import pickle
 from datetime import datetime
 from pathlib import Path
-from typing import Optional, Any
+from typing import Any
 
 import numpy as np
 
@@ -113,7 +113,7 @@ def index_document(
     organization_id: str,
     title: str,
     content: str,
-    metadata: Optional[dict[str, Any]] = None
+    metadata: dict[str, Any] | None = None
 ) -> int:
     """
     Index a document into the vector store.

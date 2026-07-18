@@ -6,9 +6,9 @@ Each tool has a definition (for Claude) and an execution handler.
 """
 
 import logging
-from typing import Any, Callable
+from typing import Any
 
-from app.services.mautic_client import MauticClient, MauticAPIError, MauticAuthError
+from app.services.mautic_client import MauticAPIError, MauticAuthError, MauticClient
 
 logger = logging.getLogger(__name__)
 
@@ -492,14 +492,14 @@ async def execute_tool(
         logger.error(f"Mautic auth error in {tool_name}: {e}")
         return {
             "success": False,
-            "error": f"Authentication error: {str(e)}",
+            "error": f"Authentication error: {e!s}",
             "error_type": "auth",
         }
     except MauticAPIError as e:
         logger.error(f"Mautic API error in {tool_name}: {e}")
         return {
             "success": False,
-            "error": f"API error: {str(e)}",
+            "error": f"API error: {e!s}",
             "error_type": "api",
             "status_code": e.status_code,
         }
@@ -507,7 +507,7 @@ async def execute_tool(
         logger.exception(f"Unexpected error in {tool_name}: {e}")
         return {
             "success": False,
-            "error": f"Unexpected error: {str(e)}",
+            "error": f"Unexpected error: {e!s}",
             "error_type": "unknown",
         }
 
@@ -685,7 +685,7 @@ def format_tool_result_for_display(tool_name: str, result: dict) -> str:
         fields = contact.get("fields", {}).get("all", contact.get("fields", {}))
         
         lines = [
-            f"👤 Contact Details",
+            "👤 Contact Details",
             f"  Name: {fields.get('firstname', '')} {fields.get('lastname', '')}",
             f"  Email: {fields.get('email', '')}",
             f"  Company: {fields.get('company', '')}",
@@ -776,7 +776,7 @@ def format_tool_result_for_display(tool_name: str, result: dict) -> str:
                        "add_note", "add_to_segment", "add_to_campaign", "create_email",
                        "send_email_to_contact", "create_campaign", "publish_campaign",
                        "create_segment"]:
-        return f"✅ Operation completed successfully"
+        return "✅ Operation completed successfully"
     
     # Default
-    return f"✅ Tool executed successfully"
+    return "✅ Tool executed successfully"

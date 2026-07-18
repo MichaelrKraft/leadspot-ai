@@ -3,7 +3,6 @@ Reports router — summary analytics endpoint
 """
 
 import logging
-from typing import List, Optional
 
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
@@ -44,8 +43,8 @@ class ReportsSummary(BaseModel):
     active_campaigns: int
     total_deals: int
     pipeline_value: float
-    campaigns_performance: List[CampaignPerformance]
-    top_segments: List[TopSegment]
+    campaigns_performance: list[CampaignPerformance]
+    top_segments: list[TopSegment]
 
 
 # ---------------------------------------------------------------------------
@@ -102,7 +101,7 @@ async def get_reports_summary(
         pipeline_value = 0.0
 
     # --- campaigns_performance: all campaigns for user ---
-    campaigns_performance: List[CampaignPerformance] = []
+    campaigns_performance: list[CampaignPerformance] = []
     try:
         result = await db.execute(
             select(Campaign).where(Campaign.user_id == user_id)
@@ -123,7 +122,7 @@ async def get_reports_summary(
         campaigns_performance = []
 
     # --- top_segments ---
-    top_segments: List[TopSegment] = []
+    top_segments: list[TopSegment] = []
     try:
         result = await db.execute(
             select(Segment)

@@ -8,19 +8,20 @@ Returns hot leads, campaign insights, and AI-synthesized recommendations.
 import json
 import logging
 from datetime import datetime
-from typing import Optional
 
-from fastapi import APIRouter, Depends, Header, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.config import settings
 from app.database import get_db
 from app.models.organization import Organization
+from app.models.user import User
+from app.services.auth_service import get_current_user
 from app.services.cache_service import get_cache_service
+from app.services.email_insights_service import EmailInsightsService
 from app.services.insights_service import InsightsService
-from app.services.mautic_client import MauticClient, MauticAuthError
+from app.services.mautic_client import MauticAuthError, MauticClient
 
 logger = logging.getLogger(__name__)
 
@@ -39,7 +40,7 @@ class HotLead(BaseModel):
     email: str = ""
     company: str = ""
     points: int = 0
-    last_active: Optional[str] = None
+    last_active: str | None = None
 
 
 class CampaignInsight(BaseModel):
@@ -47,8 +48,8 @@ class CampaignInsight(BaseModel):
     id: str
     name: str
     is_published: bool = False
-    date_added: Optional[str] = None
-    date_modified: Optional[str] = None
+    date_added: str | None = None
+    date_modified: str | None = None
 
 
 class SummaryStats(BaseModel):
@@ -71,14 +72,14 @@ class DailyInsightsResponse(BaseModel):
 
 
 # =============================================================================
-# Helper Functions
+# Helper Functions (Mautic — used by /insights/hot-leads and /insights/stats only)
 # =============================================================================
 
 async def get_mautic_client(
     mautic_url: str,
-    organization_id: Optional[str],
+    organization_id: str | None,
     session: AsyncSession,
-) -> Optional[MauticClient]:
+) -> MauticClient | None:
     """
     Get a MauticClient for the request.
 
@@ -124,48 +125,27 @@ def _seconds_until_midnight_utc() -> int:
 
 @router.get("/insights/daily", response_model=DailyInsightsResponse)
 async def get_daily_insights(
-    mautic_url: str = Query(..., description="Mautic instance URL"),
-    organization_id: Optional[str] = Query(None, description="Organization ID"),
+    current_user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_db),
-    x_space_agent_key: Optional[str] = Header(None, alias="X-Space-Agent-Key"),
-    x_space_org_id: Optional[str] = Header(None, alias="X-Space-Org-Id"),
 ):
     """
     Get daily insights for the AI Dashboard.
 
-    Returns hot leads, recent contacts, campaign insights, summary stats,
-    and AI-generated recommendations.
-
-    **Parameters:**
-    - `mautic_url`: The Mautic instance URL (required)
-    - `organization_id`: Optional organization ID for faster lookup
-
-    **Headers (Space Agent path):**
-    - `X-Space-Agent-Key`: Space Agent shared secret (bypasses user auth)
-    - `X-Space-Org-Id`: Organization ID supplied by Space Agent
+    Derived from the authenticated user's synced email activity
+    (Unified Inbox) rather than Mautic. Returns hot leads (contacts
+    awaiting a reply), recent contacts, summary stats, and an
+    AI-synthesized recommendation.
 
     **Returns:**
     Complete daily insights data including:
-    - Top 5 hot leads (by engagement points)
-    - 5 most recent contacts
+    - Top 5 hot leads (contacts with the most recent unreplied inbound activity)
+    - 5 most recently active contacts
     - CRM summary statistics
-    - Recent campaign insights
-    - AI-synthesized recommendations
+    - AI-generated recommendations
     """
-    # Space Agent alternative auth path — validate the shared key
-    space_agent_authed = (
-        x_space_agent_key
-        and settings.SPACE_AGENT_API_KEY
-        and x_space_agent_key in (
-            settings.SPACE_AGENT_API_KEY,
-            settings.SPACE_AGENT_API_KEY_PREVIOUS,
-        )
-    )
-
-    # Resolve the org_id to use for the cache key (Space Agent may supply via header)
-    cache_org_id = x_space_org_id or organization_id or "default"
+    org_id = str(current_user.organization_id)
     cache_date = datetime.utcnow().strftime("%Y-%m-%d")
-    cache_key = f"daily_insights:{cache_org_id}:{cache_date}"
+    cache_key = f"daily_insights:{org_id}:{cache_date}"
 
     # --- Redis cache check ---
     try:
@@ -179,26 +159,14 @@ async def get_daily_insights(
         logger.warning(f"Cache read error (continuing without cache): {cache_err}")
 
     try:
-        # Get Mautic client
-        mautic_client = await get_mautic_client(mautic_url, organization_id, session)
-
-        if not mautic_client:
-            logger.warning(f"No Mautic connection for URL: {mautic_url}")
-            return DailyInsightsResponse(
-                stats=SummaryStats(),
-                ai_insights="Connect your Mautic CRM to see personalized insights.",
-                mautic_connected=False,
-            )
-
-        # Generate insights
-        service = InsightsService(mautic_client)
+        service = EmailInsightsService(session, org_id)
         insights = await service.get_daily_insights()
 
         response = DailyInsightsResponse(
             hot_leads=[HotLead(**lead) for lead in insights["hot_leads"]],
             recent_contacts=[HotLead(**contact) for contact in insights["recent_contacts"]],
             stats=SummaryStats(**insights["stats"]),
-            campaigns=[CampaignInsight(**c) for c in insights["campaigns"]],
+            campaigns=[],
             ai_insights=insights["ai_insights"],
             generated_at=insights["generated_at"],
             mautic_connected=True,
@@ -224,14 +192,14 @@ async def get_daily_insights(
         logger.exception(f"Error generating daily insights: {e}")
         raise HTTPException(
             status_code=500,
-            detail=f"Failed to generate insights: {str(e)}"
+            detail=f"Failed to generate insights: {e!s}"
         )
 
 
 @router.get("/insights/hot-leads")
 async def get_hot_leads(
     mautic_url: str = Query(..., description="Mautic instance URL"),
-    organization_id: Optional[str] = Query(None, description="Organization ID"),
+    organization_id: str | None = Query(None, description="Organization ID"),
     limit: int = Query(5, ge=1, le=20, description="Max leads to return"),
     session: AsyncSession = Depends(get_db),
 ):
@@ -261,7 +229,7 @@ async def get_hot_leads(
 @router.get("/insights/stats")
 async def get_crm_stats(
     mautic_url: str = Query(..., description="Mautic instance URL"),
-    organization_id: Optional[str] = Query(None, description="Organization ID"),
+    organization_id: str | None = Query(None, description="Organization ID"),
     session: AsyncSession = Depends(get_db),
 ):
     """

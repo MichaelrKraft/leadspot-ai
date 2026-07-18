@@ -5,8 +5,6 @@ Provides endpoints for calculating and managing lead engagement scores.
 """
 
 import logging
-from datetime import datetime
-from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
@@ -16,7 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import get_db
 from app.models.organization import Organization
 from app.services.lead_scoring_service import LeadScoringService
-from app.services.mautic_client import MauticClient, MauticAuthError
+from app.services.mautic_client import MauticAuthError, MauticClient
 
 logger = logging.getLogger(__name__)
 
@@ -55,7 +53,7 @@ class ScoreAndTagResult(BaseModel):
     recency_multiplier: float
     recency_category: str
     tier: str
-    tag_applied: Optional[str] = None
+    tag_applied: str | None = None
     tagging_success: bool
     calculated_at: str
 
@@ -73,9 +71,9 @@ class BatchScoreResult(BaseModel):
 
 async def get_mautic_client(
     mautic_url: str,
-    organization_id: Optional[str],
+    organization_id: str | None,
     session: AsyncSession,
-) -> Optional[MauticClient]:
+) -> MauticClient | None:
     """Get a MauticClient for the request."""
     if organization_id:
         try:
@@ -111,7 +109,7 @@ async def get_mautic_client(
 async def calculate_lead_score(
     contact_id: int,
     mautic_url: str = Query(..., description="Mautic instance URL"),
-    organization_id: Optional[str] = Query(None, description="Organization ID"),
+    organization_id: str | None = Query(None, description="Organization ID"),
     session: AsyncSession = Depends(get_db),
 ):
     """
@@ -151,7 +149,7 @@ async def calculate_lead_score(
 async def score_and_tag_contact(
     contact_id: int,
     mautic_url: str = Query(..., description="Mautic instance URL"),
-    organization_id: Optional[str] = Query(None, description="Organization ID"),
+    organization_id: str | None = Query(None, description="Organization ID"),
     session: AsyncSession = Depends(get_db),
 ):
     """
@@ -182,7 +180,7 @@ async def score_and_tag_contact(
 @router.post("/scoring/batch", response_model=BatchScoreResult)
 async def batch_score_contacts(
     mautic_url: str = Query(..., description="Mautic instance URL"),
-    organization_id: Optional[str] = Query(None, description="Organization ID"),
+    organization_id: str | None = Query(None, description="Organization ID"),
     limit: int = Query(50, ge=1, le=200, description="Max contacts to score"),
     auto_tag: bool = Query(True, description="Automatically apply tier tags"),
     session: AsyncSession = Depends(get_db),

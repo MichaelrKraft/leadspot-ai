@@ -4,7 +4,6 @@ Segments router — CRUD for segment persistence
 
 import logging
 from datetime import datetime
-from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
@@ -27,30 +26,30 @@ router = APIRouter()
 
 class SegmentCreate(BaseModel):
     name: str
-    description: Optional[str] = None
+    description: str | None = None
     color: str = "#6366f1"
     contact_count: int = 0
     filter_type: str = "manual"
-    filter_criteria: Optional[str] = None
+    filter_criteria: str | None = None
 
 
 class SegmentUpdate(BaseModel):
-    name: Optional[str] = None
-    description: Optional[str] = None
-    color: Optional[str] = None
-    contact_count: Optional[int] = None
-    filter_type: Optional[str] = None
-    filter_criteria: Optional[str] = None
+    name: str | None = None
+    description: str | None = None
+    color: str | None = None
+    contact_count: int | None = None
+    filter_type: str | None = None
+    filter_criteria: str | None = None
 
 
 class SegmentResponse(BaseModel):
     id: str
     name: str
-    description: Optional[str]
+    description: str | None
     color: str
     contact_count: int
     filter_type: str
-    filter_criteria: Optional[str]
+    filter_criteria: str | None
     user_id: str
     created_at: datetime
     updated_at: datetime
@@ -59,7 +58,7 @@ class SegmentResponse(BaseModel):
 
 
 class SegmentsListResponse(BaseModel):
-    segments: List[SegmentResponse]
+    segments: list[SegmentResponse]
     total: int
 
 

@@ -7,7 +7,6 @@ Automatically tags leads as hot/warm/cold based on thresholds.
 
 import logging
 from datetime import datetime, timedelta
-from typing import Optional
 
 from app.services.mautic_client import MauticClient
 

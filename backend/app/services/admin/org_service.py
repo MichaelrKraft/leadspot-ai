@@ -10,7 +10,7 @@ Handles organization management operations:
 
 import uuid
 from datetime import datetime, timedelta
-from typing import Optional, Any
+from typing import Any
 
 from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -31,7 +31,7 @@ class OrganizationAdminService:
     async def get_organization(
         self,
         organization_id: uuid.UUID
-    ) -> Optional[Organization]:
+    ) -> Organization | None:
         """
         Get organization by ID.
 
@@ -52,7 +52,7 @@ class OrganizationAdminService:
         self,
         organization_id: uuid.UUID,
         org_data: OrganizationUpdate
-    ) -> Optional[Organization]:
+    ) -> Organization | None:
         """
         Update organization settings.
 
@@ -256,7 +256,7 @@ class OrganizationAdminService:
         self,
         organization_id: uuid.UUID,
         check_type: str
-    ) -> tuple[bool, Optional[str]]:
+    ) -> tuple[bool, str | None]:
         """
         Check if organization is within usage limits.
 
@@ -292,7 +292,7 @@ class OrganizationAdminService:
         self,
         organization_id: uuid.UUID,
         new_tier: str
-    ) -> Optional[Organization]:
+    ) -> Organization | None:
         """
         Upgrade organization subscription tier.
 

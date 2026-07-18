@@ -1,4 +1,4 @@
-from typing import Optional
+
 """
 FastAPI Dependencies
 
@@ -19,7 +19,7 @@ from app.services.auth_service import get_current_user as _get_current_user_orm
 from app.services.ingestion.pipeline import IngestionPipeline
 
 # Singleton instances
-_pipeline: Optional[IngestionPipeline] = None
+_pipeline: IngestionPipeline | None = None
 _cache_service = None
 _query_service = None
 _context_builder = None

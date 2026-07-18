@@ -13,9 +13,8 @@ import logging
 import os
 import uuid
 from datetime import date, datetime
-from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -48,7 +47,7 @@ router = APIRouter()
 # =============================================================================
 
 class CostIncrementRequest(BaseModel):
-    day: Optional[date] = Field(default=None, description="UTC date; defaults to today")
+    day: date | None = Field(default=None, description="UTC date; defaults to today")
     haiku_tokens_input: int = Field(default=0, ge=0)
     haiku_tokens_output: int = Field(default=0, ge=0)
     sonnet_tokens_input: int = Field(default=0, ge=0)

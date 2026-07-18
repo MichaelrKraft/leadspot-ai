@@ -1,13 +1,11 @@
 /**
  * Dashboard API service
- * Wraps /api/insights/* endpoints. The backend derives data from the
- * organization when organization_id is supplied (it is preferred over the
- * mautic_url lookup), so we pass the authenticated org id rather than a
- * hardcoded localhost URL that never matched a real Mautic instance.
+ * Wraps /api/insights/* endpoints. /insights/daily derives data from the
+ * authenticated user's session (no query params needed). /insights/hot-leads
+ * and /insights/stats are still Mautic-only and unused by the dashboard page.
  */
 
 import { apiClient } from '@/lib/api';
-import { useAuthStore } from '@/stores/useAuthStore';
 
 export interface HotLead {
   id: number;
@@ -34,31 +32,9 @@ export interface DailyInsightsResponse {
   generated_at: string;
 }
 
-// mautic_url is a required query param on the backend but is ignored when
-// organization_id resolves; send a harmless placeholder alongside the real org.
-function insightsParams(extra: Record<string, unknown> = {}) {
-  const orgId = useAuthStore.getState().user?.organizationId;
-  return { mautic_url: 'https://unused.invalid', organization_id: orgId, ...extra };
-}
-
 export async function fetchDailyInsights(): Promise<DailyInsightsResponse> {
   const res = await apiClient.get<DailyInsightsResponse>('/api/insights/daily', {
-    params: insightsParams(),
     timeout: 10000,
   });
   return res.data;
-}
-
-export async function fetchHotLeads(limit = 5): Promise<HotLead[]> {
-  const res = await apiClient.get<{ hot_leads: HotLead[] }>('/api/insights/hot-leads', {
-    params: insightsParams({ limit }),
-  });
-  return res.data.hot_leads;
-}
-
-export async function fetchCRMStats(): Promise<SummaryStats> {
-  const res = await apiClient.get<{ stats: SummaryStats }>('/api/insights/stats', {
-    params: insightsParams(),
-  });
-  return res.data.stats;
 }

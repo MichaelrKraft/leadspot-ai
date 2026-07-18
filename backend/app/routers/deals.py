@@ -3,7 +3,6 @@ Deals / Pipeline router
 """
 
 from datetime import datetime
-from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
@@ -24,39 +23,39 @@ router = APIRouter()
 
 class DealCreate(BaseModel):
     title: str
-    contact_id: Optional[str] = None
-    contact_name: Optional[str] = None
+    contact_id: str | None = None
+    contact_name: str | None = None
     value: float = 0.0
     pipeline: str = "sales"
-    stage: Optional[str] = None  # defaults to the pipeline's first stage
+    stage: str | None = None  # defaults to the pipeline's first stage
     priority: str = "medium"
-    property_name: Optional[str] = None
-    notes: Optional[str] = None
+    property_name: str | None = None
+    notes: str | None = None
 
 
 class DealUpdate(BaseModel):
-    title: Optional[str] = None
-    contact_id: Optional[str] = None
-    contact_name: Optional[str] = None
-    value: Optional[float] = None
-    stage: Optional[str] = None
-    priority: Optional[str] = None
-    property_name: Optional[str] = None
-    notes: Optional[str] = None
+    title: str | None = None
+    contact_id: str | None = None
+    contact_name: str | None = None
+    value: float | None = None
+    stage: str | None = None
+    priority: str | None = None
+    property_name: str | None = None
+    notes: str | None = None
 
 
 class DealResponse(BaseModel):
     id: str
     title: str
-    contact_id: Optional[str]
-    contact_name: Optional[str]
+    contact_id: str | None
+    contact_name: str | None
     value: float
     pipeline: str
     stage: str
     priority: str
-    property_name: Optional[str]
-    stage_changed_at: Optional[datetime]
-    notes: Optional[str]
+    property_name: str | None
+    stage_changed_at: datetime | None
+    notes: str | None
     org_id: str
     created_at: datetime
     updated_at: datetime
@@ -74,7 +73,7 @@ class StageDefinition(BaseModel):
 # Endpoints
 # ---------------------------------------------------------------------------
 
-PIPELINE_STAGES: dict[str, List[StageDefinition]] = {
+PIPELINE_STAGES: dict[str, list[StageDefinition]] = {
     "sales": [
         StageDefinition(id="lead", name="Lead", color="blue"),
         StageDefinition(id="qualified", name="Qualified", color="indigo"),
@@ -128,7 +127,7 @@ async def list_deals(
 async def list_stages(
     pipeline: str = "sales",
     current_user: User = Depends(get_current_user),
-) -> List[StageDefinition]:
+) -> list[StageDefinition]:
     """Return stage definitions with colours for the given pipeline."""
     if pipeline not in VALID_PIPELINES:
         raise HTTPException(

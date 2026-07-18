@@ -6,7 +6,7 @@ import uuid
 from datetime import datetime
 from decimal import Decimal
 
-from sqlalchemy import Boolean, Column, DateTime, ForeignKey, JSON, Numeric, String, Text
+from sqlalchemy import JSON, Boolean, Column, DateTime, ForeignKey, Numeric, String, Text
 from sqlalchemy.orm import relationship
 
 from app.database import Base

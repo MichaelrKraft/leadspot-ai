@@ -17,9 +17,8 @@ See `tasks/ghostlog-integration-plan.md` §3 Phase 1 week 3.
 import logging
 import uuid
 from datetime import datetime, timedelta
-from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -48,7 +47,7 @@ router = APIRouter()
 
 class UnmatchedSampleItem(BaseModel):
     contact_match_key: str = Field(..., max_length=255)
-    source_app: Optional[str] = Field(default=None, max_length=120)
+    source_app: str | None = Field(default=None, max_length=120)
     summary: str = Field(default="", max_length=512)
     observed_at: datetime
 

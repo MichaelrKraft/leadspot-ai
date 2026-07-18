@@ -2,8 +2,7 @@
 Calendar routes for event management and public booking.
 """
 
-from datetime import datetime, timedelta, timezone
-from typing import List, Optional
+from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -13,8 +12,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
 from app.models.calendar_event import CalendarEvent
-from app.services.auth_service import get_current_user
 from app.models.user import User
+from app.services.auth_service import get_current_user
 
 router = APIRouter()
 
@@ -30,21 +29,21 @@ class EventCreate(BaseModel):
     start: datetime
     end: datetime
     type: str = "call"
-    contact_id: Optional[str] = None
-    contact_name: Optional[str] = None
-    agent_id: Optional[str] = None
-    notes: Optional[str] = None
+    contact_id: str | None = None
+    contact_name: str | None = None
+    agent_id: str | None = None
+    notes: str | None = None
 
 
 class EventUpdate(BaseModel):
-    title: Optional[str] = None
-    start: Optional[datetime] = None
-    end: Optional[datetime] = None
-    type: Optional[str] = None
-    contact_id: Optional[str] = None
-    contact_name: Optional[str] = None
-    agent_id: Optional[str] = None
-    notes: Optional[str] = None
+    title: str | None = None
+    start: datetime | None = None
+    end: datetime | None = None
+    type: str | None = None
+    contact_id: str | None = None
+    contact_name: str | None = None
+    agent_id: str | None = None
+    notes: str | None = None
 
 
 class EventResponse(BaseModel):
@@ -53,10 +52,10 @@ class EventResponse(BaseModel):
     start: datetime
     end: datetime
     type: str
-    contact_id: Optional[str]
-    contact_name: Optional[str]
-    agent_id: Optional[str]
-    notes: Optional[str]
+    contact_id: str | None
+    contact_name: str | None
+    agent_id: str | None
+    notes: str | None
     org_id: str
     created_at: datetime
     updated_at: datetime
@@ -68,10 +67,10 @@ class BookingRequest(BaseModel):
     agent_id: str
     contact_name: str
     contact_email: str
-    contact_phone: Optional[str] = None
+    contact_phone: str | None = None
     start: datetime
     end: datetime
-    notes: Optional[str] = None
+    notes: str | None = None
 
 
 class BookingResponse(BaseModel):
@@ -93,8 +92,8 @@ class AvailabilitySlot(BaseModel):
 
 @router.get("/api/calendar/events")
 async def list_events(
-    start: Optional[str] = None,
-    end: Optional[str] = None,
+    start: str | None = None,
+    end: str | None = None,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> dict:
@@ -208,7 +207,7 @@ async def get_availability(
     """
     now = datetime.now(tz=EST)
     # Return slots for the next 14 days
-    slots: List[AvailabilitySlot] = []
+    slots: list[AvailabilitySlot] = []
 
     # Fetch booked events for this agent in the window
     window_end = now + timedelta(days=14)

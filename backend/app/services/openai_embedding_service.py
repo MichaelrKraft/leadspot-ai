@@ -1,4 +1,4 @@
-from typing import Optional
+
 """
 OpenAI Embedding Service
 
@@ -27,7 +27,7 @@ MAX_BATCH_SIZE = 100  # OpenAI allows up to 2048, but we limit for safety
 MAX_TOKENS_PER_REQUEST = 8191  # Model limit
 
 
-def _get_api_key() -> Optional[str]:
+def _get_api_key() -> str | None:
     """Get OpenAI API key from settings or environment."""
     key = getattr(settings, 'OPENAI_API_KEY', None) or os.getenv('OPENAI_API_KEY')
     return key if key and key.strip() else None

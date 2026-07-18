@@ -8,13 +8,12 @@ GoHighLevel-style branding with inheritance:
 """
 
 import logging
-from typing import Optional
 
 from pydantic import BaseModel
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.organization import Organization, DEFAULT_BRANDING
+from app.models.organization import DEFAULT_BRANDING, Organization
 
 logger = logging.getLogger(__name__)
 
@@ -22,12 +21,12 @@ logger = logging.getLogger(__name__)
 class BrandingConfig(BaseModel):
     """Branding configuration model"""
     app_name: str = "LeadSpot.ai"
-    logo_url: Optional[str] = None
-    favicon_url: Optional[str] = None
+    logo_url: str | None = None
+    favicon_url: str | None = None
     primary_color: str = "#818cf8"
     secondary_color: str = "#a5b4fc"
     accent_color: str = "#c7d2fe"
-    custom_css: Optional[str] = None
+    custom_css: str | None = None
 
 
 class BrandingService:
@@ -45,7 +44,7 @@ class BrandingService:
     def __init__(self, db: AsyncSession):
         self.db = db
 
-    async def get_organization(self, org_id: str) -> Optional[Organization]:
+    async def get_organization(self, org_id: str) -> Organization | None:
         """Get organization by ID."""
         result = await self.db.execute(
             select(Organization).where(Organization.organization_id == org_id)
@@ -201,7 +200,7 @@ class BrandingService:
 
         return css
 
-    async def get_branding_for_domain(self, custom_domain: str) -> Optional[BrandingConfig]:
+    async def get_branding_for_domain(self, custom_domain: str) -> BrandingConfig | None:
         """
         Look up branding by custom domain.
 

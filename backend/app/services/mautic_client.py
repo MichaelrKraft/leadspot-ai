@@ -7,7 +7,6 @@ Handles OAuth token management and provides methods for all Mautic operations.
 
 import logging
 from datetime import datetime, timedelta
-from typing import Any, Optional
 
 import httpx
 from sqlalchemy import select
@@ -48,12 +47,12 @@ class MauticClient:
         self,
         mautic_url: str,
         access_token: str,
-        refresh_token: Optional[str] = None,
-        client_id: Optional[str] = None,
-        client_secret: Optional[str] = None,
-        token_expires_at: Optional[datetime] = None,
-        session: Optional[AsyncSession] = None,
-        organization_id: Optional[str] = None,
+        refresh_token: str | None = None,
+        client_id: str | None = None,
+        client_secret: str | None = None,
+        token_expires_at: datetime | None = None,
+        session: AsyncSession | None = None,
+        organization_id: str | None = None,
     ):
         self.mautic_url = mautic_url.rstrip("/")
         self.access_token = access_token
@@ -165,8 +164,8 @@ class MauticClient:
         self,
         method: str,
         endpoint: str,
-        params: Optional[dict] = None,
-        json_data: Optional[dict] = None,
+        params: dict | None = None,
+        json_data: dict | None = None,
     ) -> dict:
         """
         Make an authenticated request to the Mautic API.
@@ -228,7 +227,7 @@ class MauticClient:
                 
             except httpx.RequestError as e:
                 logger.error(f"Mautic request error: {e}")
-                raise MauticAPIError(f"Request failed: {str(e)}")
+                raise MauticAPIError(f"Request failed: {e!s}")
     
     # =========================================================================
     # Contact Operations (Read)
@@ -238,7 +237,7 @@ class MauticClient:
         self,
         limit: int = 30,
         start: int = 0,
-        search: Optional[str] = None,
+        search: str | None = None,
         order_by: str = "date_added",
         order_direction: str = "DESC",
     ) -> dict:
@@ -324,7 +323,7 @@ class MauticClient:
         self,
         limit: int = 30,
         start: int = 0,
-        search: Optional[str] = None,
+        search: str | None = None,
     ) -> dict:
         """
         Get a list of emails.
@@ -354,7 +353,7 @@ class MauticClient:
         self,
         limit: int = 30,
         start: int = 0,
-        search: Optional[str] = None,
+        search: str | None = None,
     ) -> dict:
         """Get a list of campaigns (workflows)."""
         params = {"limit": min(limit, 100), "start": start}
@@ -558,8 +557,8 @@ class MauticClient:
         subject: str,
         body: str,
         email_type: str = "template",
-        from_name: Optional[str] = None,
-        from_address: Optional[str] = None,
+        from_name: str | None = None,
+        from_address: str | None = None,
     ) -> dict:
         """
         Create a new email.
@@ -611,7 +610,7 @@ class MauticClient:
     async def create_campaign(
         self,
         name: str,
-        description: Optional[str] = None,
+        description: str | None = None,
     ) -> dict:
         """
         Create a new campaign (workflow).
@@ -655,8 +654,8 @@ class MauticClient:
     async def create_segment(
         self,
         name: str,
-        description: Optional[str] = None,
-        filters: Optional[list] = None,
+        description: str | None = None,
+        filters: list | None = None,
     ) -> dict:
         """
         Create a new segment.

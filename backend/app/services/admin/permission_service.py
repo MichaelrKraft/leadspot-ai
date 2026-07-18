@@ -1,4 +1,4 @@
-from typing import Optional
+
 """
 Permission Service
 
@@ -150,7 +150,7 @@ class PermissionService:
         admin_user_id: uuid.UUID,
         target_user_id: uuid.UUID,
         new_role: str
-    ) -> tuple[bool, Optional[str]]:
+    ) -> tuple[bool, str | None]:
         """
         Validate if an admin can change a user's role.
 

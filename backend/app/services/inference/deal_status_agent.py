@@ -10,7 +10,7 @@ accepts or rejects in the UI.
 import json
 import logging
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any
 
 import anthropic
 from sqlalchemy import select
@@ -75,8 +75,8 @@ async def analyze_source_for_deal_status(
     source_type: str,  # "email" | "document"
     source_id: str,
     source_text: str,
-    client: Optional[anthropic.AsyncAnthropic] = None,
-) -> Optional[DealSuggestion]:
+    client: anthropic.AsyncAnthropic | None = None,
+) -> DealSuggestion | None:
     """Run inference over one source item. Returns the created suggestion, or None."""
     result = await db.execute(
         select(Deal).where(

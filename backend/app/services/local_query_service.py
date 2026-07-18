@@ -21,7 +21,7 @@ Key improvements:
 import logging
 import re
 import time
-from typing import Optional, Any
+from typing import Any
 
 from app.services import claude_service, local_embedding_service, local_vector_store, ollama_service
 from app.services.query_preprocessor import get_query_preprocessor
@@ -71,7 +71,7 @@ AGGREGATE_PATTERNS = [
     (r"(document|file|email) (length|size)", "longest_document"),
 ]
 
-def _detect_query_intent(query: str) -> tuple[str, Optional[str]]:
+def _detect_query_intent(query: str) -> tuple[str, str | None]:
     """
     Detect the intent of a query.
 
@@ -96,7 +96,7 @@ def _detect_query_intent(query: str) -> tuple[str, Optional[str]]:
     return ("content", None)
 
 
-def _detect_aggregate_query(query: str) -> tuple[Optional[str], Optional[str]]:
+def _detect_aggregate_query(query: str) -> tuple[str | None, str | None]:
     """
     Detect if query is an aggregate/analytical question.
 
@@ -117,7 +117,7 @@ def _run_aggregate_query(
     aggregate_type: str,
     organization_id: str,
     query: str,
-    time_filter: Optional[str] = None
+    time_filter: str | None = None
 ) -> dict[str, Any]:
     """
     Run SQL aggregate query for frequency/count analysis.
@@ -133,6 +133,7 @@ def _run_aggregate_query(
     """
     try:
         from sqlalchemy import create_engine, text
+
         from app.config import settings
 
         engine = create_engine(settings.DATABASE_URL.replace('+aiosqlite', ''))
@@ -411,6 +412,7 @@ def _get_system_context(organization_id: str) -> dict[str, Any]:
         # Check what source systems are actually indexed for this org
         try:
             from sqlalchemy import create_engine, text
+
             from app.config import settings
 
             # Use sync engine for this quick query
@@ -496,6 +498,7 @@ def _get_document_metadata(document_ids: list[str]) -> dict[str, dict]:
 
     try:
         from sqlalchemy import create_engine, text
+
         from app.config import settings
 
         engine = create_engine(settings.DATABASE_URL.replace('+aiosqlite', ''))
@@ -1019,7 +1022,7 @@ async def index_document_for_search(
     organization_id: str,
     title: str,
     content: str,
-    metadata: Optional[dict[str, Any]] = None
+    metadata: dict[str, Any] | None = None
 ) -> dict[str, Any]:
     """
     Index a document for semantic search.

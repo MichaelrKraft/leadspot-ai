@@ -1,7 +1,9 @@
 """Email suppression list model"""
 import uuid
 from datetime import datetime
+
 from sqlalchemy import Column, DateTime, String
+
 from app.database import Base
 
 

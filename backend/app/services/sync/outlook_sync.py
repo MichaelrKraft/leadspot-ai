@@ -10,7 +10,7 @@ refresh-on-expiry rather than assume a valid token.
 
 import logging
 from datetime import datetime, timedelta
-from typing import Any, Optional
+from typing import Any
 
 import httpx
 from sqlalchemy import select
@@ -75,7 +75,7 @@ class OutlookSyncService:
     ) -> list[dict[str, Any]]:
         """Fetch messages received since `since`, newest first, following pagination."""
         since_iso = since.strftime("%Y-%m-%dT%H:%M:%SZ")
-        url: Optional[str] = (
+        url: str | None = (
             f"{GRAPH_MESSAGES_URL}"
             f"?$filter=receivedDateTime ge {since_iso}"
             f"&$orderby=receivedDateTime desc"
@@ -96,7 +96,7 @@ class OutlookSyncService:
 
     async def _match_contact_and_deal(
         self, db: AsyncSession, org_id: str, addresses: list[str]
-    ) -> tuple[Optional[str], Optional[str]]:
+    ) -> tuple[str | None, str | None]:
         """Match any of the given addresses to a contact, then to one open leasing deal."""
         addresses = [a.lower() for a in addresses if a]
         if not addresses:

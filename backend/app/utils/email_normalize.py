@@ -11,8 +11,6 @@ These are pure functions. They never touch the DB.
 
 import hashlib
 import unicodedata
-from typing import Optional
-
 
 # Unicode invisible categories: Cf (format), Cc (control), Zl/Zp (line/paragraph
 # separators). We strip these BEFORE lowering so case-folding is on a clean
@@ -32,7 +30,7 @@ def _strip_invisibles(s: str) -> str:
     return "".join(out)
 
 
-def normalize_email(raw: Optional[str]) -> str:
+def normalize_email(raw: str | None) -> str:
     """Normalize an email for hashing/matching.
 
     Defensive contract:
@@ -72,7 +70,7 @@ def normalize_email(raw: Optional[str]) -> str:
     return f"{local}@{domain}"
 
 
-def email_hash(raw: Optional[str]) -> str:
+def email_hash(raw: str | None) -> str:
     """sha256 of the normalized email, hex-encoded.
 
     Empty/None inputs -> "" (not the sha256 of empty string — distinguishable

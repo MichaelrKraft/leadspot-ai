@@ -11,8 +11,7 @@ USD estimates and per-day cap-hit counts. Backs the superadmin
 
 import logging
 import os
-from datetime import date, datetime, timedelta
-from typing import Optional
+from datetime import datetime, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel
