@@ -123,7 +123,7 @@ export default function ApiKeysPage() {
         </Link>
         <h1 className="text-3xl font-bold text-white mb-2">API Keys</h1>
         <p className="text-gray-400">
-          Configure your API keys to power LeadSpot.ai's AI agents
+          Configure your API keys to power LeadSpot.ai&apos;s AI agents
         </p>
       </div>
 

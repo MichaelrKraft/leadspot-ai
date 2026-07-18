@@ -311,7 +311,7 @@ export default function BookingPage({ params }: PageProps) {
 
                 <div>
                   <label className="mb-1 block text-sm font-medium text-gray-700">
-                    Anything else you'd like us to know?
+                    Anything else you&apos;d like us to know?
                   </label>
                   <textarea
                     rows={3}
@@ -354,9 +354,9 @@ export default function BookingPage({ params }: PageProps) {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
               </div>
-              <h2 className="mb-2 text-xl font-bold text-gray-900">You're booked!</h2>
+              <h2 className="mb-2 text-xl font-bold text-gray-900">You&apos;re booked!</h2>
               <p className="mb-4 text-sm text-gray-500">
-                Your call is booked! You'll receive a confirmation email.
+                Your call is booked! You&apos;ll receive a confirmation email.
               </p>
               <div className="mx-auto inline-flex items-center gap-2 rounded-lg bg-indigo-50 px-4 py-3">
                 <svg className="h-5 w-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">

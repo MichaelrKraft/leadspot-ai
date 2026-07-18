@@ -349,7 +349,7 @@ export default function IntegrationsSettingsPage() {
       <div className="mb-8">
         <h2 className="text-xl font-semibold text-white mb-1">CRM Integrations</h2>
         <p className="text-gray-400">
-          Connect your CRM to power LeadSpot.ai's AI agents with your contacts and campaigns.
+          Connect your CRM to power LeadSpot.ai&apos;s AI agents with your contacts and campaigns.
         </p>
       </div>
 
@@ -362,7 +362,7 @@ export default function IntegrationsSettingsPage() {
           <div>
             <h3 className="text-blue-400 font-medium mb-1">Demo Mode Available</h3>
             <p className="text-sm text-gray-400">
-              Don't have a CRM set up yet? Try demo mode with sample contacts and campaigns to explore LeadSpot.ai features.
+              Don&apos;t have a CRM set up yet? Try demo mode with sample contacts and campaigns to explore LeadSpot.ai features.
             </p>
           </div>
         </div>

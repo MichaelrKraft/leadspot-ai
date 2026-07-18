@@ -52,7 +52,9 @@ const HOP_BY_HOP = new Set([
   'alt-svc',                   // never propagate HTTP/2 upgrade hints
 ]);
 
-async function proxy(req: NextRequest, ctx: { params: { path?: string[] } }) {
+type RouteCtx = { params: { path?: string[] } };
+
+async function proxy(req: NextRequest, ctx: RouteCtx) {
   const subpath = '/' + (ctx.params.path?.join('/') ?? '');
 
   // Path traversal defense (defense in depth — URL parser already normalizes
@@ -104,11 +106,10 @@ async function proxy(req: NextRequest, ctx: { params: { path?: string[] } }) {
       method,
       headers: fwdHeaders,
       body: bodyForUpstream,
-      // @ts-ignore duplex required for streaming uploads in undici
+      // @ts-expect-error duplex required for streaming uploads in undici
       duplex: hasBody ? 'half' : undefined,
       redirect: 'manual',
       cache: 'no-store',
-      // @ts-ignore -- undici Agent typing not part of standard fetch RequestInit
       dispatcher: upstreamAgent,
     });
   } catch (err) {
@@ -134,8 +135,8 @@ async function proxy(req: NextRequest, ctx: { params: { path?: string[] } }) {
   // Set-Cookie handling — Web Headers exposes getSetCookie() in Node 18.14+.
   const isHttps = req.nextUrl.protocol === 'https:';
   const setCookies =
-    typeof (upstreamRes.headers as any).getSetCookie === 'function'
-      ? (upstreamRes.headers as any).getSetCookie()
+    typeof (upstreamRes.headers as Headers & { getSetCookie?: () => string[] }).getSetCookie === 'function'
+      ? (upstreamRes.headers as Headers & { getSetCookie: () => string[] }).getSetCookie()
       : upstreamRes.headers.get('set-cookie')
         ? [upstreamRes.headers.get('set-cookie') as string]
         : [];
@@ -358,25 +359,25 @@ function rewriteHtml(html: string): string {
   return out;
 }
 
-export async function GET(req: NextRequest, ctx: any) {
+export async function GET(req: NextRequest, ctx: RouteCtx) {
   return proxy(req, ctx);
 }
-export async function HEAD(req: NextRequest, ctx: any) {
+export async function HEAD(req: NextRequest, ctx: RouteCtx) {
   return proxy(req, ctx);
 }
-export async function POST(req: NextRequest, ctx: any) {
+export async function POST(req: NextRequest, ctx: RouteCtx) {
   return proxy(req, ctx);
 }
-export async function PUT(req: NextRequest, ctx: any) {
+export async function PUT(req: NextRequest, ctx: RouteCtx) {
   return proxy(req, ctx);
 }
-export async function PATCH(req: NextRequest, ctx: any) {
+export async function PATCH(req: NextRequest, ctx: RouteCtx) {
   return proxy(req, ctx);
 }
-export async function DELETE(req: NextRequest, ctx: any) {
+export async function DELETE(req: NextRequest, ctx: RouteCtx) {
   return proxy(req, ctx);
 }
-export async function OPTIONS(req: NextRequest, _ctx: any) {
+export async function OPTIONS(req: NextRequest, _ctx: RouteCtx) {
   // Handle CORS preflight directly — never forward OPTIONS to Space Agent.
   // This prevents ERR_ALPN_NEGOTIATION_FAILED (Chrome's reported error) when
   // the space iframe ends up cross-origin and the preflight OPTIONS fails.

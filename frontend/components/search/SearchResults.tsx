@@ -236,7 +236,7 @@ export default function SearchResults({ results }: SearchResultsProps) {
             </h4>
             <p className="text-sm text-gray-600 dark:text-gray-400">
               This answer was synthesized from {results.citations.length} sources in your
-              organization's knowledge base. Always verify critical information with source
+              organization&apos;s knowledge base. Always verify critical information with source
               documents.
             </p>
           </div>

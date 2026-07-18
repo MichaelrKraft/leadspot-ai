@@ -75,7 +75,7 @@ export default function DashboardPage() {
 
   useEffect(() => {
     fetchPipelineBrief()
-      .then((data) => { if (data) setBrief(data as unknown as PipelineBrief); })
+      .then((data) => { if (data) setBrief(data); })
       .catch(() => { /* keep demo data */ });
 
     fetchApprovalQueue()

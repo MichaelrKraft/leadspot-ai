@@ -125,9 +125,9 @@ export default function GmailIntegrationCard({
             <div className="p-4 rounded-lg bg-blue-500/10 border border-blue-500/20">
               <p className="text-sm text-blue-400 font-medium mb-2">Try asking:</p>
               <ul className="text-sm text-gray-300 space-y-1">
-                <li>"What company sent me a cruise offer last month?"</li>
-                <li>"Find emails from my accountant about taxes"</li>
-                <li>"What did John say about the project deadline?"</li>
+                <li>&quot;What company sent me a cruise offer last month?&quot;</li>
+                <li>&quot;Find emails from my accountant about taxes&quot;</li>
+                <li>&quot;What did John say about the project deadline?&quot;</li>
               </ul>
             </div>
           </div>

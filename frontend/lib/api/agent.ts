@@ -6,6 +6,7 @@
 
 import { apiClient } from '@/lib/api';
 import { useAuthStore } from '@/stores/useAuthStore';
+import type { PipelineBrief } from '@/lib/dashboard-demo-data';
 
 // Returns the current org ID from auth context, falls back to 'demo-org' in dev mode
 function getOrgId(): string {
@@ -84,18 +85,31 @@ export async function markContactActedUpon(
 
 // ---- Pipeline Brief ----
 
-export interface PipelineBrief {
-  summary: string;
-  hotLeads: number;
-  stalledDeals: number;
-  generatedAt: string;
+// Matches agent-service's PipelineBrief (agent-service/src/types.ts)
+interface PipelineBriefApiResponse {
+  brief: {
+    generatedAt: string;
+    summary: string;
+    newLeads: number;
+    followUpsNeeded: number;
+    dealsAtRisk: number;
+    suggestedActions: { id: string; title: string; description: string }[];
+  };
 }
 
 export async function fetchPipelineBrief(): Promise<PipelineBrief> {
-  const res = await apiClient.post('/api/agent/brief', {
+  const res = await apiClient.post<PipelineBriefApiResponse>('/api/agent/brief', {
     organizationId: getOrgId(),
   });
-  return res.data;
+  const brief = res.data.brief;
+  return {
+    greeting: "Here's your AI morning brief",
+    summary: brief.summary,
+    new_leads: brief.newLeads,
+    follow_ups_needed: brief.followUpsNeeded,
+    deals_at_risk: brief.dealsAtRisk,
+    suggested_actions: brief.suggestedActions,
+  };
 }
 
 // ---- Timeline ----
