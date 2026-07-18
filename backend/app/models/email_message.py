@@ -25,6 +25,9 @@ class EmailMessage(Base):
     org_id = Column(String(36), nullable=False, index=True)
     provider = Column(String(20), default="outlook", nullable=False)  # outlook, gmail, seed
     provider_message_id = Column(String(255), nullable=False)  # Graph message id; idempotency by (org_id, provider_message_id) query
+    thread_id = Column(String(255), nullable=True, index=True)  # provider thread id, groups conversations
+    direction = Column(String(10), default="inbound", nullable=False)  # inbound | outbound
+    category = Column(String(100), nullable=True)  # triage category (Phase B classifier)
     from_address = Column(String(255), nullable=False)
     to_addresses = Column(Text, nullable=True)  # comma-separated
     subject = Column(String(500), nullable=True)

@@ -845,10 +845,13 @@ function createApp(): express.Application {
     }
   });
 
-  // Test Send — send a single email to verify Resend is configured
+  // Single Send — one email through the full Resend path (suppression check,
+  // CAN-SPAM footer, record-send to backend). /api/email/send is the real
+  // entry point (used by the backend's conv-ai send_email tool);
+  // /api/email/test-send is the historical alias kept for config smoke tests.
   // --------------------------------------------------------------------------
 
-  app.post('/api/email/test-send', async (req: Request, res: Response, next: NextFunction) => {
+  app.post(['/api/email/send', '/api/email/test-send'], async (req: Request, res: Response, next: NextFunction) => {
     try {
       const body = req.body as {
         to?: string;

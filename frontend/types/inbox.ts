@@ -26,4 +26,12 @@ export interface Conversation {
   timestamp: string;
   unread: boolean;
   messages: InboxMessage[];
+  category?: string | null; // triage category (email threads only)
+}
+
+export interface EmailCategory {
+  name: string;
+  description: string | null;
+  enabled: boolean;
+  drafts_enabled: boolean;
 }

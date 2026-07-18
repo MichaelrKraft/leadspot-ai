@@ -1,8 +1,10 @@
 """
-Chat routes for LeadSpot AI Command Center
+Chat routes for LeadSpot AI Command Center — DEPRECATED
 
-Handles natural language commands from the Mautic plugin.
-This is the main entry point for the AI agent system with full tool calling support.
+Handles natural language commands from the Mautic plugin. Kept only for the
+Mautic plugin integration; all new conversational AI work happens in
+`routers/conv_ai.py` (`POST /api/v2/chat` — SSE streaming, citations,
+confirm-gated writes, thread memory). Do not add features here.
 """
 
 import json
@@ -307,7 +309,7 @@ async def run_tool_loop(
     return "I apologize, but I couldn't complete this task within the allowed steps. Please try a simpler request.", tools_used, tool_results
 
 
-@router.post("/chat", response_model=ChatResponse)
+@router.post("/chat", response_model=ChatResponse, deprecated=True)
 async def process_chat(
     request: ChatRequest,
     current_user: User = Depends(get_current_user),
@@ -447,7 +449,7 @@ async def process_chat(
         )
 
 
-@router.get("/chat/status")
+@router.get("/chat/status", deprecated=True)
 async def chat_status():
     """
     Check chat service status and configuration.
@@ -463,7 +465,7 @@ async def chat_status():
     }
 
 
-@router.get("/chat/tools")
+@router.get("/chat/tools", deprecated=True)
 async def list_tools():
     """
     List all available Mautic tools.

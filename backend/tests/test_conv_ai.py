@@ -3,9 +3,9 @@
 Mocking strategy
 ----------------
 The Anthropic API key is intentionally not present in this environment. We
-patch `anthropic.Anthropic` at the import path the router uses
-(`app.routers.conv_ai.anthropic.Anthropic`) so the router constructs a
-canned client that returns scripted tool-use traces.
+patch `anthropic.AsyncAnthropic` at the import path the client resolver uses
+(`app.services.inference.llm_client.anthropic.AsyncAnthropic`) so the router
+receives a canned client that returns scripted tool-use traces.
 
 Each scripted "turn" is a fake response object with:
   - `.content`: list of fake `text` and `tool_use` blocks
@@ -28,7 +28,7 @@ import json
 from datetime import datetime, timedelta
 from types import SimpleNamespace
 from typing import Any
-from unittest.mock import MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 
 import pytest
@@ -71,7 +71,7 @@ def _fake_anthropic_client(scripted_turns: list[Any]) -> MagicMock:
         except StopIteration as exc:  # pragma: no cover — defensive
             raise AssertionError("Anthropic client called more times than scripted") from exc
 
-    client.messages.create.side_effect = _create
+    client.messages.create = AsyncMock(side_effect=_create)
     return client
 
 
@@ -222,7 +222,7 @@ async def test_search_signals_scoped_to_org(
         ),
     ]
 
-    with patch("app.routers.conv_ai.anthropic.Anthropic") as mock_cls:
+    with patch("app.services.inference.llm_client.anthropic.AsyncAnthropic") as mock_cls:
         mock_cls.return_value = _fake_anthropic_client(scripted)
         body = await _post_chat(
             async_client,
@@ -263,7 +263,7 @@ async def test_write_tool_without_confirmed_action_emits_needs_confirm(
         ),
     ]
 
-    with patch("app.routers.conv_ai.anthropic.Anthropic") as mock_cls:
+    with patch("app.services.inference.llm_client.anthropic.AsyncAnthropic") as mock_cls:
         mock_cls.return_value = _fake_anthropic_client(scripted)
         body = await _post_chat(
             async_client,
@@ -312,7 +312,7 @@ async def test_write_tool_with_wrong_confirm_phrase_still_gated(
         ),
     ]
 
-    with patch("app.routers.conv_ai.anthropic.Anthropic") as mock_cls:
+    with patch("app.services.inference.llm_client.anthropic.AsyncAnthropic") as mock_cls:
         mock_cls.return_value = _fake_anthropic_client(scripted)
         body = await _post_chat(
             async_client,
@@ -362,7 +362,7 @@ async def test_write_tool_with_correct_confirm_executes(
         ),
     ]
 
-    with patch("app.routers.conv_ai.anthropic.Anthropic") as mock_cls:
+    with patch("app.services.inference.llm_client.anthropic.AsyncAnthropic") as mock_cls:
         mock_cls.return_value = _fake_anthropic_client(scripted)
         body = await _post_chat(
             async_client,
@@ -398,7 +398,7 @@ async def test_factual_claim_without_citations_triggers_reprompt(
         _fake_response("end_turn", [_block_text("I don't have evidence for that.")]),
     ]
 
-    with patch("app.routers.conv_ai.anthropic.Anthropic") as mock_cls:
+    with patch("app.services.inference.llm_client.anthropic.AsyncAnthropic") as mock_cls:
         client = _fake_anthropic_client(scripted)
         mock_cls.return_value = client
         body = await _post_chat(
@@ -429,7 +429,7 @@ async def test_telemetry_row_recorded(
         _fake_response("end_turn", [_block_text("Acknowledged.")]),
     ]
 
-    with patch("app.routers.conv_ai.anthropic.Anthropic") as mock_cls:
+    with patch("app.services.inference.llm_client.anthropic.AsyncAnthropic") as mock_cls:
         mock_cls.return_value = _fake_anthropic_client(scripted)
         await _post_chat(
             async_client,
@@ -448,3 +448,116 @@ async def test_telemetry_row_recorded(
     assert row.num_signal_ids == 0
     assert row.triggered_citation_guard is False
     assert row.model.startswith("claude-haiku")
+
+
+@pytest.mark.asyncio
+async def test_thread_history_persisted_and_replayed(
+    async_client: AsyncClient,
+    auth_headers: dict[str, str],
+    seeded_org: Any,
+    authed_user: Any,
+    db_session: AsyncSession,
+):
+    """Turn 1 persists both sides of the exchange; turn 2 with the same
+    thread_id replays that history into the model call."""
+    turn1 = [_fake_response("end_turn", [_block_text("Marcus is a contact in your CRM.")])]
+    with patch("app.services.inference.llm_client.anthropic.AsyncAnthropic") as mock_cls:
+        mock_cls.return_value = _fake_anthropic_client(turn1)
+        body = await _post_chat(
+            async_client,
+            auth_headers,
+            {"message": "Who is Marcus?", "thread_id": None, "deep": False, "confirmed_action": None},
+        )
+    events = _parse_sse(body)
+    done = [data for evt, data in events if evt == "done"][-1]
+    thread_id = done["thread_id"]
+
+    from app.models import ChatMessage as _CM
+    from sqlalchemy import select as _select
+
+    rows = (
+        (await db_session.execute(_select(_CM).where(_CM.thread_id == thread_id).order_by(_CM.created_at)))
+        .scalars()
+        .all()
+    )
+    assert [r.role for r in rows] == ["user", "assistant"]
+
+    turn2 = [_fake_response("end_turn", [_block_text("You asked about Marcus.")])]
+    with patch("app.services.inference.llm_client.anthropic.AsyncAnthropic") as mock_cls:
+        client = _fake_anthropic_client(turn2)
+        mock_cls.return_value = client
+        await _post_chat(
+            async_client,
+            auth_headers,
+            {"message": "What did I just ask?", "thread_id": thread_id, "deep": False, "confirmed_action": None},
+        )
+
+    sent_messages = client.messages.create.call_args.kwargs["messages"]
+    # history (user + assistant from turn 1) precedes the new user turn.
+    assert len(sent_messages) == 3
+    assert sent_messages[0]["content"] == "Who is Marcus?"
+    assert sent_messages[1]["role"] == "assistant"
+    assert sent_messages[2]["content"] == "What did I just ask?"
+
+
+@pytest.mark.asyncio
+async def test_exec_send_email_calls_agent_service(
+    db_session: AsyncSession,
+    seeded_org: Any,
+):
+    """_exec_send_email resolves the contact and POSTs to agent-service's
+    /api/email/send with the internal key; response maps to sent+message_id."""
+    from app.routers import conv_ai as conv_ai_mod
+
+    captured: dict[str, Any] = {}
+
+    class _FakeResp:
+        status_code = 200
+
+        @staticmethod
+        def json() -> dict[str, Any]:
+            return {"messageId": "re_123"}
+
+    class _FakeHttpClient:
+        def __init__(self, *args: Any, **kwargs: Any) -> None:
+            pass
+
+        async def __aenter__(self) -> "_FakeHttpClient":
+            return self
+
+        async def __aexit__(self, *exc: Any) -> None:
+            return None
+
+        async def post(self, url: str, **kwargs: Any) -> _FakeResp:
+            captured["url"] = url
+            captured["json"] = kwargs.get("json")
+            captured["headers"] = kwargs.get("headers")
+            return _FakeResp()
+
+    with patch.object(conv_ai_mod.httpx, "AsyncClient", _FakeHttpClient):
+        result = await conv_ai_mod._exec_send_email(
+            db_session,
+            seeded_org.org_id,
+            {"contact_id": seeded_org.contact_id, "subject": "Hi", "body": "Hello"},
+        )
+
+    assert result["sent"] is True
+    assert result["message_id"] == "re_123"
+    assert captured["url"].endswith("/api/email/send")
+    assert captured["json"]["to"] == "marcus@example.com"
+    assert "X-Internal-Api-Key" in captured["headers"]
+
+
+@pytest.mark.asyncio
+async def test_exec_send_email_unknown_contact_errors(
+    db_session: AsyncSession,
+    seeded_org: Any,
+):
+    from app.routers import conv_ai as conv_ai_mod
+
+    result = await conv_ai_mod._exec_send_email(
+        db_session,
+        seeded_org.org_id,
+        {"contact_id": str(uuid4()), "subject": "Hi", "body": "Hello"},
+    )
+    assert result == {"error": "contact_not_found"}

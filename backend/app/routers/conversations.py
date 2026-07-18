@@ -1,4 +1,4 @@
-from typing import Optional
+
 """
 Conversations router — inbox email/SMS threads.
 Backed by SQLite via SQLAlchemy async session.
@@ -15,11 +15,18 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import Base, get_db
 from app.models import User
+from app.models.contact import Contact
+from app.models.email import Email
+from app.models.email_message import EmailMessage
 from app.services.auth_service import get_current_user
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/conversations", tags=["conversations"])
+
+# Derived email-thread conversation ids are prefixed to distinguish them from
+# Conversation-table UUIDs (which continue to back SMS + manual compose).
+EMAIL_THREAD_PREFIX = "em:"
 
 
 # ---------------------------------------------------------------------------
@@ -67,16 +74,17 @@ class ConversationMessage(Base):
 class ConversationOut(BaseModel):
     id: str
     type: str
-    contact_id: Optional[str]
+    contact_id: str | None
     contact_name: str
-    contact_email: Optional[str]
-    contact_phone: Optional[str]
-    subject: Optional[str]
+    contact_email: str | None
+    contact_phone: str | None
+    subject: str | None
     last_message: str
     last_message_at: str
     unread_count: int
     org_id: str
     created_at: str
+    category: str | None = None  # triage category for email threads
 
     @classmethod
     def from_orm(cls, c: Conversation) -> "ConversationOut":
@@ -102,7 +110,7 @@ class MessageOut(BaseModel):
     direction: str
     body: str
     sent_at: str
-    sender_name: Optional[str]
+    sender_name: str | None
 
     @classmethod
     def from_orm(cls, m: ConversationMessage) -> "MessageOut":
@@ -118,16 +126,87 @@ class MessageOut(BaseModel):
 
 class CreateConversationBody(BaseModel):
     type: str = "email"
-    contact_id: Optional[str] = None
+    contact_id: str | None = None
     contact_name: str
-    contact_email: Optional[str] = None
-    contact_phone: Optional[str] = None
-    subject: Optional[str] = None
-    first_message: Optional[str] = None
+    contact_email: str | None = None
+    contact_phone: str | None = None
+    subject: str | None = None
+    first_message: str | None = None
 
 
 class ReplyBody(BaseModel):
     body: str
+
+
+class CategoryCorrectionBody(BaseModel):
+    category: str
+    always_for_sender: bool = False
+
+
+# ---------------------------------------------------------------------------
+# Email-thread derivation (Unified Inbox)
+# ---------------------------------------------------------------------------
+
+
+def _thread_key(m: EmailMessage) -> str:
+    return m.thread_id or m.provider_message_id
+
+
+async def _contact_names(db: AsyncSession, org_id: str, contact_ids: set[str]) -> dict[str, str]:
+    if not contact_ids:
+        return {}
+    contacts = (
+        await db.execute(
+            select(Contact).where(
+                Contact.organization_id == org_id, Contact.id.in_(contact_ids)
+            )
+        )
+    ).scalars().all()
+    return {
+        c.id: f"{c.first_name} {c.last_name}".strip() for c in contacts
+    }
+
+
+def _email_thread_out(
+    thread: list[EmailMessage], names: dict[str, str]
+) -> ConversationOut:
+    """Collapse one email thread (oldest->newest) into a ConversationOut."""
+    latest = thread[-1]
+    first = thread[0]
+    inbound = next((m for m in reversed(thread) if m.direction == "inbound"), latest)
+    contact_id = next((m.contact_id for m in thread if m.contact_id), None)
+    return ConversationOut(
+        id=f"{EMAIL_THREAD_PREFIX}{_thread_key(latest)}",
+        type="email",
+        contact_id=contact_id,
+        contact_name=(names.get(contact_id) if contact_id else None) or inbound.from_address,
+        contact_email=inbound.from_address,
+        contact_phone=None,
+        subject=first.subject,
+        last_message=(latest.body_preview or "")[:2000],
+        last_message_at=latest.received_at.isoformat() if latest.received_at else "",
+        unread_count=0,  # read-state is CRM-local and lands with Phase D-full
+        org_id=latest.org_id,
+        created_at=first.received_at.isoformat() if first.received_at else "",
+        category=latest.category,
+    )
+
+
+async def _load_thread(
+    db: AsyncSession, org_id: str, thread_key: str
+) -> list[EmailMessage]:
+    rows = (
+        await db.execute(
+            select(EmailMessage)
+            .where(
+                EmailMessage.org_id == org_id,
+                (EmailMessage.thread_id == thread_key)
+                | (EmailMessage.provider_message_id == thread_key),
+            )
+            .order_by(EmailMessage.received_at.asc())
+        )
+    ).scalars().all()
+    return list(rows)
 
 
 # ---------------------------------------------------------------------------
@@ -143,19 +222,46 @@ async def list_conversations(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """List conversations for the org, optionally filtered by type."""
+    """List conversations: email threads derived from ingested mail, plus
+    SMS/manual conversations from the legacy Conversation table."""
     org_id = str(current_user.organization_id)
-    stmt = select(Conversation).where(Conversation.org_id == org_id)
-    if type != "all":
-        stmt = stmt.where(Conversation.type == type)
-    stmt = stmt.order_by(Conversation.last_message_at.desc())
-    stmt = stmt.offset((page - 1) * limit).limit(limit)
+    conversations: list[ConversationOut] = []
 
-    result = await db.execute(stmt)
-    convos = result.scalars().all()
+    if type in ("all", "email"):
+        # Group recent mail into threads. Fetch a window of recent messages and
+        # collapse in memory — fine at CRM inbox scale, avoids dialect-specific
+        # window functions across SQLite/PostgreSQL.
+        rows = (
+            await db.execute(
+                select(EmailMessage)
+                .where(EmailMessage.org_id == org_id)
+                .order_by(EmailMessage.received_at.desc())
+                .limit(limit * 10)
+            )
+        ).scalars().all()
+        threads: dict[str, list[EmailMessage]] = {}
+        for m in rows:
+            threads.setdefault(_thread_key(m), []).append(m)
+        names = await _contact_names(
+            db, org_id, {m.contact_id for m in rows if m.contact_id}
+        )
+        for thread in threads.values():
+            thread.sort(key=lambda m: m.received_at or datetime.min)
+            conversations.append(_email_thread_out(thread, names))
 
+    if type in ("all", "sms", "chat"):
+        stmt = select(Conversation).where(Conversation.org_id == org_id)
+        if type != "all":
+            stmt = stmt.where(Conversation.type == type)
+        else:
+            stmt = stmt.where(Conversation.type != "email")
+        legacy = (await db.execute(stmt)).scalars().all()
+        conversations.extend(ConversationOut.from_orm(c) for c in legacy)
+
+    conversations.sort(key=lambda c: c.last_message_at, reverse=True)
+    start = (page - 1) * limit
     return {
-        "conversations": [ConversationOut.from_orm(c) for c in convos],
+        "conversations": conversations[start : start + limit],
         "page": page,
         "limit": limit,
     }
@@ -169,6 +275,30 @@ async def get_conversation(
 ):
     """Get a single conversation and its messages."""
     org_id = str(current_user.organization_id)
+
+    if conversation_id.startswith(EMAIL_THREAD_PREFIX):
+        thread_key = conversation_id[len(EMAIL_THREAD_PREFIX):]
+        thread = await _load_thread(db, org_id, thread_key)
+        if not thread:
+            raise HTTPException(status_code=404, detail="Conversation not found")
+        names = await _contact_names(
+            db, org_id, {m.contact_id for m in thread if m.contact_id}
+        )
+        messages = [
+            MessageOut(
+                id=m.id,
+                conversation_id=conversation_id,
+                direction="outbound" if m.direction == "outbound" else "inbound",
+                body=m.body_preview or "",
+                sent_at=m.received_at.isoformat() if m.received_at else "",
+                sender_name=m.from_address,
+            )
+            for m in thread
+        ]
+        return {
+            "conversation": _email_thread_out(thread, names),
+            "messages": messages,
+        }
 
     result = await db.execute(
         select(Conversation).where(
@@ -236,6 +366,93 @@ async def create_conversation(
     return {"conversation": ConversationOut.from_orm(convo)}
 
 
+@router.get("/meta/categories")
+async def list_categories(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """The org's triage categories (seeded on first use) — for chips/dropdowns."""
+    from app.services.inference.email_classifier import ensure_categories
+
+    org_id = str(current_user.organization_id)
+    categories = await ensure_categories(db, org_id)
+    return {
+        "categories": [
+            {
+                "name": c.name,
+                "description": c.description,
+                "enabled": c.enabled,
+                "drafts_enabled": c.drafts_enabled,
+            }
+            for c in categories
+        ]
+    }
+
+
+@router.patch("/{conversation_id}/category")
+async def correct_category(
+    conversation_id: str,
+    body: CategoryCorrectionBody,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Correct an email thread's category — the triage feedback loop.
+
+    Optionally writes a sender rule so future mail from this sender is
+    categorized the same way without the LLM.
+    """
+    from app.models.email_category import EmailCategory, SenderRule
+
+    if not conversation_id.startswith(EMAIL_THREAD_PREFIX):
+        raise HTTPException(status_code=400, detail="Only email threads have categories")
+
+    org_id = str(current_user.organization_id)
+    valid = (
+        await db.execute(
+            select(EmailCategory).where(
+                EmailCategory.org_id == org_id, EmailCategory.name == body.category
+            )
+        )
+    ).scalar_one_or_none()
+    if not valid:
+        raise HTTPException(status_code=422, detail="Unknown category")
+
+    thread_key = conversation_id[len(EMAIL_THREAD_PREFIX):]
+    thread = await _load_thread(db, org_id, thread_key)
+    if not thread:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+
+    for m in thread:
+        if m.direction == "inbound":
+            m.category = body.category
+
+    rule_created = False
+    if body.always_for_sender:
+        sender = next(
+            (m.from_address for m in reversed(thread) if m.direction == "inbound"), None
+        )
+        if sender:
+            existing = (
+                await db.execute(
+                    select(SenderRule).where(
+                        SenderRule.org_id == org_id, SenderRule.pattern == sender.lower()
+                    )
+                )
+            ).scalar_one_or_none()
+            if existing:
+                existing.category_name = body.category
+            else:
+                db.add(
+                    SenderRule(
+                        org_id=org_id, pattern=sender.lower(), category_name=body.category
+                    )
+                )
+            rule_created = True
+
+    await db.commit()
+    return {"ok": True, "category": body.category, "sender_rule_created": rule_created}
+
+
 @router.post("/{conversation_id}/reply")
 async def reply_to_conversation(
     conversation_id: str,
@@ -243,11 +460,50 @@ async def reply_to_conversation(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Add an outbound reply message to a conversation."""
+    """Add an outbound reply message to a conversation.
+
+    For derived email threads the reply is saved as a Draft in the emails
+    table — nothing is sent (sending is the agent-service's job once its
+    send path ships). The draft is returned in message shape so the UI can
+    render it optimistically.
+    """
     if not body.body.strip():
         raise HTTPException(status_code=422, detail="Reply body cannot be empty")
 
     org_id = str(current_user.organization_id)
+
+    if conversation_id.startswith(EMAIL_THREAD_PREFIX):
+        thread_key = conversation_id[len(EMAIL_THREAD_PREFIX):]
+        thread = await _load_thread(db, org_id, thread_key)
+        if not thread:
+            raise HTTPException(status_code=404, detail="Conversation not found")
+        latest_inbound = next(
+            (m for m in reversed(thread) if m.direction == "inbound"), thread[-1]
+        )
+        now = datetime.utcnow()
+        draft = Email(
+            id=_uuid(),
+            subject=f"Re: {latest_inbound.subject or ''}".strip(),
+            status="Draft",
+            from_addr=getattr(current_user, "email", "") or "",
+            to_addr=latest_inbound.from_address,
+            body=body.body.strip(),
+            email_type="Outbound",
+            contact_id=latest_inbound.contact_id,
+            user_id=str(current_user.user_id),
+        )
+        db.add(draft)
+        await db.commit()
+        return {
+            "message": MessageOut(
+                id=draft.id,
+                conversation_id=conversation_id,
+                direction="outbound",
+                body=draft.body or "",
+                sent_at=now.isoformat(),
+                sender_name=getattr(current_user, "full_name", None),
+            )
+        }
 
     result = await db.execute(
         select(Conversation).where(

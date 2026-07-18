@@ -293,3 +293,84 @@ Branch: `feature/cre-central-brain` (4 commits, NOT pushed)
 1. `bash start.sh` (all 3 services)
 2. `cd backend && .venv/bin/python -m scripts.seed_kane_demo --email <your-login-email>` (re-run anytime to reset)
 3. localhost:3006 → Deals → Leasing tab → AI Suggestions
+
+## Review — 2026-07-17: Unified Inbox (Fyxer-clone integration)
+
+Ported the logic of ~/inbox-concierge (standalone Fyxer clone) into LeadSpot as the
+Unified Inbox. Plan: ~/.claude/plans/is-this-something-that-humble-bee.md (includes the
+adversarial-review corrections: GmailConnector never existed, outlook_sync was the real
+template, conversations router already existed).
+
+**Phase A — Gmail ingestion**
+- `services/connectors/gmail.py` — real Gmail REST client (getProfile bootstrap cursor,
+  history.list incremental sync w/ stale-404 resync, full message parse; INBOX + SENT).
+- `services/sync/gmail_inbox_sync.py` — refresh-on-expiry tokens (outlook pattern), cursor
+  in provider_metadata JSON, alias-hash contact matching (email_normalize + email_aliases,
+  case-insensitive fallback, ambiguity logged), dedupe on (org_id, provider_message_id),
+  calls existing analyze_source_for_deal_status per inbound email.
+- `email_events` table + TERMINAL_ACTIONS state machine: a message is only skip-on-retry
+  after a terminal event (drafted/skipped/no-draft-needed) — crash between ingest and
+  draft is retried, never silently dropped. Doubles as activity feed.
+- `workers/inbox_poller.py` — 90s asyncio loop in lifespan (ungated by embedding keys),
+  5-consecutive-failure circuit breaker → connection status ERROR.
+- `POST /oauth/gmail/backfill` (7d inbound + 90d SENT for voice layer); fixed
+  /oauth/gmail/sync which pointed at dead GmailSyncService.
+- SENT mail flow: outbound → thread "Awaiting Reply"; inbound reply → "Actioned".
+
+**Phase B — Triage** — `email_categories` + `sender_rules` (8 Fyxer defaults seeded per
+org on first use), `services/inference/email_classifier.py` (Haiku, forced tool choice,
+sender rules short-circuit), `services/inference/llm_client.py` (org BYOK key w/ global
+fallback — first thing to actually wire org.anthropic_api_key into inference).
+
+**Phase C — Drafting** — `style_profiles` + `services/inference/reply_drafter.py`:
+style profile distilled from SENT mail at backfill, exemplar retrieval via
+local_vector_store (type=sent_exemplar), Sonnet drafts saved to emails table
+(status=Draft, NEVER sent), daily cap (40) + never-draft sender rules (sentinel
+category __no_draft__).
+
+**Phase D — UI** — conversations router now derives email threads from email_messages
+(id prefix "em:", response shape preserved for lib/api/conversations.ts); legacy
+conversations table still backs SMS/manual compose. Inbox page: category filter chips,
+per-row category badge, category-correction dropdown w/ "always for this sender" →
+sender rule, deal-suggestion accept/reject banner, Gmail-broken reconnect banner,
+empty state → Settings → Integrations. New endpoints: GET /api/conversations/meta/
+categories, PATCH /api/conversations/{id}/category.
+
+**Verified**: 209 backend tests pass (21 new across 3 files); alembic up/down/up
+round-trips on all 3 migrations (SQLite); frontend tsc clean; uvicorn boots with poller;
+all new routes in OpenAPI and 401 without auth. Pre-existing failures in
+test_gmail_integration.py (dead legacy GmailConnector) unchanged — confirmed failing
+before this work via stash test.
+
+**Not yet done**: live E2E needs a real Gmail connection (GOOGLE_CLIENT_ID/SECRET +
+ENCRYPTION_KEY in backend/.env, then Settings → Integrations → connect, then backfill).
+PostgreSQL migration parity check before prod deploy. Playwright pass on /inbox once
+creds exist. Outlook parity + native Gmail labels/drafts (needs gmail.modify) = v2.
+
+---
+
+## Review — Conversational AI fully functional (2026-07-17 evening)
+
+Investigated + fixed the four gaps keeping the /api/v2 conversational AI from full function:
+
+- [x] **Agent service (:3008) running** — was complete code, simply never started. Now up via
+  `npm run dev` (start.sh already covers it). `/api/agent/*` proxy 503s → gone; brief/smart-lists/
+  timeline/queue live. Internal keys verified matching between backend/.env and agent-service/.env.
+- [x] **Conversation memory** — new `chat_messages` table (migration `20260717_chat_mem`, with
+  downgrade, round-trip tested). User + final assistant turns persisted per thread_id; last 30
+  replayed into the Claude call. CommandPalette already reuses thread_id — no frontend change.
+  Live 2-turn smoke: turn 2 correctly recalled turn 1's question.
+- [x] **Real send_email** — `_exec_send_email` (conv_ai.py) now resolves the contact and POSTs to
+  agent-service `POST /api/email/send` (new alias for test-send: full Resend path w/ suppression
+  check, CAN-SPAM footer, record-send to backend). Still confirm-gated ('send'). queue_email
+  remains a stub (needs a dispatch worker — v2).
+- [x] **BYOK + async** — conv_ai now uses `get_anthropic_client()` (org key first, global fallback)
+  and awaits AsyncAnthropic; no more blocking sync client in the SSE stream.
+- [x] **sentence_transformers 5.6.0 installed** — local embeddings live (384-dim); activates both
+  /api/query local RAG and Unified Inbox sent-exemplar retrieval.
+- [x] **Legacy /api/chat marked deprecated** (docstring + OpenAPI `deprecated=True`); kept for the
+  Mautic plugin.
+
+Tests: 212 passed (3 new: thread memory e2e, send_email executor, unknown-contact error).
+Not done: queue_email dispatch worker; UI Playwright pass (needs Mike's login; API-level e2e done
+instead); retire legacy /api/chat + frontend lib/api/chat.ts fully.

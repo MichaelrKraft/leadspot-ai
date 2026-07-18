@@ -85,6 +85,7 @@ from app.seed import seed_demo_data
 from app.services.digest_scheduler import start_digest_scheduler, stop_digest_scheduler
 from app.services.ingestion.pipeline import IngestionPipeline
 from app.workers.health_worker import start_health_worker, stop_health_worker
+from app.workers.inbox_poller import start_inbox_poller, stop_inbox_poller
 from app.workers.sync_worker import init_sync_worker, sync_worker
 
 logger = logging.getLogger(__name__)
@@ -126,6 +127,11 @@ async def lifespan(app: FastAPI):
         # services/digest_scheduler.py for the production-scaling caveat).
         start_digest_scheduler()
         logger.info("Ghostlog digest scheduler started")
+
+        # Start inbox poller (Unified Inbox Gmail ingestion; ungated by
+        # embedding keys — needs only Gmail OAuth credentials).
+        await start_inbox_poller()
+        logger.info("Inbox poller started")
     except Exception as e:
         logger.warning(f"Failed to start background workers: {e}")
         # Continue without workers - app still functional
@@ -141,6 +147,10 @@ async def lifespan(app: FastAPI):
         # Stop digest scheduler
         await stop_digest_scheduler()
         logger.info("Ghostlog digest scheduler stopped")
+
+        # Stop inbox poller
+        await stop_inbox_poller()
+        logger.info("Inbox poller stopped")
 
         # Stop sync worker
         if sync_worker:
@@ -185,6 +195,18 @@ if not settings.DEBUG:
     # Ensure at least the production frontend is allowed
     if not allowed_origins:
         allowed_origins = settings.cors_origins_list  # Fall back to configured origins
+
+# Session cookies for the OAuth connect flow — /oauth/{provider}/authorize
+# stores CSRF state + user/org ids that /oauth/{provider}/callback validates.
+# Without this middleware the callback always fails "Invalid state parameter".
+from starlette.middleware.sessions import SessionMiddleware  # noqa: E402
+
+app.add_middleware(
+    SessionMiddleware,
+    secret_key=settings.JWT_SECRET,
+    same_site="lax",  # cookie must survive Google's top-level redirect back
+    https_only=False,  # localhost; set True when serving over TLS
+)
 
 app.add_middleware(
     CORSMiddleware,
