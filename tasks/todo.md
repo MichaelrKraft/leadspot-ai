@@ -563,3 +563,18 @@ LeadSpot. Currently off/not showing. Goal (confirmed by Mike): get it working ag
 ## Out of scope (this pass, per Mike)
 - Billing/Stripe wiring, prepaid minute balance UI, monetization/pricing as an "upgrade tier"
   — functional revival only for now
+
+## Review (2026-07-17)
+All 4 CI jobs green on PR #6 (run 29628742298). What it took, beyond the plan:
+- Docker: named the frontend Dockerfile stage `production` (1 word)
+- Frontend: eslint 0 errors + tsc clean (entities escaped, RouteCtx type, d3 casts)
+- Backend lint: 835 ruff auto-fixes + suppressed pre-existing categories in
+  pyproject.toml with rationale (DTZ x226 datetime migration = tracked follow-up)
+- DISCOVERED: CI env bug — DATABASE_URL lacked +asyncpg scheme, so pytest had
+  NEVER actually run in CI (died at import). Fixed in workflow + 32-char JWT_SECRET.
+- DISCOVERED: with tests finally running, only failures were test_gmail_integration.py
+  (tests dead GmailConnector code that never shipped) — deleted; live Gmail stack
+  covered by test_gmail_inbox_sync.py. Final: 232+ passed, 0 failed.
+
+Follow-ups (not done): DTZ naive-datetime migration (226 sites), dead
+services/sync/gmail_sync.py removal, other suppressed lint categories.
