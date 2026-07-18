@@ -17,9 +17,9 @@ Hard rules (mirrors task spec, plan §2.5 + §6):
   4. Hallucination telemetry → `chat_telemetry` table.
   5. Write tools require an explicit confirm phrase via `confirmed_action`.
 
-The Anthropic SDK client is constructed lazily inside the handler so tests
-can patch `anthropic.Anthropic` (or `anthropic.AsyncAnthropic`) cleanly
-without the import-time side effect.
+The Anthropic client is resolved per-request via
+`services.inference.llm_client.get_anthropic_client` (org BYOK key first,
+global key fallback); tests patch `anthropic.AsyncAnthropic` at that module.
 """
 
 from __future__ import annotations
@@ -32,7 +32,7 @@ import uuid
 from datetime import datetime, timedelta
 from typing import Any, AsyncIterator, Optional
 
-import anthropic
+import httpx
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
@@ -41,8 +41,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
 from app.database import get_db
-from app.models import ChatTelemetry, Contact, Deal, Signal, User
+from app.models import ChatMessage, ChatTelemetry, Contact, Deal, Signal, User
+from app.routers.agent_proxy import AGENT_SERVICE_URL
 from app.services.auth_service import get_current_user
+from app.services.inference.llm_client import get_anthropic_client
 
 logger = logging.getLogger(__name__)
 
@@ -56,6 +58,8 @@ SONNET_MODEL = "claude-sonnet-4-6"
 
 # Stop after this many tool-use rounds — guard against runaway loops.
 MAX_TOOL_ROUNDS = 6
+# Prior turns replayed into the model when the client passes a thread_id.
+MAX_HISTORY_MESSAGES = 30
 # One re-prompt only on citation-guard failure — never loop forever.
 MAX_CITATION_RETRIES = 1
 
@@ -466,10 +470,48 @@ async def _exec_list_at_risk_deals(
 
 
 async def _exec_send_email(db: AsyncSession, org_id: str, args: dict[str, Any]) -> dict[str, Any]:
-    # Real send is wired through the existing /api/emails router in Phase 3+;
-    # here we record the intent and return success. The integration test
-    # verifies the gate, not the actual SMTP path.
-    return {"sent": True, "contact_id": args.get("contact_id"), "subject": args.get("subject")}
+    """Send via agent-service's Resend path — it enforces the suppression
+    list, adds CAN-SPAM footers, and records the send back to /api/emails.
+    Only ever reached after the user typed the 'send' confirm phrase.
+    """
+    contact_id = args["contact_id"]
+    result = await db.execute(
+        select(Contact).where(Contact.id == contact_id, Contact.organization_id == org_id)
+    )
+    contact = result.scalar_one_or_none()
+    if not contact:
+        return {"error": "contact_not_found"}
+    if not contact.email:
+        return {"error": "contact_has_no_email_address"}
+
+    try:
+        async with httpx.AsyncClient(timeout=20.0) as client:
+            resp = await client.post(
+                f"{AGENT_SERVICE_URL}/api/email/send",
+                json={
+                    "to": contact.email,
+                    "subject": args["subject"],
+                    "body": args["body"],
+                    "contactId": contact_id,
+                    "organizationId": org_id,
+                },
+                headers={"X-Internal-Api-Key": settings.INTERNAL_API_KEY},
+            )
+    except httpx.HTTPError as exc:
+        logger.error("send_email: agent service unreachable: %s", exc)
+        return {"error": "email_service_unavailable"}
+
+    if resp.status_code != 200:
+        logger.error("send_email: agent service returned %s", resp.status_code)
+        return {"error": f"send_failed_status_{resp.status_code}"}
+
+    data = resp.json()
+    return {
+        "sent": True,
+        "contact_id": contact_id,
+        "subject": args.get("subject"),
+        "message_id": data.get("messageId"),
+    }
 
 
 async def _exec_queue_email(db: AsyncSession, org_id: str, args: dict[str, Any]) -> dict[str, Any]:
@@ -595,26 +637,52 @@ async def conv_ai_chat(
     """Stream a Conversational AI response with tool-use, citations, and
     confirmation gating.
     """
-    if not settings.ANTHROPIC_API_KEY:
-        # Don't stream — surface a hard error so the client can show a
-        # config issue banner instead of a half-streamed empty palette.
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="ANTHROPIC_API_KEY is not configured.",
-        )
-
     org_id = str(current_user.organization_id)
     user_id = str(current_user.user_id)
     thread_id = body.thread_id or str(uuid.uuid4())
     model = SONNET_MODEL if body.deep else HAIKU_MODEL
 
-    async def stream() -> AsyncIterator[str]:
-        # Constructed inside the handler so tests can patch `anthropic.Anthropic`.
-        client = anthropic.Anthropic(api_key=settings.ANTHROPIC_API_KEY)
+    # Org BYOK key first, global ANTHROPIC_API_KEY fallback. Resolved before
+    # streaming so a config problem is a clean 503, not a half-streamed error.
+    client = await get_anthropic_client(db, org_id)
+    if client is None:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="No Anthropic API key configured (org or global).",
+        )
 
+    # Replay prior turns for follow-up questions. Only user/assistant text is
+    # persisted (no tool blocks), so this maps 1:1 onto the messages array.
+    history: list[dict[str, Any]] = []
+    if body.thread_id:
+        h_result = await db.execute(
+            select(ChatMessage)
+            .where(
+                ChatMessage.organization_id == org_id,
+                ChatMessage.thread_id == thread_id,
+            )
+            .order_by(ChatMessage.created_at.desc())
+            .limit(MAX_HISTORY_MESSAGES)
+        )
+        history = [
+            {"role": m.role, "content": m.content}
+            for m in reversed(h_result.scalars().all())
+        ]
+
+    async def stream() -> AsyncIterator[str]:
         messages: list[dict[str, Any]] = [
+            *history,
             {"role": "user", "content": body.message},
         ]
+        db.add(
+            ChatMessage(
+                organization_id=org_id,
+                user_id=user_id,
+                thread_id=thread_id,
+                role="user",
+                content=body.message,
+            )
+        )
         tool_outputs: list[dict[str, Any]] = []
         total_input = 0
         total_output = 0
@@ -629,7 +697,7 @@ async def conv_ai_chat(
                 # window is implicitly cached by the same prefix because
                 # we'd inject it via the system prompt in a richer setup;
                 # for v1 the cached prefix IS the system prompt.
-                response = client.messages.create(
+                response = await client.messages.create(
                     model=model,
                     max_tokens=2048,
                     system=[
@@ -776,6 +844,16 @@ async def conv_ai_chat(
             yield _sse(
                 "assistant",
                 {"text": final_text, "citations": final_citations},
+            )
+
+            db.add(
+                ChatMessage(
+                    organization_id=org_id,
+                    user_id=user_id,
+                    thread_id=thread_id,
+                    role="assistant",
+                    content=final_text,
+                )
             )
 
             await _log_telemetry(

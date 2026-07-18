@@ -346,3 +346,31 @@ before this work via stash test.
 ENCRYPTION_KEY in backend/.env, then Settings → Integrations → connect, then backfill).
 PostgreSQL migration parity check before prod deploy. Playwright pass on /inbox once
 creds exist. Outlook parity + native Gmail labels/drafts (needs gmail.modify) = v2.
+
+---
+
+## Review — Conversational AI fully functional (2026-07-17 evening)
+
+Investigated + fixed the four gaps keeping the /api/v2 conversational AI from full function:
+
+- [x] **Agent service (:3008) running** — was complete code, simply never started. Now up via
+  `npm run dev` (start.sh already covers it). `/api/agent/*` proxy 503s → gone; brief/smart-lists/
+  timeline/queue live. Internal keys verified matching between backend/.env and agent-service/.env.
+- [x] **Conversation memory** — new `chat_messages` table (migration `20260717_chat_mem`, with
+  downgrade, round-trip tested). User + final assistant turns persisted per thread_id; last 30
+  replayed into the Claude call. CommandPalette already reuses thread_id — no frontend change.
+  Live 2-turn smoke: turn 2 correctly recalled turn 1's question.
+- [x] **Real send_email** — `_exec_send_email` (conv_ai.py) now resolves the contact and POSTs to
+  agent-service `POST /api/email/send` (new alias for test-send: full Resend path w/ suppression
+  check, CAN-SPAM footer, record-send to backend). Still confirm-gated ('send'). queue_email
+  remains a stub (needs a dispatch worker — v2).
+- [x] **BYOK + async** — conv_ai now uses `get_anthropic_client()` (org key first, global fallback)
+  and awaits AsyncAnthropic; no more blocking sync client in the SSE stream.
+- [x] **sentence_transformers 5.6.0 installed** — local embeddings live (384-dim); activates both
+  /api/query local RAG and Unified Inbox sent-exemplar retrieval.
+- [x] **Legacy /api/chat marked deprecated** (docstring + OpenAPI `deprecated=True`); kept for the
+  Mautic plugin.
+
+Tests: 212 passed (3 new: thread memory e2e, send_email executor, unknown-contact error).
+Not done: queue_email dispatch worker; UI Playwright pass (needs Mike's login; API-level e2e done
+instead); retire legacy /api/chat + frontend lib/api/chat.ts fully.

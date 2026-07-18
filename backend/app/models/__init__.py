@@ -4,6 +4,7 @@ Database models package
 
 from app.models.calendar_event import CalendarEvent
 from app.models.campaign import Campaign
+from app.models.chat_message import ChatMessage
 from app.models.chat_telemetry import ChatTelemetry
 from app.models.contact import Contact
 from app.models.daemon_credential import DaemonCredential
@@ -29,6 +30,7 @@ from app.models.user import User
 __all__ = [
     "CalendarEvent",
     "Campaign",
+    "ChatMessage",
     "ChatTelemetry",
     "Contact",
     "DaemonCredential",
